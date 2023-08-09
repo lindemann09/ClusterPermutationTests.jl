@@ -1,0 +1,11 @@
+[deps]
+DataAPI = "9a962f9c-6df0-11e9-0e5d-c546b8b5ee8a"
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+HypothesisTests = "09f84164-cd44-5f33-b23f-e6b0d136a0d5"
+PrettyTables = "08abe8d2-0d0c-5749-adfa-8a2ac140af0d"
+ProgressMeter = "92933f4c-e287-5a05-a399-4b506db050ca"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+StatsAPI = "82ae8749-77ed-4fe6-ae5f-f523153014b0"
+StatsModels = "3eaba693-59b7-5ba5-a881-562e759f1c8d"
+TypedTables = "9d95f2ec-7b3d-5a63-8d20-e2491e220bb9"
+UnPack = "3a884ed6-31ef-47d7-9d2a-63182c4928ed"
