@@ -1,7 +1,7 @@
 name = "ClusterPermutationTests"
 uuid = "e3bc594e-7e39-4b61-be5a-4b8b3e7ff14e"
 authors = ["Oliver Lindemann"]
-version = "0.2.3-DEV"
+version = "0.2.3"
 
 [deps]
 DataAPI = "9a962f9c-6df0-11e9-0e5d-c546b8b5ee8a"
