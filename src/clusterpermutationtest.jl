@@ -4,11 +4,11 @@ abstract type ClusterPermutationTest end
 #          def::ClusterPermutationTestDefinition
 #          data::CPData
 
-unit_obs(x::ClusterPermutationTest) = unit_obs(x.data.design)
 unit_obs_name(x::ClusterPermutationTest) = unit_obs_name(x.data.design)
 
+unit_obs(x::ClusterPermutationTest) = unit_obs(x.data)
 data_matrix(x::ClusterPermutationTest) = data_matrix(x.data)
-iv_names(x::ClusterPermutationTest) = iv_names(x.data)
+design_table(x::ClusterPermutationTest) = design_table(x.data)
 nepochs(x::ClusterPermutationTest) = nepochs(x.data)
 nepoch_samples(x::ClusterPermutationTest) = nepoch_samples(x.data)
 
@@ -19,98 +19,96 @@ fits(x::ClusterPermutationTest) = fits(x.cpc)
 sample_statistics(x::ClusterPermutationTest) = x.cpc.stats
 
 function cluster_statistics(x::ClusterPermutationTest)
-    return cluster_statistics(x.def.mass_fnc, x.cpc.stats, x.cpc.cc)
+	return cluster_statistics(x.def.mass_fnc, x.cpc.stats, x.cpc.cc)
 end;
 
 function pvalues(x::ClusterPermutationTest;
-    inhibit_warning::Bool=false)::Vector{Float64}
-    # Monte Carlo permutation p value
+	inhibit_warning::Bool = false)::Vector{Float64}
+	# Monte Carlo permutation p value
 
-    n = npermutations(x)
-    if n < 5_000
-        if !inhibit_warning
-            @warn "Small number of permutations. Estimate of p is not precise! " *
-                "Call resample!."
-        end
-        if n < 1_000
-            return []
-        end
-    end
+	n = npermutations(x)
+	if n < 5_000
+		if !inhibit_warning
+			@warn "Small number of permutations. Estimate of p is not precise! " *
+				  "Call resample!."
+		end
+		if n < 1_000
+			return []
+		end
+	end
 
-    p = []
-    spl = fits(x)
-    clstats = cluster_statistics(x)
-    for (i, stats) in enumerate(clstats)
-        n_l = sum(spl[:, i] .> abs(stats))
-        append!(p, 2 * (n_l / n))
-    end
-    return p
+	p = []
+	spl = fits(x)
+	clstats = cluster_statistics(x)
+	for (i, stats) in enumerate(clstats)
+		n_l = sum(spl[:, i] .> abs(stats))
+		append!(p, 2 * (n_l / n))
+	end
+	return p
 end;
 
 function cluster_table(x::ClusterPermutationTest)::Table
-    cl_ranges = cluster_ranges(x)
-    stats = sample_statistics(x)
-    pvals = pvalues(x; inhibit_warning=true)
-    if length(pvals) > 0
-        p = pvals
-        sign = [p <= 0.05 ? "*" : "" for p in pvals]
-    else
-        p = repeat(["?"], length(cl_ranges))
-        sign = repeat([""], length(cl_ranges))
-    end
+	cl_ranges = cluster_ranges(x)
+	stats = sample_statistics(x)
+	pvals = pvalues(x; inhibit_warning = true)
+	if length(pvals) > 0
+		p = pvals
+		sign = [p <= 0.05 ? "*" : "" for p in pvals]
+	else
+		p = repeat(["?"], length(cl_ranges))
+		sign = repeat([""], length(cl_ranges))
+	end
 
-    return Table(id=1:length(cl_ranges),
-        from = [c.start for c in cl_ranges],
-        to = [c.stop for c in cl_ranges],
-        length = [c.stop - c.start + 1 for c in cl_ranges],
-        min = [minimum(stats[c]) for c in cl_ranges],
-        max = [maximum(stats[c]) for c in cl_ranges],
-        p = p,
-        sign = sign)
+	return Table(id = 1:length(cl_ranges),
+		from = [c.start for c in cl_ranges],
+		to = [c.stop for c in cl_ranges],
+		length = [c.stop - c.start + 1 for c in cl_ranges],
+		min = [minimum(stats[c]) for c in cl_ranges],
+		max = [maximum(stats[c]) for c in cl_ranges],
+		p = p,
+		sign = sign)
 end
 
-function resample!(cpt::ClusterPermutationTest; n_permutations::Integer,
-    progressmeter::Bool=true, use_threads::Bool=true)
-    return resample!(
-        Random.GLOBAL_RNG, cpt; n_permutations, progressmeter, use_threads)
-end
 
 function resample!(rng::AbstractRNG, cpt::ClusterPermutationTest;
-    n_permutations::Integer, progressmeter::Bool=true,
-    use_threads::Bool=true)
-    return resample!(
-        rng, cpt.def, cpt.cpc, cpt.data; n_permutations, progressmeter, use_threads
-    )
+	n_permutations::Integer,
+	progressmeter::Bool = true,
+	use_threads::Bool = true)
+	return _resample!(rng, cpt.def, cpt.cpc, cpt.data;
+		n_permutations, progressmeter, use_threads)
 end
 
+resample!(cpt::ClusterPermutationTest; kwargs...) =	resample!(Random.GLOBAL_RNG, cpt; kwargs...)
+
+
 function test_info(x::ClusterPermutationTest)
-    if x isa ClusterPermutationTestGeneral
-        return "$(typeof(x)) ($(repr_functions(x.def)))"
-    else
-        return typeof(x)
-    end
+	if x isa ClusterPermutationTestGeneral
+		return "$(typeof(x)) ($(repr_functions(x.def)))"
+	else
+		return typeof(x)
+	end
 end
 
 function summary(x::ClusterPermutationTest)
-    println("$(test_info(x))")
-    println("  data: $(nepochs(x)) x $(nepoch_samples(x))")
-    pt = pretty_table(String, cluster_table(x);
-        show_subheader=false,
-        formatters=(ft_printf("%0.2f", [5, 6]),
-                    ft_printf("%0.3f", [ 7])),
-        vlines=:none,
-        tf=tf_unicode_rounded)
-    print(pt)
-    return println("n permutations: $(npermutations(x))")
+	println("$(test_info(x))")
+	println("  data: $(nepochs(x)) x $(nepoch_samples(x))")
+	pt = pretty_table(String, cluster_table(x);
+		show_subheader = false,
+		formatters = (ft_printf("%0.2f", [5, 6]),
+			ft_printf("%0.3f", [7])),
+		vlines = :none,
+		tf = tf_unicode_rounded)
+	print(pt)
+	return println("n permutations: $(npermutations(x))")
 end;
 
 function Base.show(io::IO, mime::MIME"text/plain", x::ClusterPermutationTest)
-    clr = cluster_ranges(x)
-    cc = cluster_criteria(x)
-    println(io, "$(test_info(x))")
-    println(io, "  data: $(nepochs(x)) x $(nepoch_samples(x))")
-    println(
-        io, "  $(length(clr)) cluster (threshold=$(cc.threshold), min_size=$(cc.min_size)):"
-    )
-    return println(io, "  $(npermutations(x)) permutations")
+	clr = cluster_ranges(x)
+	cc = cluster_criteria(x)
+	println(io, "$(test_info(x))")
+	println(io, "  data: $(nepochs(x)) x $(nepoch_samples(x))")
+	println(
+		io, "  $(length(clr)) cluster (threshold=$(cc.threshold), min_size=$(cc.min_size)):",
+	)
+	return println(io, "  $(npermutations(x)) permutations")
 end;

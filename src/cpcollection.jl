@@ -33,7 +33,7 @@ function initial_fit!(cpc::ClusterPermutationCollection;
     return nothing
 end
 
-function resample!(rng::AbstractRNG,
+function _resample!(rng::AbstractRNG,
     def::ClusterPermutationTestDefinition,
     cpc::ClusterPermutationCollection,
     data::CPData;
@@ -48,19 +48,19 @@ function resample!(rng::AbstractRNG,
     if use_threads
         rstats = Vector{eltype(cpc.stats)}[]
         Threads.@threads for n in permutations_per_thread(n_permutations)
-            para = do_resampling(rng, def, cpc, data;
+            para = _do_resampling(rng, def, cpc, data;
                 n_permutations=n, progressmeter=prog)
             prog = nothing # only first thread should have a progressbar
             append!(rstats, para)
         end
     else
-        rstats = do_resampling(rng, def, cpc, data; n_permutations, progressmeter=prog)
+        rstats = _do_resampling(rng, def, cpc, data; n_permutations, progressmeter=prog)
     end
     append!(cpc.S, rstats)
     return nothing
 end;
 
-function do_resampling(rng::AbstractRNG,
+function _do_resampling(rng::AbstractRNG,
     def::ClusterPermutationTestDefinition,
     cpc::ClusterPermutationCollection,
     data::CPData;
@@ -71,7 +71,7 @@ function do_resampling(rng::AbstractRNG,
     @unpack specs = cpc
     cl_ranges = cluster_ranges(cpc)
     data_mtx = data_matrix(data)
-    perm_design = deepcopy_ivs(data.design)
+    perm_design = copy(data.design)
 
     cl_stats_distr = Vector{T}[] # distribution of cluster-level statistics
     for _ in 1:n_permutations
@@ -99,8 +99,6 @@ function fits(x::ClusterPermutationCollection)::Matrix
         return transpose(reduce(hcat, x.S))
     end
 end
-
-## helper
 
 # utilities
 

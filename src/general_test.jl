@@ -8,7 +8,7 @@ function fit(def::ClusterPermutationTestDefinition,
     data_mtx::AbstractMatrix{<:Real},
     design::Any;
     cluster_criteria::ClusterDef,
-    unit_obs::OptColumnIndex,
+    unit_obs::OptSymbolOString,
     ftype::Type{<:Float64}=Float64,
     kwargs...)::ClusterPermutationTestGeneral
     specs = (; kwargs...)

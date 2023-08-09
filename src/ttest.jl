@@ -5,10 +5,10 @@ struct ClusterPermutationTTest <: ClusterPermutationTest
 end;
 
 function fit(::Type{ClusterPermutationTTest},
-    iv::ColumnIndex,
+    iv::SymbolOString,
     data_mtx::AbstractMatrix{<:Real},
     design::Any;
-    unit_obs::OptColumnIndex,
+    unit_obs::OptSymbolOString,
     paired::Bool,
     compare::Union{Nothing,Base.AbstractVecOrTuple{<:StringSymbolOReal}}=nothing,
     equal_variance=true,
@@ -40,7 +40,7 @@ function fit(::Type{ClusterPermutationTTest},
     f::FormulaTerm,
     data_mtx::AbstractMatrix{<:Real},
     design::Any;
-    unit_obs::OptColumnIndex,
+    unit_obs::OptSymbolOString,
     paired::Bool,
     kwargs...)
     (f.lhs isa StatsModels.Term && f.rhs isa StatsModels.Term) || throw(
@@ -50,9 +50,9 @@ function fit(::Type{ClusterPermutationTTest},
 end
 
 function ttest_preprocess(
-    mtx::Matrix{<:Real}, design::PermuteDesign, specs::NamedTuple
+    mtx::Matrix{<:Real}, design::CPDesign, specs::NamedTuple
 )::Matrix
-    iv = design.ivs[1]
+    iv = getproperty(design.ivs, specs.iv)
     if specs[:paired]
         @unpack compare = specs
         a = mtx[iv .== compare[1], :]
@@ -63,9 +63,9 @@ function ttest_preprocess(
     end
 end
 
-function ttest(dat::Vector{<:Real}, design::PermuteDesign, specs::NamedTuple)::Float64
+function ttest(dat::Vector{<:Real}, design::CPDesign, specs::NamedTuple)::Float64
     # perform sequential ttests -> parameter
-    iv = design.ivs[1]
+    iv = getproperty(design.ivs, specs.iv)
     if specs[:paired]
         tt = OneSampleTTest(dat)
     else

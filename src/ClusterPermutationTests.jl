@@ -10,19 +10,19 @@ using ProgressMeter
 using PrettyTables
 
 import StatsAPI: fit, summary
+import Random: randperm!
 
 export ClusterPermutationTestDefinition,
     ClusterPermutationTest,
     ClusterPermutationTTest,
-#    CPData,
+#    CPData, CPDesign,
     ClusterCriteria,
     ClusterDefinition,
- #   PermuteDesign,
     cluster_statistics,
     cluster_ranges,
     unit_obs,
     unit_obs_name,
-    iv_names,
+    design_table,
     data_matrix,
     nepoch_samples,
     nepochs,
@@ -37,7 +37,7 @@ export ClusterPermutationTestDefinition,
     summary,
     @formula # reexport
 
-include("permutation.jl")
+include("cpdesign.jl")
 include("cpdata.jl")
 include("cpdefinition.jl")
 include("cluster.jl")
