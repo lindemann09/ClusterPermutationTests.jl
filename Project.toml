@@ -1,7 +1,7 @@
 name = "ClusterPermutationTests"
 uuid = "e3bc594e-7e39-4b61-be5a-4b8b3e7ff14e"
 authors = ["Oliver Lindemann"]
-version = "0.2.5"
+version = "0.2.6"
 
 [deps]
 DataAPI = "9a962f9c-6df0-11e9-0e5d-c546b8b5ee8a"
@@ -15,6 +15,14 @@ TypedTables = "9d95f2ec-7b3d-5a63-8d20-e2491e220bb9"
 UnPack = "3a884ed6-31ef-47d7-9d2a-63182c4928ed"
 
 [compat]
+DataAPI = "1"
+HypothesisTests = "0.11"
+PrettyTables = "2"
+ProgressMeter = "1"
+StatsAPI = "1"
+StatsModels = "0.7"
+TypedTables = "1"
+UnPack = "1"
 julia = "1"
 
 [extras]
