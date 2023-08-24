@@ -107,8 +107,12 @@ function Base.show(io::IO, mime::MIME"text/plain", x::ClusterPermutationTest)
 	cc = cluster_criteria(x)
 	println(io, "$(test_info(x))")
 	println(io, "  data: $(nepochs(x)) x $(nepoch_samples(x))")
-	println(
-		io, "  $(length(clr)) cluster (threshold=$(cc.threshold), min_size=$(cc.min_size)):",
-	)
+	if cc isa ClusterDefinition
+		println( io,
+			"  $(length(clr)) cluster (ranges=$(cc.ranges)):",		)
+	else
+		println( io,
+			"  $(length(clr)) cluster (threshold=$(cc.threshold), min_size=$(cc.min_size)):",		)
+	end
 	return println(io, "  $(npermutations(x)) permutations")
 end;
