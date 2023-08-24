@@ -1,6 +1,7 @@
 module ClusterPermutationTests
 
 using DataAPI
+using Tables
 using TypedTables
 using StatsModels
 using Random

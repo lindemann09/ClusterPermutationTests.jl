@@ -19,9 +19,13 @@ function CPData(; data_mtx::AbstractMatrix{<:Real},
 	unit_obs::OptSymbolOString,
 	kwargs...)
 
-	design_tbl = Table(design)
-	# check nrows
-	size(data_mtx, 1) == length(design_tbl) || throw(
+	Tables.istable(design) || throw(ArgumentError(
+		"design is not a table, but $(typeof(design)).",))
+
+	design_tbl = TypedTables.Table(design)
+	nrows = length(design_tbl)
+
+	size(data_mtx, 1) == nrows|| throw(
 		DimensionMismatch(
 			"Matrix and design table must have the same number of rows!"),
 	)
@@ -34,7 +38,7 @@ function CPData(; data_mtx::AbstractMatrix{<:Real},
 	end
 
 	# select subset with specified conditions
-	ids = ones(Bool, length(design_tbl))
+	ids = ones(Bool, nrows)
 	for (values, var) in zip(values(kwargs), ivs)
 		if !(values isa DataAPI.All) # select all columns
 			ids = ids .& has_values(design_tbl, var, values)

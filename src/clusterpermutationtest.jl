@@ -62,7 +62,7 @@ function cluster_table(x::ClusterPermutationTest)::Table
 	return Table(id = 1:length(cl_ranges),
 		from = [c.start for c in cl_ranges],
 		to = [c.stop for c in cl_ranges],
-		length = [c.stop - c.start + 1 for c in cl_ranges],
+		size = [c.stop - c.start + 1 for c in cl_ranges],
 		min = [minimum(stats[c]) for c in cl_ranges],
 		max = [maximum(stats[c]) for c in cl_ranges],
 		p = p,
