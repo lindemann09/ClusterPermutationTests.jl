@@ -5,7 +5,7 @@ struct ClusterPermutationCollection{T<:Real}
     stats::Vector{T} # test statistic at each sample
     cc::ClusterDef
 
-    S::Vector{Vector{T}} # fits
+    S::Vector{Vector{T}} # fits TODO should be matrix
 end;
 
 function ClusterPermutationCollection(;
@@ -46,11 +46,16 @@ function _resample!(rng::AbstractRNG,
         prog = nothing
     end
     if use_threads
-        rstats = Vector{eltype(cpc.stats)}[]
-        Threads.@threads for n in permutations_per_thread(n_permutations)
-            para = _do_resampling(rng, def, cpc, data;
-                n_permutations=n, progressmeter=prog)
+        n_thr = Threads.nthreads()
+        npt = convert(Int64, ceil(n_permutations/n_thr)) # n permutations per thread
+        container = Vector{Any}(undef, n_thr)
+        Threads.@threads for n in 1:n_thr
+            container[n] = _do_resampling(rng, def, cpc, data;
+                n_permutations=npt, progressmeter=prog)
             prog = nothing # only first thread should have a progressbar
+        end
+        rstats = Vector{eltype(cpc.stats)}[] # vector of vector
+        for para in container
             append!(rstats, para)
         end
     else
@@ -107,10 +112,4 @@ function reset_vector!(v::Vector, new_v::Vector)
     return append!(v, new_v)
 end
 
-function permutations_per_thread(n_permutations)::Vector{Int}
-    # returns array with number of permuations required for each thread
-    n_thr = Threads.nthreads()
-    n_perm_thread = repeat([trunc(Int, n_permutations / n_thr)], n_thr) # n per thread
-    n_perm_thread[1] += n_permutations - sum(n_perm_thread)# maybe not engough
-    return n_perm_thread
-end;
+;
