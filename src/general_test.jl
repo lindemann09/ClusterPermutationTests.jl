@@ -4,7 +4,7 @@ struct ClusterPermutationTestGeneral <: ClusterPermutationTest
     data::CPData
 end
 
-function fit(def::ClusterPermutationTestDefinition,
+function StatsAPI.fit(def::ClusterPermutationTestDefinition,
     data_mtx::AbstractMatrix{<:Real},
     design::Any;
     cluster_criteria::ClusterDef,

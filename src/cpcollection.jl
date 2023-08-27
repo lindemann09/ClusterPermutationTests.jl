@@ -28,7 +28,7 @@ function initial_fit!(cpc::ClusterPermutationCollection;
     @unpack specs = cpc
 
     mtx = preprocess_fnc(data_matrix(data), data.design, specs)
-    para = [estimate_fnc(mtx[:, s], data.design, specs) for s in 1:nepoch_samples(data)]
+    para = [estimate_fnc(mtx[:, s], data.design, specs) for s in 1:epoch_length(data)]
     reset_vector!(cpc.stats, para)
     return nothing
 end

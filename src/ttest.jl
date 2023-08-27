@@ -4,7 +4,7 @@ struct ClusterPermutationTTest <: ClusterPermutationTest
     data::CPData
 end;
 
-function fit(::Type{ClusterPermutationTTest},
+function StatsAPI.fit(::Type{ClusterPermutationTTest},
     iv::SymbolOString,
     data_mtx::AbstractMatrix{<:Real},
     design::Any;
@@ -36,7 +36,7 @@ function fit(::Type{ClusterPermutationTTest},
     return ClusterPermutationTTest(cpt_def, cpc, data)
 end;
 
-function fit(::Type{ClusterPermutationTTest},
+function StatsAPI.fit(::Type{ClusterPermutationTTest},
     f::FormulaTerm,
     data_mtx::AbstractMatrix{<:Real},
     design::Any;

@@ -10,13 +10,13 @@ unit_obs(x::ClusterPermutationTest) = unit_obs(x.data)
 data_matrix(x::ClusterPermutationTest) = data_matrix(x.data)
 design_table(x::ClusterPermutationTest) = design_table(x.data)
 nepochs(x::ClusterPermutationTest) = nepochs(x.data)
-nepoch_samples(x::ClusterPermutationTest) = nepoch_samples(x.data)
+epoch_length(x::ClusterPermutationTest) = epoch_length(x.data)
 
 npermutations(x::ClusterPermutationTest) = npermutations(x.cpc)
 cluster_ranges(x::ClusterPermutationTest) = cluster_ranges(x.cpc)
 cluster_criteria(x::ClusterPermutationTest) = x.cpc.cc
 fits(x::ClusterPermutationTest) = fits(x.cpc)
-sample_statistics(x::ClusterPermutationTest) = x.cpc.stats
+StatsAPI.params(x::ClusterPermutationTest) = x.cpc.stats
 
 function cluster_statistics(x::ClusterPermutationTest)
 	return cluster_statistics(x.def.mass_fnc, x.cpc.stats, x.cpc.cc)
@@ -49,7 +49,7 @@ end;
 
 function cluster_table(x::ClusterPermutationTest)::Table
 	cl_ranges = cluster_ranges(x)
-	stats = sample_statistics(x)
+	stats = params(x)
 	pvals = pvalues(x; inhibit_warning = true)
 	if length(pvals) > 0
 		p = pvals
@@ -89,9 +89,9 @@ function test_info(x::ClusterPermutationTest)
 	end
 end
 
-function summary(x::ClusterPermutationTest)
+function StatsAPI.summary(x::ClusterPermutationTest)
 	println("$(test_info(x))")
-	println("  data: $(nepochs(x)) x $(nepoch_samples(x))")
+	println("  data: $(nepochs(x)) x $(epoch_length(x))")
 	pt = pretty_table(String, cluster_table(x);
 		show_subheader = false,
 		formatters = (ft_printf("%0.2f", [5, 6]),
@@ -106,7 +106,7 @@ function Base.show(io::IO, mime::MIME"text/plain", x::ClusterPermutationTest)
 	clr = cluster_ranges(x)
 	cc = cluster_criteria(x)
 	println(io, "$(test_info(x))")
-	println(io, "  data: $(nepochs(x)) x $(nepoch_samples(x))")
+	println(io, "  data: $(nepochs(x)) x $(epoch_length(x))")
 	if cc isa ClusterDefinition
 		println( io,
 			"  $(length(clr)) cluster (ranges=$(cc.ranges)):",		)

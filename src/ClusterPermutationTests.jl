@@ -9,8 +9,9 @@ using UnPack
 using HypothesisTests
 using ProgressMeter
 using PrettyTables
+using StatsAPI
 
-import StatsAPI: fit, summary
+import StatsAPI: fit, summary, params
 import Random: randperm!
 
 export ClusterPermutationTestDefinition,
@@ -26,12 +27,12 @@ export ClusterPermutationTestDefinition,
     unit_obs_name,
     design_table,
     data_matrix,
-    nepoch_samples,
+    epoch_length,
     nepochs,
     npermutations,
     reset,
     cluster_table,
-    sample_statistics,
+    params,
     fits,
     fit,
     resample!,

@@ -52,7 +52,7 @@ end
 unit_obs(x::CPData) = unit_obs(x.design)
 design_table(x::CPData) = design_table(x.design)
 data_matrix(x::CPData) = x.mtx
-nepoch_samples(x::CPData) = size(x.mtx, 2)
+epoch_length(x::CPData) = size(x.mtx, 2)
 nepochs(x::CPData) = size(x.mtx, 1)
 
 ## utilities
