@@ -3,15 +3,21 @@ const SymbolOString = Union{Symbol,AbstractString}
 const OptSymbolOString = Union{SymbolOString, Nothing}
 const MultiSymbolOString = Union{SymbolOString,Base.AbstractVecOrTuple{SymbolOString}}
 
-struct CPDesign
+struct PermutationDesign
 	ivs::Table
 	uo::Table
 	uo_ids::Matrix{Bool}
 end
 
-function CPDesign(design::Table;
+function PermutationDesign(design::Union{TypedTables.Table, Any};
 	ivs::MultiSymbolOString,
 	uo::OptSymbolOString=nothing)
+
+    Tables.istable(design) || throw(ArgumentError(
+		"design is not a table, but $(typeof(design)).",))
+    if !(design isa Table)
+        design = TypedTables.Table(design) # convert DataFrame to Table
+    end
 
     # ivs
     if ivs isa SymbolOString
@@ -26,7 +32,7 @@ function CPDesign(design::Table;
 	values = [getproperty(design, v) for v in ivs]
     ivs_tbl = NamedTuple(zip(ivs, values))
 
-    # uo
+    # uo design matrix
 	if isnothing(uo)
 		uo_tbl = (; none=[])
 		uo_ids = Matrix{Bool}(undef, 0, 0)
@@ -34,7 +40,7 @@ function CPDesign(design::Table;
 		uo = Symbol(uo)
 		check_variable(design, uo)
         uo in ivs && throw(ArgumentError(
-			"'$uo' can't be a variable and the unit of observation.")
+			"'$uo' is not a valid 'unit of observation' variable.")
 		)
         uo_values = getproperty(design, uo)
         uo_tbl = NamedTuple{(uo,)}((uo_values,))
@@ -43,24 +49,24 @@ function CPDesign(design::Table;
         uo_ids = reduce(hcat, uo_ids) # vecvec to matrix
 	end
 
-	return CPDesign(Table(ivs_tbl), Table(uo_tbl), uo_ids)
+	return PermutationDesign(Table(ivs_tbl), Table(uo_tbl), uo_ids)
 end
 
-Base.length(x::CPDesign) = length(x.ivs)
+Base.length(x::PermutationDesign) = length(x.ivs)
 
-function Base.copy(x::CPDesign)::CPDesign
-    return CPDesign(copy(x.ivs), copy(x.uo), copy(x.uo_ids))
+function Base.copy(x::PermutationDesign)::PermutationDesign
+    return PermutationDesign(copy(x.ivs), copy(x.uo), copy(x.uo_ids))
 end
 
-function design_table(x::CPDesign)
+function design_table(x::PermutationDesign)
     length(x.uo) == 0 ? x.ivs : Table(x.uo, x.ivs)
 end
 
-function unit_obs(x::CPDesign)
+function unit_obs(x::PermutationDesign)
     length(x.uo) == 0 ? nothing : first(columnnames(x.uo))
 end
 
-function randperm!(rng::AbstractRNG, perm_design::CPDesign;
+function randperm!(rng::AbstractRNG, perm_design::PermutationDesign;
     permute_independent=true)
 
     ivnames = columnnames(perm_design.ivs)
@@ -85,8 +91,20 @@ function randperm!(rng::AbstractRNG, perm_design::CPDesign;
     return nothing
 end
 
+randperm!(perm_design::PermutationDesign; kwargs...) = randperm!(Random.GLOBAL_RNG, perm_design; kwargs...)
+
 # utilities
-function check_variable(design::Table, var::Symbol)
+function check_variable(design::TypedTables.Table, var::Symbol)
     return hasproperty(design, var) || throw(
         ArgumentError("Variable '$var' is not in design table"))
+end
+
+
+function Base.show(io::IO, mime::MIME"text/plain", x::PermutationDesign)
+    println(io, "PermutationDesign with $(length(x)) rows")
+    println(io, "  IVs: ", join(columnnames(x.ivs), ", "))
+    if length(x.uo) > 0
+        println(io, "  Unit of observation: ", join(columnnames(x.uo), ", "))
+    end
+    return nothing
 end

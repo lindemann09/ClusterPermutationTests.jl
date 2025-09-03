@@ -50,7 +50,7 @@ function StatsAPI.fit(::Type{ClusterPermutationTTest},
 end
 
 function ttest_preprocess(
-    mtx::Matrix{<:Real}, design::CPDesign, specs::NamedTuple
+    mtx::Matrix{<:Real}, design::PermutationDesign, specs::NamedTuple
 )::Matrix
     iv = getproperty(design.ivs, specs.iv)
     if specs[:paired]
@@ -63,7 +63,7 @@ function ttest_preprocess(
     end
 end
 
-function ttest(dat::Vector{<:Real}, design::CPDesign, specs::NamedTuple)::Float64
+function ttest(dat::Vector{<:Real}, design::PermutationDesign, specs::NamedTuple)::Float64
     # perform sequential ttests -> parameter
     iv = getproperty(design.ivs, specs.iv)
     if specs[:paired]

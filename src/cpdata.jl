@@ -5,7 +5,7 @@ Data for a cluster permutation analysis
 """
 struct CPData{T <: Real}
 	mtx::Matrix{T}
-	design::CPDesign
+	design::PermutationDesign
 end
 
 """
@@ -46,7 +46,7 @@ function CPData(; data_mtx::AbstractMatrix{<:Real},
 	end
 
 	return CPData(data_mtx[ids, :],
-		CPDesign(design_tbl[ids]; ivs, uo = unit_obs))
+		PermutationDesign(design_tbl[ids]; ivs, uo = unit_obs))
 end
 
 unit_obs(x::CPData) = unit_obs(x.design)

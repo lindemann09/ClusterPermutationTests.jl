@@ -1,9 +1,9 @@
 struct ClusterPermutationTestDefinition
     # estim
-    #   signature: function(dat::Vector{<:Real}, design::CPDesign, specs::NamedTuple
+    #   signature: function(dat::Vector{<:Real}, design::PermutationDesign, specs::NamedTuple
     #   return:    ftype::Type{<:Float64},
     # process
-    #   signature: function signature(dat::Matrix{<:Real}, design::CPDesign, specs::NamedTuple)
+    #   signature: function signature(dat::Matrix{<:Real}, design::PermutationDesign, specs::NamedTuple)
     #   return:    Matrix
     estimate_fnc::Function
     preprocess_fnc::Function
@@ -18,8 +18,8 @@ function ClusterPermutationTestDefinition(;
         preprocess_fnc = _nopreprocessing
     end
     # check return type
-    ArgsPreprocessFnc = (Matrix{<:Real}, CPDesign, NamedTuple)
-    ArgsEstimFnc = (Vector{<:Real}, CPDesign, NamedTuple)
+    ArgsPreprocessFnc = (Matrix{<:Real}, PermutationDesign, NamedTuple)
+    ArgsEstimFnc = (Vector{<:Real}, PermutationDesign, NamedTuple)
     _check_function(estimate_fnc, ArgsEstimFnc, Real, "Parameter estimation")
     _check_function(preprocess_fnc, ArgsPreprocessFnc, Matrix, "Data preprocess")
     return ClusterPermutationTestDefinition(estimate_fnc, preprocess_fnc, mass_fnc)
@@ -30,7 +30,7 @@ function repr_functions(x::ClusterPermutationTestDefinition)
 end;
 
 # helper
-_nopreprocessing(data::Matrix{<:Real}, ::CPDesign, ::NamedTuple) = data
+_nopreprocessing(data::Matrix{<:Real}, ::PermutationDesign, ::NamedTuple) = data
 
 function _check_function(fnc::Function, arg_types, rtn_type, func_label::String)
     x = methods(fnc, arg_types)

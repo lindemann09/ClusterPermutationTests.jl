@@ -17,7 +17,7 @@ import Random: randperm!
 export ClusterPermutationTestDefinition,
     ClusterPermutationTest,
     ClusterPermutationTTest,
-    CPDesign,
+    PermutationDesign,
 #    CPData,
     ClusterCriteria,
     ClusterDefinition,
