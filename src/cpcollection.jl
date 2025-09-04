@@ -27,7 +27,7 @@ function initial_fit!(cpc::ClusterPermutationCollection;
     @unpack estimate_fnc, preprocess_fnc = cpt_def
     @unpack specs = cpc
 
-    mtx = preprocess_fnc(data_matrix(data), data.design, specs)
+    mtx = preprocess_fnc(data.mtx, data.design, specs)
     para = [estimate_fnc(mtx[:, s], data.design, specs) for s in 1:epoch_length(data)]
     reset_vector!(cpc.stats, para)
     return nothing
@@ -75,7 +75,7 @@ function _do_resampling(rng::AbstractRNG,
     @unpack estimate_fnc, mass_fnc, preprocess_fnc = def
     @unpack specs = cpc
     cl_ranges = cluster_ranges(cpc)
-    data_mtx = data_matrix(data)
+    data_mtx = data.mtx
     perm_design = copy(data.design)
 
     cl_stats_distr = Vector{T}[] # distribution of cluster-level statistics

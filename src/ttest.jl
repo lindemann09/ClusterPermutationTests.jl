@@ -52,7 +52,7 @@ end
 function ttest_preprocess(
     mtx::Matrix{<:Real}, design::PermutationDesign, specs::NamedTuple
 )::Matrix
-    iv = getproperty(design.ivs, specs.iv)
+    iv = design.design[:, specs.iv]
     if specs[:paired]
         @unpack compare = specs
         a = mtx[iv .== compare[1], :]
@@ -65,10 +65,10 @@ end
 
 function ttest(dat::Vector{<:Real}, design::PermutationDesign, specs::NamedTuple)::Float64
     # perform sequential ttests -> parameter
-    iv = getproperty(design.ivs, specs.iv)
     if specs[:paired]
         tt = OneSampleTTest(dat)
     else
+        iv = design.design[:, specs.iv]
         @unpack compare = specs
         dat_a = dat[iv .== compare[1]]
         dat_b = dat[iv .== compare[2]]

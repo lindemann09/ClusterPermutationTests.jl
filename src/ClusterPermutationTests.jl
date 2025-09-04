@@ -1,8 +1,7 @@
 module ClusterPermutationTests
 
 using DataAPI
-using Tables
-using TypedTables
+using DataFrames
 using StatsModels
 using Random
 using UnPack
@@ -11,24 +10,28 @@ using ProgressMeter
 using PrettyTables
 using StatsAPI
 
+import HypothesisTests: nobs
 import StatsAPI: fit, summary, params
 import Random: randperm!
 
 export ClusterPermutationTestDefinition,
     ClusterPermutationTest,
     ClusterPermutationTTest,
+    # PermuteDesign
     PermutationDesign,
-#    CPData,
+    cell_indices,
+    # data,
+    CPData,
+    design,
+    data_matrix,
+    epoch_length,
+    nepochs,
+    nobs,
+    # Cluster
     ClusterCriteria,
     ClusterDefinition,
     cluster_statistics,
     cluster_ranges,
-    unit_obs,
-    unit_obs_name,
-    design_table,
-    data_matrix,
-    epoch_length,
-    nepochs,
     npermutations,
     reset,
     cluster_table,

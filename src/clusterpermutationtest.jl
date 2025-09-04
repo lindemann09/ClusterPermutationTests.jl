@@ -4,11 +4,9 @@ abstract type ClusterPermutationTest end
 #          def::ClusterPermutationTestDefinition
 #          data::CPData
 
-unit_obs_name(x::ClusterPermutationTest) = unit_obs_name(x.data.design)
 
-unit_obs(x::ClusterPermutationTest) = unit_obs(x.data)
-data_matrix(x::ClusterPermutationTest) = data_matrix(x.data)
-design_table(x::ClusterPermutationTest) = design_table(x.data)
+data_matrix(x::ClusterPermutationTest) = x.data.mtx
+design(x::ClusterPermutationTest) = x.data.design
 nepochs(x::ClusterPermutationTest) = nepochs(x.data)
 epoch_length(x::ClusterPermutationTest) = epoch_length(x.data)
 
@@ -47,7 +45,7 @@ function pvalues(x::ClusterPermutationTest;
 	return p
 end;
 
-function cluster_table(x::ClusterPermutationTest)::Table
+function cluster_table(x::ClusterPermutationTest)
 	cl_ranges = cluster_ranges(x)
 	stats = params(x)
 	pvals = pvalues(x; inhibit_warning = true)
@@ -59,7 +57,7 @@ function cluster_table(x::ClusterPermutationTest)::Table
 		sign = repeat([""], length(cl_ranges))
 	end
 
-	return Table(id = 1:length(cl_ranges),
+	return DataFrame(id = 1:length(cl_ranges),
 		from = [c.start for c in cl_ranges],
 		to = [c.stop for c in cl_ranges],
 		size = [c.stop - c.start + 1 for c in cl_ranges],
