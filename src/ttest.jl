@@ -4,15 +4,16 @@ struct ClusterPermutationTTest <: ClusterPermutationTest
     data::CPData
 end;
 
-function StatsAPI.fit(::Type{ClusterPermutationTTest},
+function StatsAPI.fit(::Type{ClusterPermutationTTest}, # TODO: two value comparison only, needs to be more general
     iv::SymbolOString,
     data_mtx::AbstractMatrix{<:Real},
-    design::Any;
+    design::Any; ##FIXME should use permutationDesign
     unit_obs::OptSymbolOString,
     paired::Bool,
     compare::Union{Nothing,Base.AbstractVecOrTuple{<:StringSymbolOReal}}=nothing,
     equal_variance=true,
     cluster_criteria::ClusterDef)
+
     if isnothing(compare)
         compare = unique(design[:, iv])
         length(compare) == 2 || throw(
@@ -38,7 +39,7 @@ end;
 function StatsAPI.fit(::Type{ClusterPermutationTTest},
     f::FormulaTerm,
     data_mtx::AbstractMatrix{<:Real},
-    design::Any;
+    design::Any; ##FIXME should use permutationDesign
     unit_obs::OptSymbolOString,
     paired::Bool,
     kwargs...)

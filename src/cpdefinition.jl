@@ -1,6 +1,6 @@
 struct ClusterPermutationTestDefinition
     # estim
-    #   signature: function(dat::Vector{<:Real}, design::PermutationDesign, specs::NamedTuple
+    #   signature: function(dat::Vector{<:Real}, design::PermutationDesign, specs::NamedTuple ## FIXME use CPData?
     #   return:    ftype::Type{<:Float64},
     # process
     #   signature: function signature(dat::Matrix{<:Real}, design::PermutationDesign, specs::NamedTuple)

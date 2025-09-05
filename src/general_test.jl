@@ -6,7 +6,7 @@ end
 
 function StatsAPI.fit(def::ClusterPermutationTestDefinition,
     data_mtx::AbstractMatrix{<:Real},
-    design::Any;
+    design::Any; ##FIXME should use permutationDesign
     cluster_criteria::ClusterDef,
     unit_obs::OptSymbolOString,
     ftype::Type{<:Float64}=Float64,

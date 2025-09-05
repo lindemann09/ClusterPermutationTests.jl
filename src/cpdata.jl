@@ -16,11 +16,12 @@ Data for a cluster permutation analysis
 """
 function CPData(; data_mtx::AbstractMatrix{<:Real},
 	design::DataFrame,
-	unit_obs::OptSymbolOString,
+	unit_obs::OptSymbolOString, ##FIXME should use permutationDesign
 	kwargs...)
 
 	design_tbl = design
 	nrows = nrow(design_tbl)
+	unit_obs = String(unit_obs)
 
 	size(data_mtx, 1) == nrows|| throw(
 		DimensionMismatch(
@@ -38,12 +39,13 @@ function CPData(; data_mtx::AbstractMatrix{<:Real},
 	ids = fill(true, nrows)
 	for (values, var) in zip(values(kwargs), ivs)
 		check_variable(design_tbl, var)
-		if !(values isa DataAPI.All) # select all columns
+		if !(values isa DataAPI.All) # select not all rows
 			ids = ids .&& in.(design_tbl[:, var], Ref(values))
 		end
 	end
+	vars = String.([unit_obs, ivs...])
 	return CPData(data_mtx[ids, :],
-		PermutationDesign(design_tbl[ids, [unit_obs, ivs...]]; unit_obs))
+		PermutationDesign(design_tbl[ids, vars]; unit_obs))
 end
 
 design_table(x::CPData) = design_table(x.design)
