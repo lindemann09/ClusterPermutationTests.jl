@@ -5,8 +5,6 @@ abstract type ClusterPermutationTest end
 #          data::CPData
 
 
-data_matrix(x::ClusterPermutationTest) = x.data.mtx
-design(x::ClusterPermutationTest) = x.data.design
 nepochs(x::ClusterPermutationTest) = nepochs(x.data)
 epoch_length(x::ClusterPermutationTest) = epoch_length(x.data)
 
@@ -76,8 +74,7 @@ function resample!(rng::AbstractRNG, cpt::ClusterPermutationTest;
 		n_permutations, progressmeter, use_threads)
 end
 
-resample!(cpt::ClusterPermutationTest; kwargs...) =	resample!(Random.GLOBAL_RNG, cpt; kwargs...)
-
+resample!(cpt::ClusterPermutationTest; kwargs...) = resample!(Random.GLOBAL_RNG, cpt; kwargs...)
 
 function test_info(x::ClusterPermutationTest)
 	if x isa ClusterPermutationTestGeneral
@@ -106,11 +103,11 @@ function Base.show(io::IO, mime::MIME"text/plain", x::ClusterPermutationTest)
 	println(io, "$(test_info(x))")
 	println(io, "  data: $(nepochs(x)) x $(epoch_length(x))")
 	if cc isa ClusterDefinition
-		println( io,
-			"  $(length(clr)) cluster (ranges=$(cc.ranges)):",		)
+		println(io,
+			"  $(length(clr)) cluster (ranges=$(cc.ranges)):")
 	else
-		println( io,
-			"  $(length(clr)) cluster (threshold=$(cc.threshold), min_size=$(cc.min_size)):",		)
+		println(io,
+			"  $(length(clr)) cluster (threshold=$(cc.threshold), min_size=$(cc.min_size)):")
 	end
 	return println(io, "  $(npermutations(x)) permutations")
 end;

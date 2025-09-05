@@ -1,7 +1,7 @@
 const StringSymbolOReal = Union{AbstractString, Real, Symbol}
 const SymbolOString = Union{Symbol, AbstractString}
 const OptSymbolOString = Union{SymbolOString, Nothing}
-const MultiSymbolOString = Union{SymbolOString, Base.AbstractVecOrTuple{SymbolOString}}
+const OptMultiSymbolOString = Union{SymbolOString, Base.AbstractVecOrTuple{SymbolOString}, Nothing}
 
 struct PermutationDesign
 	design::DataFrame
@@ -9,52 +9,82 @@ struct PermutationDesign
 	within::Vector{Symbol}
 	unit_obs::Union{Symbol, Nothing}
 	ids_uo::Matrix{Bool}
+
+    function PermutationDesign(design::DataFrame,
+        between::Vector{Symbol},
+        within::Vector{Symbol},
+        unit_obs::Union{Symbol, Nothing},
+        ids_uo::AbstractArray{Bool})
+
+        # check variables
+        ivs = vcat(between, within)
+        isempty(ivs) && throw(ArgumentError("No independent variable specified/found."))
+
+        if !isnothing(unit_obs)
+            (unit_obs in ivs) && throw(ArgumentError("'$unit_obs' is not a valid 'unit of observation' variable. It is also specified as an independent variable."))
+            all_vars = vcat(unit_obs, ivs)
+        else
+            all_vars = ivs
+        end
+        for var in all_vars
+            check_variable(design, var) # throws error if not found in dataframe
+        end
+        new(design[:, all_vars], between, within, unit_obs, ids_uo)
+    end
 end
 
-
-
 function PermutationDesign(design::DataFrame;
-    ivs::MultiSymbolOString = nothing,
-	unit_obs::OptSymbolOString = nothing)
+        factors::OptMultiSymbolOString = nothing,
+        between::OptMultiSymbolOString = nothing,
+        within::OptMultiSymbolOString = nothing,
+        unit_obs::OptSymbolOString = nothing)
 
-    # check variables
-    ivs = to_symbol_vector(ivs)
-	if !isnothing(unit_obs)
-		unit_obs = Symbol(unit_obs)
-		(unit_obs in ivs) && throw(ArgumentError("'$unit_obs' is not a valid 'unit of observation' variable."))
-        all_vars = vcat(unit_obs, ivs)
-    else
-        all_vars = ivs
-	end
-	for var in all_vars
-		check_variable(design, var)
-	end
-    design = design[:, all_vars] # select only relevant columns
+    unit_obs = isnothing(unit_obs) ? nothing : Symbol(unit_obs)
 
-
-    # make within between
-    within = Symbol[]
-    between = Symbol[]
-    if isnothing(unit_obs)
-        between = ivs
-    else
-        for v in ivs
-            is_within(design, v, unit_obs) ? push!(within, v) : push!(between, v)
+    if !isnothing(factors)
+        if (!isnothing(between) || !isnothing(within))
+            throw(ArgumentError("Specify either 'factors' or 'between'/'within', not both."))
         end
+        # only factors specified: make within/between
+        factors = to_symbol_vector(factors)
+        within = Symbol[]
+        between = Symbol[]
+        if isnothing(unit_obs)
+            between = factors
+        else
+            for v in factors
+                is_within(design, v, unit_obs) ? push!(within, v) : push!(between, v)
+            end
+        end
+        return PermutationDesign(design; between, within, unit_obs)
+
+    elseif isnothing(between) && isnothing(within)
+        # no factors and no between/within specified: use all columns except unit_obs as independent variables
+
+        factors = Symbol.(names(design))
+        if !isnothing(unit_obs)
+            # remove unit of observation from independent variables
+            factors = setdiff(factors, [unit_obs])
+        end
+        return PermutationDesign(design; factors, unit_obs)
     end
+
+    ## between and/or within specified
+    between = isnothing(between) ? Symbol[] : to_symbol_vector(between)
+    within = isnothing(within) ? Symbol[] : to_symbol_vector(within)
 
 	#  matrix with indices for unit of observation, speeds up later processing
 	if isnothing(unit_obs)
-		ids_uo = Matrix{Bool}(undef, 0, 0)
+		ids_uo = fill(true, nrow(design), 1) # all true
 	else
 		uo_values = getproperty(design, unit_obs)
 		# id matrix
 		ids_uo = [getproperty(design, unit_obs) .== u for u in unique(uo_values)]
 		ids_uo = reduce(hcat, ids_uo) # vecvec to matrix
 	end
-
-	return PermutationDesign(design, between, within, unit_obs, ids_uo)
+    return PermutationDesign(design, between, within, unit_obs, ids_uo)
 end
+
 
 Base.length(x::PermutationDesign) = nrow(x.design)
 DataFrames.nrow(x::PermutationDesign) = nrow(x.design)
@@ -63,13 +93,20 @@ function Base.copy(x::PermutationDesign)::PermutationDesign
 	return PermutationDesign(copy(x.design), copy(x.between), copy(x.within), x.unit_obs, copy(x.ids_uo))
 end
 
-cell_indices(x::PermutationDesign) = return ids_column_combinations(x.design)
+function cell_indices(x::PermutationDesign; factors::OptMultiSymbolOString = nothing)
+    if isnothing(factors)
+        d = x.design
+    else
+        d = x.design[:, to_symbol_vector(factors)]
+    end
+    return ids_column_combinations(d)
+end
+
 function HypothesisTests.nobs(x::PermutationDesign)
     ids, combis = cell_indices(x)
     combis[:, "nobs"] = [sum(i) for i in ids]
     return combis
 end
-
 
 function Random.randperm!(rng::AbstractRNG,
 	perm_design::PermutationDesign;
@@ -97,6 +134,13 @@ function Random.randperm!(rng::AbstractRNG,
 end
 
 Random.randperm!(perm_design::PermutationDesign; kwargs...) = randperm!(Random.GLOBAL_RNG, perm_design; kwargs...)
+function Random.randperm(rng::AbstractRNG, perm_design::PermutationDesign; kwargs...)
+    rtn = copy(perm_design)
+    randperm!(rng, rtn; kwargs...)
+    return rtn
+end
+Random.randperm(perm_design::PermutationDesign; kwargs...) = randperm(Random.GLOBAL_RNG, perm_design; kwargs...)
+
 
 
 function Base.show(io::IO, mime::MIME"text/plain", x::PermutationDesign)
@@ -162,4 +206,6 @@ function ids_column_combinations(dat::DataFrame, columns::Vector{Symbol})
 
     return ids, delete!(all_combis, rm_combis)
 end
+ids_column_combinations(dat::DataFrame, columns::Vector{<:AbstractString}) =
+                ids_column_combinations(dat, Symbol.(columns))
 ids_column_combinations(dat::DataFrame) = ids_column_combinations(dat, names(dat))
