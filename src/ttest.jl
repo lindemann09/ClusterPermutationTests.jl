@@ -24,8 +24,7 @@ function StatsAPI.fit(::Type{ClusterPermutationTTest},
 
     length(compare) == 2 || throw(ArgumentError(
         "compare has to be tuple of two conditions/groups"))
-    cpt_def = ClusterPermutationTestDefinition(ttest,
-        ttest_preprocess, sum)
+    cpt_def = ClusterPermutationTestDefinition(ttest, ttest_preprocess, sum)
     var = Dict(Symbol(iv) => compare)
     data = CPData(; data_mtx, design, unit_obs, var...) # check &  prepare data
     cpc = ClusterPermutationCollection(;
@@ -50,9 +49,9 @@ function StatsAPI.fit(::Type{ClusterPermutationTTest},
 end
 
 function ttest_preprocess(
-    mtx::Matrix{<:Real}, design::PermutationDesign, specs::NamedTuple
+    mtx::Matrix{<:Real}, design::PermutationDesign, specs::NamedTuple ### FIXME use CPData?
 )::Matrix
-    iv = design.design[:, specs.iv]
+    iv = design_table(design)[:, specs.iv]
     if specs[:paired]
         @unpack compare = specs
         a = mtx[iv .== compare[1], :]
@@ -63,12 +62,12 @@ function ttest_preprocess(
     end
 end
 
-function ttest(dat::Vector{<:Real}, design::PermutationDesign, specs::NamedTuple)::Float64
+function ttest(dat::Vector{<:Real}, design::PermutationDesign, specs::NamedTuple)::Float64 ## FIXME use CPData?
     # perform sequential ttests -> parameter
     if specs[:paired]
         tt = OneSampleTTest(dat)
     else
-        iv = design.design[:, specs.iv]
+        iv = design_table(design)[:, specs.iv]
         @unpack compare = specs
         dat_a = dat[iv .== compare[1]]
         dat_b = dat[iv .== compare[2]]

@@ -7,6 +7,7 @@ abstract type ClusterPermutationTest end
 
 nepochs(x::ClusterPermutationTest) = nepochs(x.data)
 epoch_length(x::ClusterPermutationTest) = epoch_length(x.data)
+design_table(x::ClusterPermutationTest) = design_table(x.data.design)
 
 npermutations(x::ClusterPermutationTest) = npermutations(x.cpc)
 cluster_ranges(x::ClusterPermutationTest) = cluster_ranges(x.cpc)

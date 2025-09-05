@@ -19,6 +19,8 @@ export ClusterPermutationTestDefinition,
     ClusterPermutationTTest,
     # PermuteDesign
     PermutationDesign,
+    design_table,
+    nrow,
     cell_indices,
     # data,
     CPData,

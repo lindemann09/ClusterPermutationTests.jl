@@ -43,8 +43,9 @@ function CPData(; data_mtx::AbstractMatrix{<:Real},
 		end
 	end
 	return CPData(data_mtx[ids, :],
-		PermutationDesign(design_tbl[ids, :]; ivs, unit_obs))
+		PermutationDesign(design_tbl[ids, [unit_obs, ivs...]]; unit_obs))
 end
 
+design_table(x::CPData) = design_table(x.design)
 epoch_length(x::CPData) = size(x.mtx, 2)
 nepochs(x::CPData) = size(x.mtx, 1)
