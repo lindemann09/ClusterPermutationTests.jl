@@ -27,10 +27,10 @@ function PermutationDesign(between::DataFrame, within::DataFrame, unit_obs::Unio
 	if isempty(within)
 		ids_uo = fill(true, nrow(between), 1) # all true
 	else
-        # within or mixed design
-        if isnothing(unit_obs)
-            throw(ArgumentError("A 'unit of observation' variable must be specified when 'within' variables are specified."))
-        end
+		# within or mixed design
+		if isnothing(unit_obs)
+			throw(ArgumentError("A 'unit of observation' variable must be specified when 'within' variables are specified."))
+		end
 		uo_values = getproperty(within, unit_obs)
 		# id matrix
 		ids_uo = [getproperty(within, unit_obs) .== u for u in unique(uo_values)]
@@ -55,9 +55,9 @@ function PermutationDesign(design::DataFrame,
 	end
 	# check variables
 	for v in vcat(between_vars, within_vars)
-		check_variable(design, v)
+		_check_variable(design, v)
 	end
-    between = unique(design[:, between_vars])
+	between = unique(design[:, between_vars])
 	PermutationDesign(between, design[:, within_vars], unit_obs)
 end
 
@@ -69,7 +69,7 @@ function PermutationDesign(design::DataFrame; unit_obs::OptSymbolOString = nothi
 	for v in names(design)
 		if v == unit_obs
 			continue
-		elseif !isnothing(unit_obs) && _is_within(design, v, unit_obs)
+		elseif !isnothing(unit_obs) && _is_within(v, design, unit_obs)
 			push!(within_vars, v)
 		else
 			push!(between_vars, v)
@@ -83,7 +83,7 @@ Base.propertynames(::PermutationDesign) = (:between, :within, :unit_obs, :ids_uo
 	:between_variables, :within_variables, :design_type)
 function Base.getproperty(x::PermutationDesign, s::Symbol)
 	if s === :design_type
-		return __design_type(x.between, x.within)
+		return _design_type(x.between, x.within)
 	elseif s === :between_variables
 		n = names(x.between)
 		return isnothing(x.unit_obs) ? n : setdiff(n, [x.unit_obs])
@@ -96,16 +96,17 @@ function Base.getproperty(x::PermutationDesign, s::Symbol)
 end
 
 DataFrames.nrow(x::PermutationDesign) = maximum((nrow(x.between), nrow(x.within)))
+DataFrames.DataFrame(x::PermutationDesign) = design_table(x::PermutationDesign)
 
 function design_table(x::PermutationDesign)
 	tp = x.design_type
 	if tp == :mixed
-        # i: in which column is the "1" for each row (in the within design), and
-        # thus, which row of the between design is need and matched to within design
-        i = findfirst.(eachrow(x.ids_uo))
-        return hcat(x.between[i, :], x.within[:, Not(x.unit_obs)])
-        # alternatively, but slower and probably less robust:
-        #return rightjoin(x.between, x.within, on = x.unit_obs, makeunique = true)
+		# i: in which column is the "1" for each row (in the within design), and
+		# thus, which row of the between design is need and matched to within design
+		i = findfirst.(eachrow(x.ids_uo))
+		return hcat(x.between[i, :], x.within[:, Not(x.unit_obs)])
+		# alternatively, but slower and probably less robust:
+		#return rightjoin(x.between, x.within, on = x.unit_obs, makeunique = true)
 	elseif tp == :between
 		return x.between
 	else
@@ -118,12 +119,13 @@ function Base.copy(x::PermutationDesign)::PermutationDesign
 	return PermutationDesign(copy(x.between), copy(x.within), x.unit_obs, copy(x.ids_uo))
 end
 
-function cell_indices(x::PermutationDesign; factors::OptMultiSymbolOString = nothing)
+function cell_indices(x::PermutationDesign; variables::OptMultiSymbolOString = nothing)
 	d = design_table(x)
-	if !isnothing(factors)
-		d = d[:, _to_string_vector(factors)]
+	if isnothing(variables)
+		return _cell_indices(d, names(d))
+	else
+		return _cell_indices(d, _to_string_vector(variables))
 	end
-	return _ids_column_combinations(d)
 end
 
 function HypothesisTests.nobs(x::PermutationDesign)
@@ -132,54 +134,86 @@ function HypothesisTests.nobs(x::PermutationDesign)
 	return combis
 end
 
-function Random.randperm!(rng::AbstractRNG,
-	perm_design::PermutationDesign;
-	permute_independent = true)
+shuffle_variable!(perm_design::PermutationDesign, iv::Union{Symbol, String}; kwargs...) =
+	shuffle_variable!(Random.GLOBAL_RNG, perm_design, iv; kwargs...)
+shuffle_variable!(rng::AbstractRNG, perm_design::PermutationDesign, iv::Symbol;
+	kwargs...) = shuffle_variable!(rng, perm_design, String(iv); kwargs...)
 
-	if perm_design.design_type != :within
-		throw(ArgumentError("Permutation design is not within"))
-		return nothing
+function shuffle_variable!(rng::AbstractRNG,
+	perm_design::PermutationDesign,
+	iv::String;
+	synchronize::OptMultiSymbolOString = String[])
+
+	within_vars = perm_design.within_variables
+	between_vars = perm_design.between_variables
+	iv_is_within = _is_within(iv, between_vars, within_vars) # to be shuffled variable is within (also checks if in design at all)
+
+	design_df = iv_is_within ? perm_design.within : perm_design.between
+
+	# check variables and find all relevant sync variables
+	sync = String[] # needed variables
+	for s in _to_string_vector(synchronize)
+		sync_var_is_within = _is_within(s, between_vars, within_vars)
+		if !sync_var_is_within && iv_is_within
+			@warn "'$(s)' is a between variable. " *
+				  "Between variables arn't affected by the shuffling of a variable ('$(iv)') " *
+				  "within the unit of observations."
+		elseif sync_var_is_within && !iv_is_within
+			@warn "'$(s)' is a within variable. " *
+				  "Within variables arn't affected by the shuffling of a property ('$(iv)') " *
+				  "of the unit of observations."
+		else
+			push!(sync, s)
+		end
+	end
+	if isempty(sync)
+		# no sync variables: one vector with all true
+		shuffle_group_ids = [fill(true, nrow(design_df))]
+	else
+		shuffle_group_ids, _ = _cell_indices(design_df, sync)
 	end
 
-	design = perm_design.within
-	ivnames = perm_design.within_variables ## FIXME needs to treat within and between differently
-	if permute_independent || length(ivnames) == 1
-		for iv in ivnames
-			for i in eachcol(perm_design.ids_uo)
-				# shuffle inside each nit of observation
-				design[i, iv] = shuffle(rng, design[i, iv])
-			end
+	if !iv_is_within
+		# between: shuffle inside cells of synchronized variables
+		for i in shuffle_group_ids
+			design_df[i, iv] = shuffle(rng, design_df[i, iv])
 		end
 	else
-		# permute multiple ivs together (in the same fashion) via ids
-		shuffled_ids = collect(1:nrow(design))
-		for i in eachcol(perm_design.ids_uo)
-			# shuffle ids per unit of observation
-			shuffled_ids[i] = shuffle(rng, shuffled_ids[i])
-		end
-		for iv in ivnames
-			design[:, iv] = design[shuffled_ids, iv]
+		# within: consider additionally unit of observations and shuffle inside cells
+		for uo in eachcol(perm_design.ids_uo)
+			for x in shuffle_group_ids
+				i = x .&& uo
+				design_df[i, iv] = shuffle(rng, design_df[i, iv])
+			end
 		end
 	end
-	return nothing
+	return perm_design
 end
 
-Random.randperm!(perm_design::PermutationDesign; kwargs...) = randperm!(Random.GLOBAL_RNG, perm_design; kwargs...)
-function Random.randperm(rng::AbstractRNG, perm_design::PermutationDesign; kwargs...)
-	rtn = copy(perm_design)
-	randperm!(rng, rtn; kwargs...)
-	return rtn
+shuffle_variable(perm_design::PermutationDesign, iv::Union{Symbol, String}; kwargs...) =
+	shuffle_variable(Random.GLOBAL_RNG, perm_design, iv; kwargs...)
+shuffle_variable(rng::AbstractRNG, perm_design::PermutationDesign, iv::Symbol;
+	kwargs...) = shuffle_variable(rng, perm_design, String(iv); kwargs...)
+
+function shuffle_variable(rng::AbstractRNG, perm_design::PermutationDesign, iv::String;
+	synchronize::OptMultiSymbolOString = String[])
+
+	pd = copy(perm_design)
+	shuffle_variable!(rng, pd, iv; synchronize)
+	return pd
 end
-Random.randperm(perm_design::PermutationDesign; kwargs...) = randperm(Random.GLOBAL_RNG, perm_design; kwargs...)
+
+
+
 
 function Base.show(io::IO, mime::MIME"text/plain", x::PermutationDesign)
 	println(io, "PermutationDesign ($(x.design_type)) with $(nrow(x)) rows")
 	isempty(x.between) ? between = " -- " : (between = join(x.between_variables, ", "))
-	isnothing(x.unit_obs) ?	unit_obs = " -- " : (unit_obs = x.unit_obs)
+	isnothing(x.unit_obs) ? unit_obs = " -- " : (unit_obs = x.unit_obs)
 	isempty(x.within) ? within = " -- " : (within = join(x.within_variables, ", "))
 	println(io, "  between: $(between)")
 	println(io, "  within: $(within)")
-    println(io, "  unit obs: $(unit_obs)")
+	println(io, "  unit obs: $(unit_obs)")
 	return nothing
 end
 
@@ -187,7 +221,7 @@ end
 # utilities
 #
 
-function __design_type(between::DataFrame, within::DataFrame)
+function _design_type(between::DataFrame, within::DataFrame)
 	if !isempty(between) && !isempty(within)
 		return :mixed
 	elseif !isempty(between)
@@ -199,28 +233,42 @@ function __design_type(between::DataFrame, within::DataFrame)
 	end
 end
 
-function check_variable(dat::DataFrame, var::SymbolOString)
+function _check_variable(dat::DataFrame, var::SymbolOString)
 	return hasproperty(dat, var) || throw(
 		ArgumentError("Variable '$var' is not in design table"))
 end
 
-function _is_within(dat::DataFrame, column::SymbolOString, unit_obs::SymbolOString)
+function _is_within(variable::SymbolOString, dat::DataFrame, unit_obs::SymbolOString)
 	for uo in unique(dat[:, unit_obs])
 		i = dat[:, unit_obs] .== uo
-		length(unique(skipmissing(dat[i, column]))) > 1 && return true
+		length(unique(skipmissing(dat[i, variable]))) > 1 && return true
 	end
 	return false
 end
 
-_to_string_vector(x::SymbolOString) = return [String(x)]
-_to_string_vector(x::Base.AbstractVecOrTuple{SymbolOString}) = return [String(v) for v in x]
+function _is_within(variable::String, between_cols::Vector{String}, within_cols::Vector{String})
+	# helper function, checks also if variable is in design at all
+	if variable in between_cols
+		return false
+	elseif variable in within_cols
+		return true
+	else
+		throw(ArgumentError("$(variable)' is not a between or within design variable."))
+	end
+end
+
+
+_to_string_vector(::Nothing) = String[]
+_to_string_vector(x::SymbolOString) = [String(x)]
+_to_string_vector(x::Base.AbstractVecOrTuple{Symbol}) = [String(v) for v in x]
+_to_string_vector(x::Base.AbstractVecOrTuple{String}) = x
 
 """get the indices (bool vector) of all combinations of the columns"""
-function _ids_column_combinations(dat::DataFrame, columns::Vector{Symbol})
+function _cell_indices(dat::DataFrame, columns::Vector{String})
 	# find indices (bool vectors) of each unique value in each column and write to dict
 	# this intermediate index dict vectors avoids redundant searches in dataframe and speed up code
 	unique_vals = [unique(getproperty(dat, col)) for col in columns]
-	index_dict = Dict{Symbol, Dict{Any, Vector{Bool}}}() # dict[column][val] = [...indices...]
+	index_dict = Dict{String, Dict{Any, Vector{Bool}}}() # dict[column][val] = [...indices...]
 	for (values, col) in zip(unique_vals, columns)
 		index_dict[col] = Dict{Any, Vector{Bool}}()
 		for val in values
@@ -247,6 +295,3 @@ function _ids_column_combinations(dat::DataFrame, columns::Vector{Symbol})
 
 	return ids, delete!(all_combis, rm_combis)
 end
-_ids_column_combinations(dat::DataFrame, columns::Vector{<:AbstractString}) =
-	_ids_column_combinations(dat, Symbol.(columns))
-_ids_column_combinations(dat::DataFrame) = _ids_column_combinations(dat, names(dat))

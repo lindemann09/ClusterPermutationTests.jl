@@ -12,7 +12,6 @@ using StatsAPI
 
 import HypothesisTests: nobs
 import StatsAPI: fit, summary, params
-import Random: randperm!, randperm
 
 export ClusterPermutationTestDefinition,
     ClusterPermutationTest,
@@ -22,6 +21,8 @@ export ClusterPermutationTestDefinition,
     design_table,
     nrow,
     cell_indices,
+    shuffle_variable!,
+    shuffle_variable,
     # data,
     CPData,
     epoch_length,

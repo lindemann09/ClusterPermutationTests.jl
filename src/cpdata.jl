@@ -38,7 +38,7 @@ function CPData(; data_mtx::AbstractMatrix{<:Real},
 	# select subset with specified conditions
 	ids = fill(true, nrows)
 	for (values, var) in zip(values(kwargs), ivs)
-		check_variable(design_tbl, var)
+		_check_variable(design_tbl, var)
 		if !(values isa DataAPI.All) # select not all rows
 			ids = ids .&& in.(design_tbl[:, var], Ref(values))
 		end

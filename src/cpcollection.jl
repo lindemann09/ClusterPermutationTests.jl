@@ -83,7 +83,7 @@ function _do_resampling(rng::AbstractRNG,
         if !isnothing(progressmeter)
             next!(progressmeter)
         end
-        randperm!(rng, perm_design)
+        shuffle_variable!(rng, perm_design, specs.iv)
         cl_stats = T[]
         for r in cl_ranges
             mtx = preprocess_fnc(data_mtx[:, r], perm_design, specs)
