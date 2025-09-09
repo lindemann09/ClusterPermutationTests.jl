@@ -27,7 +27,7 @@ function StatsAPI.fit(::Type{ClusterPermutationTTest}, # TODO: two value compari
         "compare has to be tuple of two conditions/groups"))
     cpt_def = ClusterPermutationTestDefinition(ttest, ttest_preprocess, sum)
     var = Dict(Symbol(iv) => compare)
-    data = CPData(; data_mtx, design, unit_obs, var...) # check &  prepare data
+    data = CPData(data_mtx, design; unit_obs, var...) # check &  prepare data
     cpc = ClusterPermutationCollection(;
         cluster_criteria,
         # parameter for specs

@@ -19,7 +19,7 @@ function PermutationDesign(between::DataFrame, within::DataFrame, unit_obs::Unio
 		if (!isempty(between) && unit_obs ∉ names(between)) ||
 		   (!isempty(within) && unit_obs ∉ names(within))
 			throw(ArgumentError("'$unit_obs' is not a valid 'unit of observation' variable. " *
-								"It needs to be specified in between and within dataframe as an independent variable."))
+								"It needs to be specified as a between and within variable dataframe as an independent variable."))
 		end
 	end
 
@@ -29,7 +29,7 @@ function PermutationDesign(between::DataFrame, within::DataFrame, unit_obs::Unio
 	else
 		# within or mixed design
 		if isnothing(unit_obs)
-			throw(ArgumentError("A 'unit of observation' variable must be specified when 'within' variables are specified."))
+			throw(ArgumentError("A 'unit of observation' variable must be specified if 'within' variables are specified."))
 		end
 		uo_values = getproperty(within, unit_obs)
 		# id matrix
@@ -53,9 +53,10 @@ function PermutationDesign(design::DataFrame,
 			between_vars = vcat([unit_obs], between_vars)
 		end
 	end
-	# check variables
+	# improve error message, if variables are not in design
 	for v in vcat(between_vars, within_vars)
-		_check_variable(design, v)
+		hasproperty(design, v) || throw(
+			ArgumentError("Variable '$v' is not in design table"))
 	end
 	between = unique(design[:, between_vars])
 	PermutationDesign(between, design[:, within_vars], unit_obs)
@@ -63,7 +64,7 @@ end
 
 function PermutationDesign(design::DataFrame; unit_obs::OptSymbolOString = nothing)
 
-	unit_obs = isnothing(unit_obs) ? nothing : String(unit_obs)
+	unit_obs = !isnothing(unit_obs) ?  String(unit_obs) : nothing
 	within_vars = String[]
 	between_vars = String[]
 	for v in names(design)
@@ -231,11 +232,6 @@ function _design_type(between::DataFrame, within::DataFrame)
 	else
 		return :none
 	end
-end
-
-function _check_variable(dat::DataFrame, var::SymbolOString)
-	return hasproperty(dat, var) || throw(
-		ArgumentError("Variable '$var' is not in design table"))
 end
 
 function _is_within(variable::SymbolOString, dat::DataFrame, unit_obs::SymbolOString)
