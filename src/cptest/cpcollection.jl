@@ -1,5 +1,5 @@
 
-struct ClusterPermutationCollection{T<:Real}
+struct CPCollection{T<:Real}
     specs::NamedTuple # all parameter passed together with data to estimate_fnc
 
     stats::Vector{T} # test statistic at each sample
@@ -8,21 +8,21 @@ struct ClusterPermutationCollection{T<:Real}
     S::Vector{Vector{T}} # fits TODO should be matrix
 end;
 
-function ClusterPermutationCollection(;
-    cluster_criteria::ClusterDef,
+function CPCollection(;
+    cluster_criterium::ClusterDef,
     ftype::Type{<:Float64}=Float64,
     kwargs...)
     T = ftype
     specs = (; kwargs...)
-    return ClusterPermutationCollection(specs, T[], cluster_criteria, Vector{T}[])
+    return CPCollection(specs, T[], cluster_criterium, Vector{T}[])
 end;
 
-function cluster_ranges(x::ClusterPermutationCollection)
+function cluster_ranges(x::CPCollection)
     return cluster_ranges(x.stats, x.cc)
 end;
 
-function initial_fit!(cpc::ClusterPermutationCollection;
-    cpt_def::ClusterPermutationTestDefinition,
+function initial_fit!(cpc::CPCollection;
+    cpt_def::CPFunctions,
     data::CPData)
     @unpack estimate_fnc, preprocess_fnc = cpt_def
     @unpack specs = cpc
@@ -34,8 +34,8 @@ function initial_fit!(cpc::ClusterPermutationCollection;
 end
 
 function _resample!(rng::AbstractRNG,
-    def::ClusterPermutationTestDefinition,
-    cpc::ClusterPermutationCollection,
+    def::CPFunctions,
+    cpc::CPCollection,
     data::CPData;
     n_permutations::Integer,
     progressmeter::Bool,
@@ -66,8 +66,8 @@ function _resample!(rng::AbstractRNG,
 end;
 
 function _do_resampling(rng::AbstractRNG,
-    def::ClusterPermutationTestDefinition,
-    cpc::ClusterPermutationCollection,
+    def::CPFunctions,
+    cpc::CPCollection,
     data::CPData;
     n_permutations::Integer,
     progressmeter::Union{Nothing,Progress})::Vector{Vector}
@@ -76,7 +76,7 @@ function _do_resampling(rng::AbstractRNG,
     @unpack specs = cpc
     cl_ranges = cluster_ranges(cpc)
     data_mtx = data.mtx
-    perm_design = copy(data.design)
+    perm_design = copy(data.design) # shuffle always copy of design
 
     cl_stats_distr = Vector{T}[] # distribution of cluster-level statistics
     for _ in 1:n_permutations
@@ -95,9 +95,9 @@ function _do_resampling(rng::AbstractRNG,
     return cl_stats_distr
 end;
 
-npermutations(x::ClusterPermutationCollection) = length(x.S)
+npermutations(x::CPCollection) = length(x.S)
 
-function fits(x::ClusterPermutationCollection)::Matrix
+function fits(x::CPCollection)::Matrix
     if length(x.S) == 0
         return zeros(eltype{x.S}, 0, 0)
     else

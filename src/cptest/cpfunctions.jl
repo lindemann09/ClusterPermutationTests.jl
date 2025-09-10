@@ -1,4 +1,4 @@
-struct ClusterPermutationTestDefinition
+struct CPFunctions
     # estim
     #   signature: function(dat::Vector{<:Real}, design::PermutationDesign, specs::NamedTuple ## FIXME use CPData?
     #   return:    ftype::Type{<:Float64},
@@ -10,7 +10,7 @@ struct ClusterPermutationTestDefinition
     mass_fnc::Function # required signature function(dat::Vector{<:Real})::Real
 end
 
-function ClusterPermutationTestDefinition(;
+function CPFunctions(;
     estimate_fnc::Function,
     preprocess_fnc::Union{Nothing,Function},
     mass_fnc::Function=sum) # default mass_fnc
@@ -22,14 +22,16 @@ function ClusterPermutationTestDefinition(;
     ArgsEstimFnc = (Vector{<:Real}, PermutationDesign, NamedTuple)
     _check_function(estimate_fnc, ArgsEstimFnc, Real, "Parameter estimation")
     _check_function(preprocess_fnc, ArgsPreprocessFnc, Matrix, "Data preprocess")
-    return ClusterPermutationTestDefinition(estimate_fnc, preprocess_fnc, mass_fnc)
+    return CPFunctions(estimate_fnc, preprocess_fnc, mass_fnc)
 end
 
-function repr_functions(x::ClusterPermutationTestDefinition)
+function repr_functions(x::CPFunctions)
     return "$(x.estimate_fnc), $(x.preprocess_fnc), $(x.mass_fnc)"
 end;
 
-# helper
+
+# utilities
+
 _nopreprocessing(data::Matrix{<:Real}, ::PermutationDesign, ::NamedTuple) = data
 
 function _check_function(fnc::Function, arg_types, rtn_type, func_label::String)

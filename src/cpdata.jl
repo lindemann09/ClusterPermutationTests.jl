@@ -7,14 +7,12 @@ struct CPData{T <: Real}
 	mtx::Matrix{T}
 	design::PermutationDesign
 
-	function CPData(mtx::Matrix{T}, design::PermutationDesign; kwargs...) where {T <: Real}
+	function CPData(mtx::Matrix{T}, design::PermutationDesign) where {T <: Real}
 		size(mtx, 1) == nrow(design) || throw(
 			DimensionMismatch(
 				"Matrix and design table must have the same number of rows!"),
 		)
-		rtn = new{T}(mtx, design)
-		# select subset, if conditions specified
-		return length(kwargs) > 0 ? select_rows(rtn; kwargs...) : rtn
+		return new{T}(mtx, design)
 	end
 end
 
@@ -39,8 +37,8 @@ function CPData(data_mtx::AbstractMatrix{<:Real},
 			unit_obs ∈ vars && throw(ArgumentError("unit_obs variable '$unit_obs' also specified in conditions!"))
 			vars = vcat(unit_obs, vars...)
 		end
-		perm_design = PermutationDesign(design[:, vars]; unit_obs)
-		return CPData(data_mtx, perm_design; kwargs...)
+		perm_design = PermutationDesign(design[:, vars]; unit_obs) # select variables
+		return select_rows(CPData(data_mtx, perm_design); kwargs...)
 	end
 end
 
@@ -60,14 +58,18 @@ function select_rows(dat::CPData; kwargs...)
 		end
 	end
 
-	perm_design = PermutationDesign(df[idx, :], dsgn.between_variables, dsgn.within_variables;
-					unit_obs=dsgn.unit_obs)
+	perm_design = make_permutation_design(df[idx, :], dsgn.between_variables, dsgn.within_variables;
+		unit_obs = dsgn.unit_obs)
 	return CPData(dat.mtx[idx, :], perm_design)
 end
-
 
 design_table(x::CPData) = design_table(x.design)
 epoch_length(x::CPData) = size(x.mtx, 2)
 nepochs(x::CPData) = size(x.mtx, 1)
 
+function Base.show(io::IO, mime::MIME"text/plain", x::CPData)
+	println(io, "CPData: matrix $(size(x.mtx))")
+	show(io, mime, x.design)
+	return nothing
+end
 

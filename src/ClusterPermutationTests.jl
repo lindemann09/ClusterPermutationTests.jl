@@ -13,8 +13,7 @@ using StatsAPI
 import HypothesisTests: nobs
 import StatsAPI: fit, summary, params
 
-export ClusterPermutationTestDefinition,
-    ClusterPermutationTest,
+export ClusterPermutationTest,
     ClusterPermutationTTest,
     # PermuteDesign
     PermutationDesign,
@@ -30,7 +29,7 @@ export ClusterPermutationTestDefinition,
     nepochs,
     nobs,
     # Cluster
-    ClusterCriteria,
+    ClusterCriterium,
     ClusterDefinition,
     cluster_statistics,
     cluster_ranges,
@@ -45,14 +44,11 @@ export ClusterPermutationTestDefinition,
     summary,
     @formula # reexport
 
-include("cpdesign.jl")
+include("perm_design/perm_design.jl")
 include("cpdata.jl")
-include("cpdefinition.jl")
 include("cluster.jl")
-include("cpcollection.jl")
-include("clusterpermutationtest.jl")
+include("cptest/cptest.jl")
 
-include("general_test.jl")
 include("ttest.jl")
 
 end;

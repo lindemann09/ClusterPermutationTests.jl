@@ -1,8 +1,27 @@
 
 abstract type ClusterPermutationTest end
-#requires cpc::ClusterPermutationObject
-#          def::ClusterPermutationTestDefinition
-#          data::CPData
+
+include("cpfunctions.jl")
+include("cpcollection.jl")
+
+# struct ClusterPermutationTestGeneric <: ClusterPermutationTest
+# 	def::CPFunctions
+# 	cpc::CPCollection
+# 	data::CPData
+# end
+
+# function StatsAPI.fit(def::CPFunctions,
+# 	data::CPData;
+# 	cluster_criterium::ClusterDef,
+# 	ftype::Type{<:Float64} = Float64,
+# 	kwargs...)::ClusterPermutationTestGeneric
+
+#     specs = (; kwargs...)
+# 	T = ftype
+# 	cpc = CPCollection(specs, T[], cluster_criterium, Vector{T}[])
+# 	initial_fit!(cpc; cpt_def = def, data)
+# 	return ClusterPermutationTestGeneric(def, cpc, data)
+# end
 
 
 nepochs(x::ClusterPermutationTest) = nepochs(x.data)
@@ -11,7 +30,7 @@ design_table(x::ClusterPermutationTest) = design_table(x.data.design)
 
 npermutations(x::ClusterPermutationTest) = npermutations(x.cpc)
 cluster_ranges(x::ClusterPermutationTest) = cluster_ranges(x.cpc)
-cluster_criteria(x::ClusterPermutationTest) = x.cpc.cc
+cluster_criterium(x::ClusterPermutationTest) = x.cpc.cc
 fits(x::ClusterPermutationTest) = fits(x.cpc)
 StatsAPI.params(x::ClusterPermutationTest) = x.cpc.stats
 
@@ -78,11 +97,7 @@ end
 resample!(cpt::ClusterPermutationTest; kwargs...) = resample!(Random.GLOBAL_RNG, cpt; kwargs...)
 
 function test_info(x::ClusterPermutationTest)
-	if x isa ClusterPermutationTestGeneral
-		return "$(typeof(x)) ($(repr_functions(x.def)))"
-	else
-		return typeof(x)
-	end
+	return "$(typeof(x)) ($(repr_functions(x.def)))"
 end
 
 function StatsAPI.summary(x::ClusterPermutationTest)
@@ -100,7 +115,7 @@ end;
 
 function Base.show(io::IO, mime::MIME"text/plain", x::ClusterPermutationTest)
 	clr = cluster_ranges(x)
-	cc = cluster_criteria(x)
+	cc = cluster_criterium(x)
 	println(io, "$(test_info(x))")
 	println(io, "  data: $(nepochs(x)) x $(epoch_length(x))")
 	if cc isa ClusterDefinition

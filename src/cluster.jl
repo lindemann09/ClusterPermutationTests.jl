@@ -1,4 +1,4 @@
-struct ClusterCriteria
+struct ClusterCriterium
 	threshold::Real
 	min_size::Int
 	use_absolute::Bool
@@ -8,12 +8,12 @@ struct ClusterDefinition
 	ranges::Vector{UnitRange}
 end
 
-ClusterDef = Union{ClusterCriteria, ClusterDefinition}
+ClusterDef = Union{ClusterCriterium, ClusterDefinition}
 
-function ClusterCriteria(; threshold::Real,
+function ClusterCriterium(; threshold::Real,
 	min_size::Int = 10,
 	use_absolute::Bool = true)
-	return ClusterCriteria(threshold, min_size, use_absolute)
+	return ClusterCriterium(threshold, min_size, use_absolute)
 end
 
 function ClusterDefinition(single_range::UnitRange)
@@ -21,7 +21,7 @@ function ClusterDefinition(single_range::UnitRange)
 end
 
 
-function cluster_ranges(dat::Vector{<:Real}, cc::ClusterCriteria)::Vector{UnitRange}
+function cluster_ranges(dat::Vector{<:Real}, cc::ClusterCriterium)::Vector{UnitRange}
 	d = cc.use_absolute ? abs.(dat) : dat
 	@unpack threshold, min_size = cc
 	## find cluster
@@ -53,8 +53,6 @@ end;
 function cluster_ranges(::Vector{<:Real}, cc::ClusterDefinition)::Vector{UnitRange}
 	return cc.ranges
 end
-
-
 
 function cluster_statistics(mass_fnc::Function,
 	stats::Vector{<:Real},
