@@ -48,6 +48,7 @@ include("perm_design/perm_design.jl")
 include("cpdata.jl")
 include("cluster.jl")
 include("cptest/cptest.jl")
+include("sampling.jl")
 
 include("ttest.jl")
 

@@ -1,5 +1,4 @@
 struct ClusterPermutationTTest <: ClusterPermutationTest
-	def::CPFunctions
 	cpc::CPCollection
 	data::CPData
 end;
@@ -8,7 +7,7 @@ function StatsAPI.fit(::Type{ClusterPermutationTTest}, # TODO: two value compari
 	iv::SymbolOString,
 	dat::CPData;
 	equal_variance = true,
-	cluster_criterium::ClusterDef)
+	cluster_criterium::ClusterCritODef)
 
 	paired = is_within(iv, dat.design)
 
@@ -21,13 +20,15 @@ function StatsAPI.fit(::Type{ClusterPermutationTTest}, # TODO: two value compari
 
 	length(compare) == 2 || throw(ArgumentError("'$iv' comprises $(length(compare)) categories; two required."))
 
-	cpt_def = CPFunctions(ttest, ttest_preprocess, sum)
-	cpc = CPCollection(;
-		cluster_criterium,
-		# parameter for specs
-		paired, iv, compare, equal_variance)
-	initial_fit!(cpc; cpt_def, data=dat)
-	return ClusterPermutationTTest(cpt_def, cpc, dat)
+	tdef = CPTestDefinition(;
+				estimate_fnc=ttest,
+				preprocess_fnc=ttest_preprocess,
+				mass_fnc=sum,
+				# parameter for specs
+				paired, iv=Symbol(iv), compare, equal_variance)
+	cpc = CPCollection(tdef, cluster_criterium)
+	initial_fit!(cpc, dat)
+	return ClusterPermutationTTest(cpc, dat)
 end;
 
 # formula interface

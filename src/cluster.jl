@@ -8,7 +8,7 @@ struct ClusterDefinition
 	ranges::Vector{UnitRange}
 end
 
-ClusterDef = Union{ClusterCriterium, ClusterDefinition}
+ClusterCritODef = Union{ClusterCriterium, ClusterDefinition}
 
 function ClusterCriterium(; threshold::Real,
 	min_size::Int = 10,
@@ -56,7 +56,7 @@ end
 
 function cluster_statistics(mass_fnc::Function,
 	stats::Vector{<:Real},
-	cc::ClusterDef)
+	cc::ClusterCritODef)
 	ranges = cluster_ranges(stats, cc)
 	return [mass_fnc(stats[cl]) for cl in ranges]
 end;

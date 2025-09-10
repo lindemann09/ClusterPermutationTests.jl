@@ -1,4 +1,4 @@
-struct CPFunctions
+struct CPTestDefinition
     # estim
     #   signature: function(dat::Vector{<:Real}, design::PermutationDesign, specs::NamedTuple ## FIXME use CPData?
     #   return:    ftype::Type{<:Float64},
@@ -8,25 +8,30 @@ struct CPFunctions
     estimate_fnc::Function
     preprocess_fnc::Function
     mass_fnc::Function # required signature function(dat::Vector{<:Real})::Real
+    specs::NamedTuple # all parameter passed (together with data) to estimate_fnc
 end
 
-function CPFunctions(;
+function CPTestDefinition(;
     estimate_fnc::Function,
     preprocess_fnc::Union{Nothing,Function},
-    mass_fnc::Function=sum) # default mass_fnc
+    mass_fnc::Function=sum,
+    kwargs...) # default mass_fnc
     if isnothing(preprocess_fnc)
         preprocess_fnc = _nopreprocessing
     end
+
     # check return type
     ArgsPreprocessFnc = (Matrix{<:Real}, PermutationDesign, NamedTuple)
     ArgsEstimFnc = (Vector{<:Real}, PermutationDesign, NamedTuple)
     _check_function(estimate_fnc, ArgsEstimFnc, Real, "Parameter estimation")
     _check_function(preprocess_fnc, ArgsPreprocessFnc, Matrix, "Data preprocess")
-    return CPFunctions(estimate_fnc, preprocess_fnc, mass_fnc)
+    specs = (; kwargs...)
+    return CPTestDefinition(estimate_fnc, preprocess_fnc, mass_fnc, specs)
 end
 
-function repr_functions(x::CPFunctions)
-    return "$(x.estimate_fnc), $(x.preprocess_fnc), $(x.mass_fnc)"
+function test_info(x::CPTestDefinition)
+    specs_str = join(["$k=$(v)" for (k,v) in pairs(x.specs)], ", ")
+    return "mass_fnc = $(x.mass_fnc), $specs_str"
 end;
 
 
