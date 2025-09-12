@@ -1,13 +1,13 @@
-struct CPTestDefinition
+struct CPTestDefinition{F<:Function, G<:Function, H<:Function}
     # estim
-    #   signature: function(dat::Vector{<:Real}, design::PermutationDesign, specs::NamedTuple ## FIXME use CPData?
+    #   signature: function(dat::SubArray{<:Real}, design::PermutationDesign, specs::NamedTuple ## FIXME use CPData?
     #   return:    ftype::Type{<:Float64},
     # process
     #   signature: function signature(dat::Matrix{<:Real}, design::PermutationDesign, specs::NamedTuple)
     #   return:    Matrix
-    estimate_fnc::Function
-    preprocess_fnc::Function
-    mass_fnc::Function # required signature function(dat::Vector{<:Real})::Real
+    estimate_fnc::F
+    preprocess_fnc::G
+    mass_fnc::H # required signature function(dat::Vector{<:Real})::Real
     specs::NamedTuple # all parameter passed (together with data) to estimate_fnc
 end
 
@@ -22,7 +22,7 @@ function CPTestDefinition(;
 
     # check return type
     ArgsPreprocessFnc = (Matrix{<:Real}, PermutationDesign, NamedTuple)
-    ArgsEstimFnc = (Vector{<:Real}, PermutationDesign, NamedTuple)
+    ArgsEstimFnc = (SubArray{<:Real}, PermutationDesign, NamedTuple)
     _check_function(estimate_fnc, ArgsEstimFnc, Real, "Parameter estimation")
     _check_function(preprocess_fnc, ArgsPreprocessFnc, Matrix, "Data preprocess")
     specs = (; kwargs...)

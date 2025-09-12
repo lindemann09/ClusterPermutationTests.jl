@@ -15,9 +15,9 @@ function cell_indices(dat::DataFrame, columns::Vector{String})
 	# find indices (bool vectors) of each unique value in each column and write to dict
 	# this intermediate index dict vectors avoids redundant searches in dataframe and speed up code
 	unique_vals = [unique(getproperty(dat, col)) for col in columns]
-	index_dict = Dict{String, Dict{Any, Vector{Bool}}}() # dict[column][val] = [...indices...]
+	index_dict = Dict{String, Dict{Any, BitVector}}() # dict[column][val] = [...indices...]
 	for (values, col) in zip(unique_vals, columns)
-		index_dict[col] = Dict{Any, Vector{Bool}}()
+		index_dict[col] = Dict{Any, BitVector}()
 		for val in values
 			index_dict[col][val] = dat[:, col] .== val
 		end
@@ -25,12 +25,12 @@ function cell_indices(dat::DataFrame, columns::Vector{String})
 
 	# all combinations of column values => logically combine bool vector of indices
 	all_combis = sort!(DataFrame(Iterators.product(unique_vals...), columns))
-	ids = Vector{Bool}[]
+	ids = BitVector[]
 	rm_combis = [] # delete this combination, because they don't exists
 	for row in eachrow(all_combis)
 		x = true
 		for (col, val) in zip(columns, row)
-			x = x .&& index_dict[col][val]
+			x = x .& index_dict[col][val]
 		end
 		if any(x)
 			push!(ids, x)

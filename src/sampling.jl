@@ -3,7 +3,7 @@ function initial_fit!(cpc::CPCollection,
     @unpack specs, estimate_fnc, preprocess_fnc = cpc.def
 
     mtx = preprocess_fnc(data.mtx, data.design, specs)
-    para = [estimate_fnc(mtx[:, s], data.design, specs) for s in 1:epoch_length(data)]
+    para = [estimate_fnc(v, data.design, specs) for v in eachcol(mtx)]
     _reset_vector!(cpc.stats, para)
     return nothing
 end
@@ -62,7 +62,7 @@ function _do_resampling(rng::AbstractRNG,
         cl_stats = T[]
         for r in cl_ranges
             mtx = preprocess_fnc(data_mtx[:, r], perm_design, specs)
-            p = [estimate_fnc(Vector(v), perm_design, specs) for v in eachcol(mtx)]
+            p = [estimate_fnc(v, perm_design, specs) for v in eachcol(mtx)]
             push!(cl_stats, mass_fnc(p))
         end
         push!(cl_stats_distr, cl_stats)

@@ -124,6 +124,17 @@ function Base.show(io::IO, mime::MIME"text/plain", x::PermutationDesign)
 	return nothing
 end
 
+function get_variable(x::PermutationDesign, var::String) # get a single variable
+	if var in names(x.within)
+		return x.within[:, var]
+	else
+		i = findfirst.(eachrow(x.X))
+		return x.between[i, var]
+	end
+end
+get_variable(x::PermutationDesign, var::Symbol) = get_variable(x, String(var))
+
+
 DataFrames.DataFrame(x::PermutationDesign) = design_table(x::PermutationDesign)
 function design_table(x::PermutationDesign)
 	tp = x.type
