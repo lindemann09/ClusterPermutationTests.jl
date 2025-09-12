@@ -58,8 +58,9 @@ function select_rows(dat::CPData; kwargs...)
 		end
 	end
 
-	perm_design = make_permutation_design(df[idx, :], dsgn.between_variables, dsgn.within_variables;
-		unit_obs = dsgn.unit_obs)
+	perm_design = make_permutation_design(df[idx, :], dsgn.between_variables,
+			dsgn.within_variables, dsgn.unit_obs)
+
 	return CPData(dat.mtx[idx, :], perm_design)
 end
 

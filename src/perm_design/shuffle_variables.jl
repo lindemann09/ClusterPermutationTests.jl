@@ -7,29 +7,32 @@ function shuffle_variable!(rng::AbstractRNG,
 	between_vars = perm_design.between_variables
 	iv_is_within = is_within(iv, between_vars, within_vars) # to be shuffled variable is within (also checks if in design at all)
 
-	# check variables and find all relevant sync variables
-	sync_vars = String[] # needed variables
-	for s in _to_string_vector(synchronize)
-		sync_var_is_within = is_within(s, between_vars, within_vars)
-		if !sync_var_is_within && iv_is_within
-			@warn "'$(s)' is a between variable. " *
-				  "Between variables arn't affected by the shuffling of a variable ('$(iv)') " *
-				  "within the unit of observations."
-		elseif sync_var_is_within && !iv_is_within
-			@warn "'$(s)' is a within variable. " *
-				  "Within variables arn't affected by the shuffling of a property ('$(iv)') " *
-				  "of the unit of observations."
-		else
-			push!(sync_vars, s)
+	# prepare shuffle id groups (to improve performance)
+	sync_vars = String[]
+	if !isnothing(synchronize)
+		# check and find all relevant sync variables
+		for s in _to_string_vector(synchronize)
+			sync_var_is_within = is_within(s, between_vars, within_vars)
+			if !sync_var_is_within && iv_is_within
+				@warn "'$(s)' is a between variable. " *
+					"Between variables can't affect the shuffling of a variable ('$(iv)') " *
+					"within the unit of observations."
+			elseif sync_var_is_within && !iv_is_within
+				@warn "'$(s)' is a within variable. " *
+					"Within variables can't affect the shuffling of a property ('$(iv)') " *
+					"of the unit of observations."
+			else
+				push!(sync_vars, s)
+			end
 		end
 	end
-	# prepare shuffle id groups (to improve performance)
-	tmp = iv_is_within ? perm_design.within : perm_design.between
+
+	tmp_df = iv_is_within ? perm_design.within : perm_design.between
 	if isempty(sync_vars)
 		# no sync variables: one vector with all true
-		shuffle_group_ids = [fill(true, nrow(tmp))]
+		shuffle_group_ids = [fill(true, nrow(tmp_df))]
 	else
-		shuffle_group_ids, _ = cell_indices(tmp, sync_vars)
+		shuffle_group_ids, _ = cell_indices(tmp_df, sync_vars)
 	end
 
 	# shuffle

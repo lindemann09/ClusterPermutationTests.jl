@@ -63,7 +63,7 @@ function ttest(dat::Vector{<:Real}, design::PermutationDesign, specs::NamedTuple
 	else
 		iv = design_table(design)[:, specs.iv]
 		@unpack compare = specs
-		dat_a = dat[iv .== compare[1]]
+		dat_a = dat[iv .== compare[1]] # FIXME check
 		dat_b = dat[iv .== compare[2]]
 		if specs[:equal_variance]
 			tt = EqualVarianceTTest(dat_a, dat_b)

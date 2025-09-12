@@ -3,11 +3,11 @@ const SymbolOString = Union{Symbol, AbstractString}
 const OptSymbolOString = Union{SymbolOString, Nothing}
 const OptMultiSymbolOString = Union{SymbolOString, Base.AbstractVecOrTuple{SymbolOString}, Nothing}
 
-struct PermutationDesign
+struct PermutationDesign{S<:Union{Nothing, String}}
 	between::DataFrame
 	within::DataFrame
-	unit_obs::Union{String, Nothing}
-	X::Matrix{Bool} # id matrix for the unit of observation; each column corresponds to one value of unit_obs
+	unit_obs::S
+	X::BitMatrix # id matrix for the unit of observation; each column corresponds to one value of unit_obs
 end
 
 include("cell_indices.jl")
@@ -15,64 +15,74 @@ include("shuffle_variables.jl")
 
 function PermutationDesign(design::DataFrame; unit_obs::OptSymbolOString = nothing)
 
-	unit_obs = !isnothing(unit_obs) ? String(unit_obs) : nothing
-	within_vars = String[]
-	between_vars = String[]
-	for v in names(design)
-		if v == unit_obs
-			continue
-		elseif !isnothing(unit_obs) && is_within(v, design, unit_obs)
-			push!(within_vars, v)
-		else
-			push!(between_vars, v)
-		end
-	end
-
-	isempty(between_vars) && isempty(within_vars) && throw(ArgumentError("No independent variable found."))
-
-	if !isnothing(unit_obs)
-		# unit obs is not specified: add to between and within
-		unit_obs = String(unit_obs)
-		if !isempty(within_vars)
-			within_vars = vcat(unit_obs, within_vars)
-		end
-		if !isempty(between_vars)
-			between_vars = vcat(unit_obs, between_vars)
-		end
+	if isnothing(unit_obs)
+		# no unit of observation: pure between design (with no repeated measures)
+		isempty(design) && throw(ArgumentError("No independent variable found."))
+		return make_permutation_design(design, names(design))
 	else
-		# unit obs not specified
-		!isempty(within_vars) && throw(ArgumentError(
+		# unit of observation is defined: check which variables are within and between
+		unit_obs =  String(unit_obs)
+		within_vars = String[]
+		between_vars = String[]
+		for v in names(design)
+			if v == unit_obs
+				continue
+			elseif !isnothing(unit_obs) && is_within(v, design, unit_obs)
+				push!(within_vars, v)
+			else
+				push!(between_vars, v)
+			end
+		end
+		isempty(between_vars) && isempty(within_vars) && throw(ArgumentError("No independent variable found."))
+		isnothing(unit_obs) &&	!isempty(within_vars) && throw(ArgumentError(
 			"A 'unit of observation' variable must be specified if 'within' variables are specified."))
+		return make_permutation_design(design, between_vars, within_vars, unit_obs)
 	end
-	return make_permutation_design(design, between_vars, within_vars; unit_obs)
 end
 
 """
-	make_permutation_design(design::DataFrame, between_vars::Vector{String}, within_vars::Vector{String}; unit_obs::OptSymbolOString = nothing)
+	make_permutation_design(design::DataFrame, between_vars::Vector{String}, within_vars::Vector{String}, unit_obs::SymbolOString)
 
 Create a `PermutationDesign` object from a given experimental design `DataFrame`, specifying which variables are between-subject and which are within-subject.
 
 This function is for internal use only.
 """
-function make_permutation_design(design::DataFrame, between_vars::Vector{String}, within_vars::Vector{String};
-	unit_obs::OptSymbolOString = nothing)
+function make_permutation_design(design::DataFrame, between_vars::Vector{String}, within_vars::Vector{String}, unit_obs::SymbolOString)
+	# unit obs is defined
+	unit_obs = String(unit_obs)
+
+	# add to between and within vars, if required
+	if !isempty(within_vars)
+		within_vars = vcat(unit_obs, within_vars)
+	end
+	if !isempty(between_vars)
+		between_vars = vcat(unit_obs, between_vars)
+	end
+
 	### make X
 	# X: matrix with indices for unit of observation to speeds up later processing
 	# each column corresponds to one unique value of unit_obs
-	if !isnothing(unit_obs)
-		unit_obs_values = getproperty(design, unit_obs)
-		ids_uo = [unit_obs_values .== u for u in unique(unit_obs_values)]
-		between = unique(design[:, between_vars])
-	else
-		# unit_obs is not defined in a pure between design
-		# each row is a unit of observation: get cell indices of each unique combination of between variables
-		ids_uo, between = cell_indices(design[:, between_vars], between_vars)
-	end
+	unit_obs_values = getproperty(design, unit_obs)
+	ids_uo = [unit_obs_values .== u for u in unique(unit_obs_values)]
+	X = reduce(hcat, ids_uo) # vecvec to matrix, convert to matrix of Bool
 
+	between = unique(design[:, between_vars])
 	within = design[:, within_vars]
-	X = reduce(hcat, ids_uo) # vecvec to matrix
 	return PermutationDesign(between, within, unit_obs, X)
 end
+
+function make_permutation_design(design::DataFrame, between_vars::Vector{String})
+	# unit_obs is not defined in a PURE between design
+	# each row is a unit of observation: get cell indices of each unique combination of between variables
+	ids_uo, between = cell_indices(design[:, between_vars], between_vars)
+	X = BitMatrix(reduce(hcat, ids_uo)) # vecvec to matrix
+	return PermutationDesign(between, DataFrame(), nothing, X)
+end
+
+make_permutation_design(design::DataFrame, between_vars::Vector{String}, ::Vector{String}, ::Nothing) =
+	make_permutation_design(design, between_vars) # Pure between with no units of observation
+
+
 
 Base.propertynames(::PermutationDesign) = (:between, :within, :unit_obs, :X,
 	:between_variables, :within_variables, :type)

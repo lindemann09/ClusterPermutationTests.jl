@@ -45,7 +45,6 @@ end
 
 
 ## utilities
-_to_string_vector(::Nothing) = String[]
 _to_string_vector(x::SymbolOString) = [String(x)]
 _to_string_vector(x::Base.AbstractVecOrTuple{Symbol}) = [String(v) for v in x]
 _to_string_vector(x::Base.AbstractVecOrTuple{String}) = x
