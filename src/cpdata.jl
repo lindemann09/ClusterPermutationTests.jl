@@ -16,6 +16,7 @@ struct CPData{T <: Real}
 	end
 end
 
+
 """
 	CPData(data_mtx::AbstractMatrix{<:Real},
 	...) TODO

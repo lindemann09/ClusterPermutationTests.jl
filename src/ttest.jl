@@ -1,74 +1,122 @@
-struct ClusterPermutationTTest <: ClusterPermutationTest
+abstract type CPTTest <: ClusterPermutationTest end
+
+struct CPPairedSampleTTest <: CPTTest
 	cpc::CPCollection
-	data::CPData
+	dat::CPData
+	specs::NamedTuple
 end;
 
-function StatsAPI.fit(::Type{ClusterPermutationTTest}, # TODO: two value comparison only, needs to be more general
+struct CPEqualVarianceTTest <: CPTTest
+	cpc::CPCollection
+	dat::CPData
+	specs::NamedTuple
+end;
+
+struct CPUnequalVarianceTTest <: CPTTest
+	cpc::CPCollection
+	dat::CPData
+	specs::NamedTuple
+end;
+
+function StatsAPI.fit(T::Type{<:CPTTest}, # TODO: two value comparison only, needs to be more general
 	iv::SymbolOString,
 	dat::CPData;
-	equal_variance = true,
-	cluster_criterium::ClusterCritODef)
+	cluster_criterium::ClusterCritODef,
+	mass_fnc::Function = sum)
 
 	paired = is_within(iv, dat.design)
-
-	if !paired
-        compare = unique(dat.design.between[:, iv])
-		throw(ArgumentError("Independent samples t-test not implemented yet. Use paired=true."))
-	else
-        compare = unique(dat.design.within[:, iv])
+	if T == CPTTest
+		# choose test based on design
+		T = paired ? CPPairedSampleTTest : CPEqualVarianceTTest
 	end
 
-	length(compare) == 2 || throw(ArgumentError("'$iv' comprises $(length(compare)) categories; two required."))
+	if paired
+		T == CPPairedSampleTTest || throw(ArgumentError(
+			"$(iv) is a within-subject variable. A t-test for independent samples ($(T)) is not possible."))
+		compare = unique(dat.design.within[:, iv])
+	else
+		T == CPPairedSampleTTest && throw(ArgumentError(
+			"$(iv) is a between-subject variable. $(T) is not possible."))
+		compare = unique(dat.design.between[:, iv])
+	end
 
-	tdef = CPTestDefinition(;
-				estimate_fnc=ttest,
-				preprocess_fnc=ttest_prepare_data,
-				mass_fnc=sum,
-				# parameter for specs
-				paired, iv=Symbol(iv), compare, equal_variance)
-	cpc = CPCollection(tdef, cluster_criterium)
-	initial_fit!(cpc, dat)
-	return ClusterPermutationTTest(cpc, dat)
+	length(compare) == 2 || throw(ArgumentError(
+		"'$iv' comprises $(length(compare)) categories; two required."))
+
+	cpc = CPCollection(cluster_criterium, mass_fnc)
+	specs = (; iv = Symbol(iv), compare)
+
+	rtn = T(cpc, dat, specs)
+	initial_fit!(rtn)
+	return rtn
 end;
 
 # formula interface
-function StatsAPI.fit(::Type{ClusterPermutationTTest},
+function StatsAPI.fit(T::Type{<:CPTTest},
 	f::FormulaTerm,
 	data::CPData;
 	kwargs...)
 
 	(f.lhs isa StatsModels.Term && f.rhs isa StatsModels.Term) || throw(
 		ArgumentError("Incorrect t.test formula: '$a'"))
-	return fit(ClusterPermutationTTest, Symbol(f.rhs), data; kwargs...)
+	return fit(T, Symbol(f.rhs), data; kwargs...)
 end
 
-function ttest_prepare_data(
-	mtx::Matrix{<:Real}, design::PermutationDesign, specs::NamedTuple,
-)::Matrix
+####
+#### CPPairedSampleTTest
+####
 
-if specs[:paired]
-		iv = get_variable(design, specs.iv)
-		a = mtx[iv .== specs.compare[1], :]
-		b = mtx[iv .== specs.compare[2], :]
-		return b - a # equal size required
-	else
-		return mtx
-	end
+function prepare_data(cpt::CPPairedSampleTTest,
+	mtx::Matrix{<:Real},
+	permutation::PermutationDesign)::Tuple{Matrix{eltype(mtx)}, Table}
+
+	@unpack specs = cpt
+	iv = get_variable(permutation, specs.iv)
+	tbl = Table((; specs.iv => iv))
+	a = @view mtx[iv .== specs.compare[1], :]
+	b = @view mtx[iv .== specs.compare[2], :]
+	return b - a, tbl # equal size required
 end
 
-function ttest(dat::SubArray{<:Real}, design::PermutationDesign, specs::NamedTuple)::Float64
-	# perform sequential ttests -> parameter
-	if specs[:paired]
-		tt = OneSampleTTest(dat)
-	else
-		iv = get_variable(design, specs.iv)
-		dat_a = dat[iv .== specs.compare[1]] # FIXME check
-		dat_b = dat[iv .== specs.compare[2]]
-		if specs[:equal_variance]
-			tt = EqualVarianceTTest(dat_a, dat_b)
-		else
-			tt = UnequalVarianceTTest(dat_a, dat_b)
-		end
-	end
+function estimate(::CPPairedSampleTTest, samples::SubArray{<:Real}, ::Table)::Float64
+	tt = OneSampleTTest(samples)
 	return tt.t
+end
+
+
+####
+#### CPEqualVarianceTTest, CPUnequalVarianceTTest
+####
+
+function prepare_data(cpt::Union{CPEqualVarianceTTest, CPUnequalVarianceTTest},
+	mtx::Matrix{<:Real},
+	permutation::PermutationDesign)::Tuple{Matrix{eltype(mtx)}, Table}
+
+	return mtx, Table((; cpt.specs.iv => get_variable(permutation, cpt.specs.iv)))
+end
+
+function estimate(cpt::CPEqualVarianceTTest,
+	samples::SubArray{<:Real},
+	permutation::Table)::Float64
+
+	(dat_a, dat_b) = _ttest_get_data(cpt.specs, samples, permutation)
+	tt = EqualVarianceTTest(dat_a, dat_b)
+	return tt.t
+end
+
+function estimate(cpt::CPUnequalVarianceTTest,
+	samples::SubArray{<:Real},
+	permutation::Table)::Float64
+
+	(dat_a, dat_b) = _ttest_get_data(cpt.specs, samples, permutation)
+	tt = UnequalVarianceTTest(dat_a, dat_b)
+	return tt.t
+end
+
+@inline function _ttest_get_data(specs::NamedTuple, samples::SubArray{<:Real}, permutation::Table)
+	# perform sequential ttests -> parameter
+	iv = getproperty(permutation, specs.iv)
+	dat_a = @view samples[iv .== specs.compare[1]] # FIXME check
+	dat_b = @view samples[iv .== specs.compare[2]]
+	return dat_a, dat_b
 end

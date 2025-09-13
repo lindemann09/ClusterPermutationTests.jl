@@ -1,17 +1,15 @@
 struct CPCollection{T<:Real}
-    def::CPTestDefinition # definition of test
-
+    mass_fnc::Function # cluster mass function
     cc::ClusterCritODef # cluster definition
 
     stats::Vector{T} # test statistic of initial fit at each sample
     S::Vector{Vector{T}} # fits TODO should be matrix
 end;
 
-function CPCollection(fnc::CPTestDefinition, cluster_criterium::ClusterCritODef;
+function CPCollection(cluster_criterium::ClusterCritODef, mass_fnc::Function;
     ftype::Type{<:Float64}=Float64)
-
     T = ftype
-    return CPCollection(fnc, cluster_criterium, T[], Vector{T}[])
+    return CPCollection(mass_fnc, cluster_criterium, T[], Vector{T}[])
 end;
 
 """

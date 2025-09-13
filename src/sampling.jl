@@ -1,10 +1,10 @@
-function initial_fit!(cpc::CPCollection,
-    data::CPData)
-    @unpack specs, estimate_fnc, preprocess_fnc = cpc.def
-
-    mtx = preprocess_fnc(data.mtx, data.design, specs)
-    para = [estimate_fnc(v, data.design, specs) for v in eachcol(mtx)]
-    _reset_vector!(cpc.stats, para)
+function initial_fit!(cpt::ClusterPermutationTest)
+    # initial fit of
+    # all data samples (time_series) using (not permuted) design
+    para = _parameter_estimate(cpt, cpt.dat.mtx, cpt.dat.design)
+    # replace existing stats
+    empty!(cpt.cpc.stats)
+    append!(cpt.cpc.stats, para)
     return nothing
 end
 
@@ -41,40 +41,36 @@ function resample!(rng::AbstractRNG,
     return nothing
 end;
 
-function _do_resampling(rng::AbstractRNG,
+@inline function _parameter_estimate(cpt::ClusterPermutationTest, mtx::Matrix{<:Real},
+	                        permutation::PermutationDesign)
+    # Estimate parameters for a single time series sample
+    mtx, design_tbl = prepare_data(cpt, mtx, permutation)
+    return [estimate(cpt, s, design_tbl) for s in eachcol(mtx)]
+end
+
+@inline function _do_resampling(rng::AbstractRNG,
     cpt::ClusterPermutationTest;
     n_permutations::Integer,
     progressmeter::Union{Nothing,Progress})::Vector{Vector}
 
-    @unpack cpc, data = cpt
-    @unpack specs, estimate_fnc, mass_fnc, preprocess_fnc = cpc.def
+    @unpack cpc, dat, specs = cpt
+    mass_fnc = cpc.mass_fnc
     T = eltype(cpc.stats)
     cl_ranges = cluster_ranges(cpc)
-    data_mtx = data.mtx
-    perm_design = copy(data.design) # shuffle always copy of design
+    perm_design = copy(dat.design) # shuffle always copy of design
 
     cl_stats_distr = Vector{T}[] # distribution of cluster-level statistics
     for _ in 1:n_permutations
         if !isnothing(progressmeter)
             next!(progressmeter)
         end
-        shuffle_variable!(rng, perm_design, specs.iv)
+        shuffle_variable!(rng, perm_design, specs.iv) ## TODO specs IV should not be in specs
         cl_stats = T[]
         for r in cl_ranges
-            mtx = preprocess_fnc(data_mtx[:, r], perm_design, specs)
-            p = [estimate_fnc(v, perm_design, specs) for v in eachcol(mtx)]
+            p = _parameter_estimate(cpt, dat.mtx[:, r], perm_design) # FIXME VIEW?
             push!(cl_stats, mass_fnc(p))
         end
         push!(cl_stats_distr, cl_stats)
     end
     return cl_stats_distr
 end;
-
-# utilities
-
-function _reset_vector!(v::Vector, new_v::Vector)
-    empty!(v)
-    return append!(v, new_v)
-end
-
-;

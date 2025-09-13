@@ -4,12 +4,12 @@ abstract type ClusterPermutationTest end
 #   cpc::CPCollection
 #	data::CPData
 
-include("cptestdefinition.jl")
+#include("cptestdefinition.jl")
 include("cpcollection.jl")
 
-nepochs(x::ClusterPermutationTest) = nepochs(x.data)
-epoch_length(x::ClusterPermutationTest) = epoch_length(x.data)
-design_table(x::ClusterPermutationTest) = design_table(x.data.design)
+nepochs(x::ClusterPermutationTest) = nepochs(x.dat)
+epoch_length(x::ClusterPermutationTest) = epoch_length(x.dat)
+design_table(x::ClusterPermutationTest) = design_table(x.dat.design)
 
 npermutations(x::ClusterPermutationTest) = npermutations(x.cpc)
 cluster_ranges(x::ClusterPermutationTest) = cluster_ranges(x.cpc)
@@ -18,7 +18,7 @@ fits(x::ClusterPermutationTest) = fits(x.cpc)
 StatsAPI.params(x::ClusterPermutationTest) = x.cpc.stats
 
 function cluster_statistics(x::ClusterPermutationTest)
-	return cluster_statistics(x.cpc.def.mass_fnc, x.cpc.stats, x.cpc.cc)
+	return cluster_statistics(x.cpc.mass_fnc, x.cpc.stats, x.cpc.cc)
 end;
 
 function pvalues(x::ClusterPermutationTest;
@@ -69,7 +69,7 @@ function cluster_table(x::ClusterPermutationTest)
 end
 
 function test_info(x::ClusterPermutationTest)
-	return "$(typeof(x)) ($(test_info(x.cpc.def)))"
+	return "$(typeof(x)) ($(x.cpc.mass_fnc))"
 end
 
 function StatsAPI.summary(x::ClusterPermutationTest)

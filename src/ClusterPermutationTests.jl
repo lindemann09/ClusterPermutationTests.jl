@@ -1,6 +1,7 @@
 module ClusterPermutationTests
 
 using DataAPI
+using TypedTables
 using DataFrames
 using StatsModels
 using Random
@@ -14,7 +15,10 @@ import HypothesisTests: nobs
 import StatsAPI: fit, summary, params
 
 export ClusterPermutationTest,
-    ClusterPermutationTTest,
+    CPTTest,
+    CPPairedSampleTTest,
+    CPEqualVarianceTTest,
+    CPUnequalVarianceTTest,
     # PermuteDesign
     PermutationDesign,
     design_table,
