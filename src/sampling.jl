@@ -53,7 +53,7 @@ end
     n_permutations::Integer,
     progressmeter::Union{Nothing,Progress})::Vector{Vector}
 
-    @unpack cpc, dat, specs = cpt
+    @unpack cpc, dat = cpt
     mass_fnc = cpc.mass_fnc
     T = eltype(cpc.stats)
     cl_ranges = cluster_ranges(cpc)
@@ -64,7 +64,7 @@ end
         if !isnothing(progressmeter)
             next!(progressmeter)
         end
-        shuffle_variable!(rng, perm_design, specs.iv) ## TODO specs IV should not be in specs
+        shuffle_variable!(rng, perm_design, cpt.iv)
         cl_stats = T[]
         for r in cl_ranges
             p = _parameter_estimate(cpt, dat.mtx[:, r], perm_design) # FIXME VIEW?

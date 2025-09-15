@@ -1,18 +1,18 @@
 module ClusterPermutationTests
 
-using DataAPI
-using TypedTables
-using DataFrames
-using StatsModels
-using Random
-using UnPack
-using HypothesisTests
-using ProgressMeter
-using PrettyTables
-using StatsAPI
-
-import HypothesisTests: nobs
-import StatsAPI: fit, summary, params
+import DataAPI
+using StatsAPI: StatsAPI, fit, params, pvalue, nobs
+using DataFrames: DataFrames, DataFrame, Not, delete!, nrow
+using StatsModels: RegressionModel, @formula, FormulaTerm, Term
+import GLM: lm
+using HypothesisTests: HypothesisTests, EqualVarianceTTest, OneSampleTTest,
+                        UnequalVarianceTTest
+import MixedModels
+using PrettyTables: ft_printf, pretty_table, tf_unicode_rounded
+using ProgressMeter: Progress, next!
+using Random: Random, AbstractRNG, shuffle
+using TypedTables: Table
+using UnPack: @unpack
 
 export ClusterPermutationTest,
     CPTTest,
@@ -50,11 +50,12 @@ export ClusterPermutationTest,
     @formula # reexport
 
 include("perm_design/perm_design.jl")
-include("cpdata.jl")
 include("cluster.jl")
-include("cptest/cptest.jl")
+include("cpdata.jl")
+include("cptype.jl")
 include("sampling.jl")
 
 include("ttest.jl")
+#include("lm.jl")
 
 end;
