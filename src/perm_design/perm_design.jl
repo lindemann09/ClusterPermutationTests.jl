@@ -13,12 +13,14 @@ end
 include("cell_indices.jl")
 include("shuffle_variables.jl")
 
-function PermutationDesign(design::DataFrame; unit_obs::OptSymbolOString = nothing)
+function PermutationDesign(design::DataFrame;
+		unit_obs::OptSymbolOString = nothing,
+		convert_categorical::Bool = true)
 
 	if isnothing(unit_obs)
 		# no unit of observation: pure between design (with no repeated measures)
 		isempty(design) && throw(ArgumentError("No independent variable found."))
-		return make_permutation_design(design, names(design))
+		return make_permutation_design(design, names(design), convert_categorical)
 	else
 		# unit of observation is defined: check which variables are within and between
 		unit_obs =  String(unit_obs)
@@ -36,7 +38,7 @@ function PermutationDesign(design::DataFrame; unit_obs::OptSymbolOString = nothi
 		isempty(between_vars) && isempty(within_vars) && throw(ArgumentError("No independent variable found."))
 		isnothing(unit_obs) &&	!isempty(within_vars) && throw(ArgumentError(
 			"A 'unit of observation' variable must be specified if 'within' variables are specified."))
-		return make_permutation_design(design, between_vars, within_vars, unit_obs)
+		return make_permutation_design(design, between_vars, within_vars, unit_obs, convert_categorical)
 	end
 end
 
@@ -47,9 +49,15 @@ Create a `PermutationDesign` object from a given experimental design `DataFrame`
 
 This function is for internal use only.
 """
-function make_permutation_design(design::DataFrame, between_vars::Vector{String}, within_vars::Vector{String}, unit_obs::SymbolOString)
+function make_permutation_design(design::DataFrame, between_vars::Vector{String}, within_vars::Vector{String},
+		unit_obs::SymbolOString, convert_categorical::Bool)
+
 	# unit obs is defined
 	unit_obs = String(unit_obs)
+	design = transform(design, unit_obs => categorical => unit_obs) # make copy & ensure unit_obs is categorical
+	if convert_categorical
+		_convert_to_categorical!(design)
+	end
 
 	# add to between and within vars, if required
 	if !isempty(within_vars)
@@ -65,23 +73,21 @@ function make_permutation_design(design::DataFrame, between_vars::Vector{String}
 	unit_obs_values = getproperty(design, unit_obs)
 	ids_uo = [unit_obs_values .== u for u in unique(unit_obs_values)]
 	X = reduce(hcat, ids_uo) # vecvec to matrix, convert to matrix of Bool
-
 	between = unique(design[:, between_vars])
 	within = design[:, within_vars]
 	return PermutationDesign(between, within, unit_obs, X)
 end
 
-function make_permutation_design(design::DataFrame, between_vars::Vector{String})
+function make_permutation_design(design::DataFrame, between_vars::Vector{String}, convert_categorical::Bool)
 	# unit_obs is not defined in a PURE between design
 	# each row is a unit of observation: get cell indices of each unique combination of between variables
 	ids_uo, between = cell_indices(design[:, between_vars], between_vars)
+	if convert_categorical
+		_convert_to_categorical!(between)
+	end
 	X = BitMatrix(reduce(hcat, ids_uo)) # vecvec to matrix
 	return PermutationDesign(between, DataFrame(), nothing, X)
 end
-
-make_permutation_design(design::DataFrame, between_vars::Vector{String}, ::Vector{String}, ::Nothing) =
-	make_permutation_design(design, between_vars) # Pure between with no units of observation
-
 
 
 Base.propertynames(::PermutationDesign) = (:between, :within, :unit_obs, :X,
@@ -176,6 +182,19 @@ function is_within(variable::String, between_cols::Vector{String}, within_cols::
 	else
 		throw(ArgumentError("$(variable)' is not a between or within design variable."))
 	end
+end
+
+
+function _convert_to_categorical!(df::DataFrame)
+	#helper
+    # converts strings, symbols and bool variables to categorical
+	for v in names(df)
+		v_type = eltype(getproperty(df, v))
+        if v_type <: Union{Missing, AbstractString} || v_type <: Union{Missing, Symbol} || v_type <: Union{Missing, Bool}
+            transform!(df, v => categorical => v)
+        end
+	end
+	return df
 end
 
 

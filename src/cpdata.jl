@@ -16,7 +16,6 @@ struct CPData{T <: Real}
 	end
 end
 
-
 """
 	CPData(data_mtx::AbstractMatrix{<:Real},
 	...) TODO
@@ -26,22 +25,32 @@ Data for a cluster permutation analysis
 function CPData(data_mtx::AbstractMatrix{<:Real},
 	design::DataFrame;
 	unit_obs::OptSymbolOString,
+	convert_categorical::Bool = true,
 	kwargs...)
 
 	vars = keys(kwargs)
 	if length(vars) == 0
 		# take all, except unit_obs
-		return CPData(data_mtx, PermutationDesign(design; unit_obs))
+		return CPData(data_mtx, PermutationDesign(design; unit_obs, convert_categorical))
 	else
 		if !isnothing(unit_obs)
 			unit_obs = Symbol(unit_obs)
 			unit_obs ∈ vars && throw(ArgumentError("unit_obs variable '$unit_obs' also specified in conditions!"))
 			vars = vcat(unit_obs, vars...)
 		end
-		perm_design = PermutationDesign(design[:, vars]; unit_obs) # select variables
+		perm_design = PermutationDesign(design[:, vars]; unit_obs, convert_categorical) # select variables
 		return select_rows(CPData(data_mtx, perm_design); kwargs...)
 	end
 end
+function CPData(cpdat::CPData; kwargs...)
+	if :unit_obs in keys(kwargs)
+		unit_obs = kwargs[:unit_obs]
+	else
+		unit_obs = cpdat.design.unit_obs
+	end
+	CPData(cpdat.mtx, design_table(cpdat.design); unit_obs, kwargs...) # copy with selection
+end
+
 
 function select_rows(dat::CPData; kwargs...)
 
@@ -59,9 +68,12 @@ function select_rows(dat::CPData; kwargs...)
 		end
 	end
 
-	perm_design = make_permutation_design(df[idx, :], dsgn.between_variables,
-			dsgn.within_variables, dsgn.unit_obs)
-
+	if isnothing(dsgn.unit_obs)
+		perm_design = make_permutation_design(df[idx, :], dsgn.between_variables, false)
+	else
+		perm_design = make_permutation_design(df[idx, :], dsgn.between_variables,
+			dsgn.within_variables, dsgn.unit_obs, false)
+	end
 	return CPData(dat.mtx[idx, :], perm_design)
 end
 

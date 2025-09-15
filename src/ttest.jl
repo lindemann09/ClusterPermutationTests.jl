@@ -62,7 +62,7 @@ function StatsAPI.fit(T::Type{<:CPTTest},
 	kwargs...)
 
 	(f.lhs isa Term && f.rhs isa Term) || throw(
-		ArgumentError("Incorrect t.test formula: '$a'"))
+		ArgumentError("Incorrect t.test formula: '$f'"))
 	return fit(T, Symbol(f.rhs), data, cluster_criterium; kwargs...)
 end
 

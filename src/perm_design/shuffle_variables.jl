@@ -3,6 +3,8 @@ function shuffle_variable!(rng::AbstractRNG,
 	iv::String;
 	synchronize::OptMultiSymbolOString = nothing)
 
+	_is_categorical(perm_design, iv) || throw(ArgumentError(
+		"Can't shuffle design; '$iv' is not a categorical variable."))
 	within_vars = perm_design.within_variables
 	between_vars = perm_design.between_variables
 	iv_is_within = is_within(iv, between_vars, within_vars) # to be shuffled variable is within (also checks if in design at all)
@@ -22,6 +24,8 @@ function shuffle_variable!(rng::AbstractRNG,
 					"Within variables can't affect the shuffling of a property ('$(iv)') " *
 					"of the unit of observations."
 			else
+				_is_categorical(perm_design, s) || throw(ArgumentError(
+					"Can't shuffle design; sync variable '$s' is not a categorical variable."))
 				push!(sync_vars, s)
 			end
 		end
@@ -70,3 +74,16 @@ shuffle_variable(perm_design::PermutationDesign, iv::Union{Symbol, String}; sync
 	shuffle_variable(Random.GLOBAL_RNG, perm_design, iv; synchronize)
 shuffle_variable(rng::AbstractRNG, perm_design::PermutationDesign, iv::Symbol;
 	synchronize::OptMultiSymbolOString = nothing) = shuffle_variable(rng, perm_design, String(iv); synchronize)
+
+## utilities
+@inline function _is_categorical(x::PermutationDesign, var::String)
+	if var in names(x.within)
+		v = getproperty(x.within, var)
+	elseif var in names(x.between)
+		v = getproperty(x.between, var)
+	else
+		throw(ArgumentError("Variable '$var' not found in design!"))
+	end
+
+	return eltype(v) <: Union{Missing, CategoricalValue}
+end

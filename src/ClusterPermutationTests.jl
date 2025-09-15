@@ -2,8 +2,10 @@ module ClusterPermutationTests
 
 import DataAPI
 using StatsAPI: StatsAPI, fit, params, pvalue, nobs
-using DataFrames: DataFrames, DataFrame, Not, delete!, nrow
-using StatsModels: RegressionModel, @formula, FormulaTerm, Term
+using DataFrames: DataFrames, DataFrame, Not, delete!, nrow, transform!, transform
+using CategoricalArrays: CategoricalValue, categorical
+using StatsModels: RegressionModel, @formula, FormulaTerm, Term,
+            InteractionTerm, FunctionTerm, ConstantTerm
 import GLM: lm
 using HypothesisTests: HypothesisTests, EqualVarianceTTest, OneSampleTTest,
                         UnequalVarianceTTest
@@ -15,10 +17,8 @@ using TypedTables: Table
 using UnPack: @unpack
 
 export ClusterPermutationTest,
-    CPTTest,
-    CPPairedSampleTTest,
-    CPEqualVarianceTTest,
-    CPUnequalVarianceTTest,
+    CPTTest, CPPairedSampleTTest, CPEqualVarianceTTest, CPUnequalVarianceTTest,
+    CPRegressionModel, CPLinearModel,
     # PermuteDesign
     PermutationDesign,
     design_table,
@@ -56,6 +56,6 @@ include("cptype.jl")
 include("sampling.jl")
 
 include("ttest.jl")
-#include("lm.jl")
+include("lm.jl")
 
 end;
