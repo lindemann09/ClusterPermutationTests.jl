@@ -69,4 +69,10 @@ include("sampling.jl")
 include("ttest.jl")
 include("lm.jl")
 
+
+DataFrames(::PermutationDesign; kwargs...) = throw(ArgumentError("Have you loaded DataFrames?"))
+if !isdefined(Base, :get_extension)
+    include("../ext/DataFramesExt.jl")
+end
+
 end;
