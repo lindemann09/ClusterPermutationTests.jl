@@ -5,21 +5,21 @@ struct CPPairedSampleTTest <: CPTTest
 	cpc::CPCollection
 	dat::CPData
 	iv::Symbol
-	compare::Tuple{String, String}
+	compare::Tuple
 end;
-
+#{T<:Union{Real, AbstractString, Symbol}}
 struct CPEqualVarianceTTest <: CPTwoSampleTTest
 	cpc::CPCollection
 	dat::CPData
 	iv::Symbol
-	compare::Tuple{String, String}
+	compare::Tuple
 end;
 
 struct CPUnequalVarianceTTest <: CPTwoSampleTTest
 	cpc::CPCollection
 	dat::CPData
 	iv::Symbol
-	compare::Tuple{String, String}
+	compare::Tuple
 end;
 
 function StatsAPI.fit(T::Type{<:CPTTest}, # TODO: two value comparison only, needs to be more general
@@ -28,7 +28,7 @@ function StatsAPI.fit(T::Type{<:CPTTest}, # TODO: two value comparison only, nee
 	cluster_criterium::ClusterCritODef;
 	mass_fnc::Function = sum)
 
-	iv = String(iv)
+	iv = Symbol(iv)
 	paired = is_within(iv, dat.design)
 	if T == CPTTest
 		# choose test based on design
@@ -38,11 +38,11 @@ function StatsAPI.fit(T::Type{<:CPTTest}, # TODO: two value comparison only, nee
 	if paired
 		T == CPPairedSampleTTest || throw(ArgumentError(
 			"$(iv) is a within-subject variable. A t-test for independent samples ($(T)) is not possible."))
-		compare = unique(dat.design.within[:, iv])
+		compare = unique(getproperty(dat.design.within, iv))
 	else
 		T == CPPairedSampleTTest && throw(ArgumentError(
 			"$(iv) is a between-subject variable. $(T) is not possible."))
-		compare = unique(dat.design.between[:, iv])
+		compare = unique(getproperty(dat.design.between, iv))
 	end
 
 	length(compare) == 2 || throw(ArgumentError(
@@ -50,7 +50,7 @@ function StatsAPI.fit(T::Type{<:CPTTest}, # TODO: two value comparison only, nee
 
 	cpc = CPCollection(cluster_criterium, mass_fnc)
 
-	rtn = T(cpc, dat, Symbol(iv), (compare[1], compare[2]) )
+	rtn = T(cpc, dat, iv, (compare[1], compare[2]))
 	initial_fit!(rtn)
 	return rtn
 end;

@@ -8,13 +8,15 @@ struct CPData{T <: Real}
 	design::PermutationDesign
 
 	function CPData(mtx::Matrix{T}, design::PermutationDesign) where {T <: Real}
-		size(mtx, 1) == nrow(design) || throw(
+		size(mtx, 1) == length(design) || throw(
 			DimensionMismatch(
 				"Matrix and design table must have the same number of rows!"),
 		)
 		return new{T}(mtx, design)
 	end
 end
+
+
 
 """
 	CPData(data_mtx::AbstractMatrix{<:Real},
@@ -23,7 +25,7 @@ end
 Data for a cluster permutation analysis
 """
 function CPData(data_mtx::AbstractMatrix{<:Real},
-	design::DataFrame;
+	design::Table;
 	unit_obs::OptSymbolOString,
 	kwargs...)
 
@@ -37,7 +39,8 @@ function CPData(data_mtx::AbstractMatrix{<:Real},
 			unit_obs ∈ vars && throw(ArgumentError("unit_obs variable '$unit_obs' also specified in conditions!"))
 			vars = vcat(unit_obs, vars...)
 		end
-		perm_design = PermutationDesign(design[:, vars]; unit_obs) # select variables
+		tbl = select_columns(design, vars)
+		perm_design = PermutationDesign(tbl; unit_obs) # select variables
 		return select_rows(CPData(data_mtx, perm_design); kwargs...)
 	end
 end
@@ -50,28 +53,34 @@ function CPData(cpdat::CPData; kwargs...)
 	CPData(cpdat.mtx, design_table(cpdat.design); unit_obs, kwargs...) # copy with selection
 end
 
+function CPData(data_mtx::AbstractMatrix{<:Real}, design::Any;
+	unit_obs::OptSymbolOString,	kwargs...)
+	Tables.istable(design) || throw(ArgumentError("Design must be a Tables.jl compatible table (e.g., DataFrame or TypedTable)."))
+	return CPData(data_mtx, Table(design); unit_obs, kwargs...)
+end
 
 function select_rows(dat::CPData; kwargs...)
 
-	ivs = String.(keys(kwargs))
+	ivs = keys(kwargs)
 	length(ivs) > 0 || throw(ArgumentError("No variables and conditions specified!"))
 
 	dsgn = dat.design
-	df = design_table(dsgn)
+	d_columns = columns(design_table(dsgn))
 
 	# select subset with specified conditions (ivs)
-	idx = fill(true, nrow(df))
+	idx = true
 	for (val, col) in zip(values(kwargs), ivs)
 		if !(val === :all || val === "all") # select, if not all rows
-			idx = idx .&& in.(df[:, col], Ref(val))
+			idx = idx .& in.(d_columns[col], Ref(val))
 		end
 	end
 
+	df = Table(select_rows(d_columns, idx)) # selected design table
 	if dsgn.uo isa NoUnitObs # no within
-		perm_design = make_permutation_design(df[idx, :], names(dsgn.between))
+		perm_design = make_permutation_design(df, variables_between(dsgn))
 	else
-		perm_design = make_permutation_design(df[idx, :], names(dsgn.between),
-			names(dsgn.within), unit_obs(dsgn.uo))
+		perm_design = make_permutation_design(df, variables_between(dsgn),
+			variables_within(dsgn), unit_obs(dsgn.uo))
 	end
 	return CPData(dat.mtx[idx, :], perm_design)
 end

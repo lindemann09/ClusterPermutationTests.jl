@@ -2,7 +2,6 @@ module ClusterPermutationTests
 
 import DataAPI
 using StatsAPI: StatsAPI, fit, params, pvalue, nobs
-using DataFrames: DataFrames, DataFrame, Not, delete!, nrow, transform!, transform
 using CategoricalArrays: CategoricalValue, CategoricalArray, categorical
 using StatsModels: RegressionModel, @formula, FormulaTerm, Term,
             InteractionTerm, FunctionTerm, ConstantTerm
@@ -13,7 +12,8 @@ import MixedModels
 using PrettyTables: ft_printf, pretty_table, tf_unicode_rounded
 using ProgressMeter: Progress, next!
 using Random: Random, AbstractRNG, shuffle
-using TypedTables: Table
+import Tables
+using TypedTables: TypedTables, Table, columnnames, columns
 using UnPack: @unpack
 
 export ClusterPermutationTest,
@@ -57,6 +57,7 @@ export ClusterPermutationTest,
 #const StringSymbolOReal = Union{AbstractString, Real, Symbol}
 const SymbolOString = Union{Symbol, AbstractString}
 const OptSymbolOString = Union{SymbolOString, Nothing}
+const SymbolVecOrTuple = Base.AbstractVecOrTuple{Symbol}
 const OptMultiSymbolOString = Union{SymbolOString, Base.AbstractVecOrTuple{SymbolOString}, Nothing}
 
 include("perm_design/perm_design.jl")
