@@ -5,16 +5,15 @@ function shuffle_variable!(rng::AbstractRNG,
 
 	_is_categorical(perm_design, iv) || throw(ArgumentError(
 		"Can't shuffle design; '$iv' is not a categorical variable."))
-	within_vars = perm_design.within_variables
-	between_vars = perm_design.between_variables
-	iv_is_within = is_within(iv, between_vars, within_vars) # to be shuffled variable is within (also checks if in design at all)
+
+	iv_is_within = is_within(iv, perm_design) # to be shuffled variable is within (also checks if in design at all)
 
 	# prepare shuffle id groups (to improve performance)
 	sync_vars = String[]
 	if !isnothing(synchronize)
 		# check and find all relevant sync variables
 		for s in _to_string_vector(synchronize)
-			sync_var_is_within = is_within(s, between_vars, within_vars)
+			sync_var_is_within = is_within(s, perm_design)
 			if !sync_var_is_within && iv_is_within
 				@warn "'$(s)' is a between variable. " *
 					"Between variables can't affect the shuffling of a variable ('$(iv)') " *
@@ -42,7 +41,7 @@ function shuffle_variable!(rng::AbstractRNG,
 	# shuffle
 	if iv_is_within
 		# shuffle within, consider unit of observations and shuffle inside cells
-		for uo in eachcol(perm_design.X)
+		for uo in eachcol(perm_design.uo.X)
 			for x in shuffle_group_ids
 				i = x .&& uo
 				perm_design.within[i, iv] = shuffle(rng, perm_design.within[i, iv])
@@ -76,7 +75,7 @@ shuffle_variable(rng::AbstractRNG, perm_design::PermutationDesign, iv::Symbol;
 	synchronize::OptMultiSymbolOString = nothing) = shuffle_variable(rng, perm_design, String(iv); synchronize)
 
 ## utilities
-@inline function _is_categorical(x::PermutationDesign, var::String)
+function _is_categorical(x::PermutationDesign, var::String)
 	if var in names(x.within)
 		v = getproperty(x.within, var)
 	elseif var in names(x.between)

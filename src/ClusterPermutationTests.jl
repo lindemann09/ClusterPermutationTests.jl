@@ -3,7 +3,7 @@ module ClusterPermutationTests
 import DataAPI
 using StatsAPI: StatsAPI, fit, params, pvalue, nobs
 using DataFrames: DataFrames, DataFrame, Not, delete!, nrow, transform!, transform
-using CategoricalArrays: CategoricalValue, categorical
+using CategoricalArrays: CategoricalValue, CategoricalArray, categorical
 using StatsModels: RegressionModel, @formula, FormulaTerm, Term,
             InteractionTerm, FunctionTerm, ConstantTerm
 import GLM: lm
@@ -20,7 +20,11 @@ export ClusterPermutationTest,
     CPTTest, CPPairedSampleTTest, CPEqualVarianceTTest, CPUnequalVarianceTTest,
     CPRegressionModel, CPLinearModel,
     # PermuteDesign
-    PermutationDesign,
+    PermutationDesign, BetweenDesign, WithinDesign, MixedDesign,
+    UnitObs, NoUnitObs,
+    variables_within,
+    variables_between,
+    unit_obs,
     design_table,
     nrow,
     cell_indices,
@@ -48,6 +52,12 @@ export ClusterPermutationTest,
     pvalues,
     summary,
     @formula # reexport
+
+
+#const StringSymbolOReal = Union{AbstractString, Real, Symbol}
+const SymbolOString = Union{Symbol, AbstractString}
+const OptSymbolOString = Union{SymbolOString, Nothing}
+const OptMultiSymbolOString = Union{SymbolOString, Base.AbstractVecOrTuple{SymbolOString}, Nothing}
 
 include("perm_design/perm_design.jl")
 include("cluster.jl")

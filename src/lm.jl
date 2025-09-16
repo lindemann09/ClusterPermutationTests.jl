@@ -20,8 +20,8 @@ function StatsAPI.fit(::Type{<:CPLinearModel}, # TODO: two value comparison only
 	cpc = CPCollection(cluster_criterium, mass_fnc)
 
 	vars = String.(predictors(f))
-	vars ⊆ dat.design.between_variables || throw(ArgumentError(
-		"All independent variables must be between-subject variables. Found: $(setdiff(vars, dat.design.between_variables))"))
+	vars ⊆ between_variables(dat.design) || throw(ArgumentError(
+		"All independent variables must be between-subject variables. Found: $(setdiff(vars, dat.design.between))"))
 	@info vars
 	return
 	rtn = CPLinearModel(cpc, dat)

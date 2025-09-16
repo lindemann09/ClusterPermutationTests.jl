@@ -28,6 +28,7 @@ function StatsAPI.fit(T::Type{<:CPTTest}, # TODO: two value comparison only, nee
 	cluster_criterium::ClusterCritODef;
 	mass_fnc::Function = sum)
 
+	iv = String(iv)
 	paired = is_within(iv, dat.design)
 	if T == CPTTest
 		# choose test based on design
