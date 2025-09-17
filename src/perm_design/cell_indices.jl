@@ -3,7 +3,7 @@ function cell_indices(x::PermutationDesign; variables::OptMultiSymbolOString = n
 	if isnothing(variables)
 		return cell_indices(d, columnnames(d))
 	else
-		return cell_indices(d, _to_symbol_vector(variables))
+		return cell_indices(d, to_symbol_vector(variables))
 	end
 end
 
@@ -41,9 +41,3 @@ function cell_indices(dat::Table, columns::SymbolVecOrTuple)
 
 	return ids, Table(existing_combis)
 end
-
-
-## utilities
-_to_symbol_vector(x::SymbolOString) = [Symbol(x)]
-_to_symbol_vector(x::Base.AbstractVecOrTuple{String}) = [Symbol(v) for v in x]
-_to_symbol_vector(x::SymbolVecOrTuple) = vec(x)

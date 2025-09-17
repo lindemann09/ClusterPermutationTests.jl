@@ -1,3 +1,5 @@
+const EMPTYTABLE = Table((; _ = Vector{Int64}()))
+
 ###
 ### Unit of Observation struct
 ###
@@ -33,17 +35,20 @@ abstract type PermutationDesign end
 
 struct BetweenDesign{U <: Union{UnitObs, NoUnitObs}} <: PermutationDesign
 	between::Table # unique combinations of between variables
+	covariates::Table # covariates (never used for permutations)
 	uo::U
 end
 
 struct WithinDesign <: PermutationDesign
 	within::Table # unique combinations of within variables
+	covariates::Table # covariates (never used for permutations)
 	uo::UnitObs
 end
 
 struct MixedDesign <: PermutationDesign
 	between::Table # unique combinations of between variables
 	within::Table # unique combinations of within variables
+	covariates::Table # covariates (never used for permutations)
 	uo::UnitObs
 end
 
@@ -51,39 +56,58 @@ include("cell_indices.jl")
 include("shuffle_variables.jl")
 
 function PermutationDesign(design::Table;
-	unit_obs::OptSymbolOString = nothing)
+	unit_obs::OptSymbolOString = nothing,
+	covariates::OptMultiSymbolOString = nothing)
+
+	design_vars = columnnames(design)
+	within_names = Symbol[]
+	between_names = Symbol[]
+	covariates_names = Symbol[]
+
+	# check variables
+	if !isnothing(unit_obs)
+		unit_obs = Symbol(unit_obs)
+		unit_obs in design_vars || _err_not_in_design(unit_obs)
+	end
+	# covariates
+	if !isnothing(covariates)
+		append!(covariates_names, to_symbol_vector(covariates))
+		for x in covariates_names
+			x in design_vars || _err_not_in_design(x)
+		end
+	end
+	# classify variables
+	for v in design_vars
+		if v == unit_obs || v in covariates_names
+			continue
+		elseif !_guess_is_categorical(design, v)
+			push!(covariates_names, v)
+		elseif !isnothing(unit_obs) && _guess_is_within(design, v, unit_obs) # also checks if v in design
+			push!(within_names, v)
+		else
+			push!(between_names, v)
+		end
+	end
+
+	isempty(between_names) && isempty(within_names) && throw(ArgumentError("No categorical variables found."))
 
 	if isnothing(unit_obs)
 		# no unit of observation: pure between design with no repeated measures/unit_obs
-		isempty(design) && throw(ArgumentError("No independent variable found."))
-		return make_design(design, collect(columnnames(design)))
+		return make_design(design, between_names, covariates_names)
 	else
-		# unit of observation is defined: check which variables are within and between
-		unit_obs = Symbol(unit_obs)
-		within_vars = Symbol[]
-		between_vars = Symbol[]
-		for v in columnnames(design)
-			if v == unit_obs
-				continue
-			elseif !isnothing(unit_obs) && is_within(design, v, unit_obs)
-				push!(within_vars, v)
-			else
-				push!(between_vars, v)
-			end
-		end
-		isnothing(unit_obs) && !isempty(within_vars) && throw(ArgumentError(
-			"A 'unit of observation' variable must be specified if 'within' variables are specified."))
-		return make_design(design, between_vars, within_vars, unit_obs)
+		return make_design(design, between_names, within_names, covariates_names, unit_obs)
 	end
 end
 
 PermutationDesign(design::Any; kwargs...) = PermutationDesign(ensure_table(design); kwargs...)
 
 # Helper function to create a `PermutationDesign` object from a given experimental design `Table`, specifying which variables are between-subject and which are within-subject.
+# converts design variable to categorical
 function make_design(
 	design::Table,
 	between_vars::Vector{Symbol},
 	within_vars::Vector{Symbol},
+	covariates::Vector{Symbol},
 	unit_obs::Symbol)
 
 	# unit obs is defined
@@ -104,35 +128,47 @@ function make_design(
 	else
 		between = nothing
 	end
+	if !isempty(within_vars)
+		within = select_columns(design, within_vars, convert_categorical = true)
+	else
+		within = nothing
+	end
+
+	co_var_tbl = isempty(covariates) ? EMPTYTABLE : select_columns(design, covariates)
 
 	if !isnothing(between) && !isnothing(within)
-		return MixedDesign(between, within, uo)
+		return MixedDesign(between, within, co_var_tbl, uo)
 	elseif !isnothing(between)
-		return BetweenDesign(between, uo)
+		return BetweenDesign(between, co_var_tbl, uo)
 	elseif !isnothing(within)
-		return WithinDesign(within, uo)
+		return WithinDesign(within, co_var_tbl, uo)
 	else
 		throw(ArgumentError("No independent variable found."))
 	end
 end
 
-function make_design(design::Table, between_vars::Vector{Symbol})
+function make_design(
+	design::Table,
+	between_vars::Vector{Symbol},
+	covariates::Vector{Symbol})
 	# unit_obs is not defined in a PURE between design
 	# each row is a unit of observation: get cell indices of each unique combination of between variables
 	between = select_columns(design, between_vars, convert_categorical = true)
 	ids_uo, between = cell_indices(between, between_vars)
 	X = reduce(hcat, ids_uo) # vecvec to matrix
 	i = findfirst.(eachrow(X))
-	return BetweenDesign(between, NoUnitObs(i))
+
+	co_var_tbl = isempty(covariates) ? EMPTYTABLE : select_columns(design, covariates)
+
+	return BetweenDesign(between, co_var_tbl, NoUnitObs(i))
 end
 
-unit_obs(perm_design::PermutationDesign) = unit_obs(perm_design.uo)
-variables_between(perm_design::Union{BetweenDesign, MixedDesign}) =
-	setdiff(columnnames(perm_design.between), [unit_obs(perm_design)])
-variables_between(::WithinDesign) = Symbol[]
-variables_within(perm_design::Union{WithinDesign, MixedDesign}) =
-	collect(columnnames(perm_design.within))
-variables_within(::BetweenDesign) = Symbol[]
+unit_obs(pd::PermutationDesign) = unit_obs(pd.uo)
+names_between(pd::Union{BetweenDesign, MixedDesign}) = setdiff(columnnames(pd.between), [unit_obs(pd)])
+names_between(::WithinDesign) = Symbol[]
+names_within(pd::Union{WithinDesign, MixedDesign}) = collect(columnnames(pd.within))
+names_within(::BetweenDesign) = Symbol[]
+names_covariates(pd::PermutationDesign) = !isempty(pd.covariates) ? collect(columnnames(pd.covariates)) : Symbol[]
 
 Base.length(x::PermutationDesign) = length(x.uo.i)
 Base.copy(x::BetweenDesign) = BetweenDesign(copy(x.between), x.uo)
@@ -148,44 +184,50 @@ end
 function Base.show(io::IO, mime::MIME"text/plain", x::PermutationDesign)
 	println(io, "$(typeof(x)) with $(length(x)) rows")
 	tmp = unit_obs(x)
-	uo_str = isnothing(tmp) ? " -- " : tmp
-	tmp = variables_between(x)
-	between_str = isempty(tmp) ? " -- " : join(tmp, ", ")
-	tmp = variables_within(x)
-	within_str = isempty(tmp) ? " -- " : join(tmp, ", ")
-	println(io, "  unit obs: $(uo_str)")
-	println(io, "  between: $(between_str)")
-	println(io, "  within: $(within_str)")
+	!isnothing(tmp) &&	println(io, "  unit obs: $(tmp)")
+	tmp = names_between(x)
+	!isempty(tmp) && println(io, "  between: $(join(tmp, ", "))")
+	tmp = names_within(x)
+	!isempty(tmp) && println(io, "  within: $(join(tmp, ", "))")
+	tmp = names_covariates(x)
+	!isempty(tmp) && println(io, "  covariates: $(join(tmp, ", "))")
 	return nothing
 end
 
-function get_variable(x::PermutationDesign, var::Symbol) # get a single variable
-	if var in variables_within(x)
-		return getproperty(x.within, var)
+function get_variable(pd::PermutationDesign, var::Symbol) # get a single variable
+	if var in names_within(pd)
+		return getproperty(pd.within, var)
 	else
-		return getproperty(x.between, var)
+		return getproperty(pd.between, var)
 	end
 end
-get_variable(x::PermutationDesign, var::String) = get_variable(x, Symbol(var))
+get_variable(pd::PermutationDesign, var::String) = get_variable(pd, Symbol(var))
 
-has_variable(perm_design::BetweenDesign, var::Symbol) = var in variables_between(perm_design)
-has_variable(perm_design::WithinDesign, var::Symbol) = var in variables_within(perm_design)
-has_variable(perm_design::MixedDesign, var::Symbol) = has_variable(perm_design.between, var) && has_variable(perm_design.within, var)
+is_covariate(pd::PermutationDesign, var::Symbol) = var in names_covariates(pd)
+is_within(::BetweenDesign, var::Symbol) = false
+is_between(::WithinDesign, var::Symbol) = false
+is_within(pd::Union{WithinDesign, MixedDesign}, var::Symbol) = var in names_within(pd)
+is_between(pd::Union{BetweenDesign, MixedDesign}, var::Symbol) = var in names_between(pd)
+has_variable(pd::PermutationDesign, var::String) =
+	is_between(pd, Symbol(var)) || is_within(pd, Symbol(var)) || is_covariate(pd, Symbol(var))
 
-TypedTables.Table(x::PermutationDesign) = design_table(x)
-function design_table(x::PermutationDesign)::Table
-	if x isa MixedDesign
-		return Table(_expand_between(x), columns(x.within))
-	elseif x isa BetweenDesign
-		return Table(_expand_between(x))
+TypedTables.Table(pd::PermutationDesign) = design_table(pd)
+function design_table(pd::PermutationDesign)::Table
+	cov = isempty(pd.covariates) ? (;) : pd.covariates
+	if pd isa MixedDesign
+		return Table(_expand_between(pd), columns(pd.within), cov)
+	elseif pd isa BetweenDesign
+		return Table(_expand_between(pd), cov)
 	else
-		return Table((; x.uo.name => x.uo.values), x.within)
+		return Table((; pd.uo.name => pd.uo.values), pd.within, cov)
 	end
 end
 
-function is_within(dat::Table, var::Symbol, unit_obs::Symbol)
-    values = getproperty(dat, var)
-    uobs = getproperty(dat, unit_obs)
+# utilities
+
+function _guess_is_within(dat::Table, var::Symbol, unit_obs::Symbol)
+	values = getproperty(dat, var)
+	uobs = getproperty(dat, unit_obs)
 	for unit in unique(uobs)
 		i = uobs .== unit
 		length(unique(skipmissing(values[i]))) > 1 && return true
@@ -193,27 +235,15 @@ function is_within(dat::Table, var::Symbol, unit_obs::Symbol)
 	return false
 end
 
-is_within(perm_design::BetweenDesign, var::Symbol) =
-	has_variable(perm_design, var) ? false : _error_no_var(var)
-is_within(perm_design::WithinDesign, var::Symbol) =
-	has_variable(perm_design, var) ? true : _error_no_var(var)
-
-function is_within(perm_design::MixedDesign, var::Symbol)
-	if var in variables_within(perm_design)
-		return true
-	elseif var in variables_between(perm_design)
-		return false
-	else
-		_error_no_var(var)
-	end
+function _guess_is_categorical(dat::Table, var::Symbol)
+	T = eltype(getproperty(dat, var))
+	return T === Any || T <: Union{CategoricalValue, Missing, Nothing, AbstractString, Bool, Symbol}
 end
 
-# utilities
+_err_not_in_design(var::Symbol) = throw(ArgumentError("Variable '$(var)' is not in the design table."))
 
-_error_no_var(var::Symbol) = throw(ArgumentError("Variable '$(var)' is not in the design."))
-
-function _expand_between(perm_design::PermutationDesign)::NamedTuple
+function _expand_between(pd::PermutationDesign)::NamedTuple
 	# expand between design to full length with unit of observations
-	return select_rows(columns(perm_design.between), perm_design.uo.i)
+	return select_rows(columns(pd.between), pd.uo.i)
 end
 

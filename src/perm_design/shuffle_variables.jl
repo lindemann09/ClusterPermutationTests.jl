@@ -9,7 +9,7 @@ function shuffle_variable!(rng::AbstractRNG,
 	sync_vars = Symbol[]
 	if !isnothing(synchronize)
 		# check and find all relevant sync variables
-		for s in _to_symbol_vector(synchronize)
+		for s in to_symbol_vector(synchronize)
 			sync_var_is_within = is_within(perm_design, s)
 			if !sync_var_is_within && iv_is_within
 				@warn "'$(s)' is a between variable. " *
