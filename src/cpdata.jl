@@ -76,9 +76,10 @@ function select_rows(dat::CPData; kwargs...)
 
 	df = Table(select_rows(d_columns, idx)) # selected design table
 	if dsgn.uo isa NoUnitObs # no within
-		perm_design = make_design(df, names_between(dsgn))
+		perm_design = make_design(df, names_between(dsgn), names_covariates(dsgn))
 	else
-		perm_design = make_design(df, names_between(dsgn), names_within(dsgn), unit_obs(dsgn.uo))
+		perm_design = make_design(df, names_between(dsgn), names_within(dsgn),
+			names_covariates(dsgn), unit_observation(dsgn.uo))
 	end
 	return CPData(dat.mtx[idx, :], perm_design)
 end

@@ -40,5 +40,11 @@ function select_columns(nt::NamedTuple, cols::AbstractVector{Symbol};
 	return rtn
 end
 
-select_columns(tbl::Table, cols::AbstractVector{Symbol}; convert_categorical::Bool = false) =
-	Table(select_columns(columns(tbl), cols; convert_categorical))
+function select_columns(tbl::Table, cols::AbstractVector{Symbol}; convert_categorical::Bool = false)
+	rtn = select_columns(columns(tbl), cols; convert_categorical)
+	if isempty(rtn)
+		return nothing
+	else
+		return Table(rtn)
+	end
+end

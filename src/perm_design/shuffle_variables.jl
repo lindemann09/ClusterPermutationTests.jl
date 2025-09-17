@@ -10,15 +10,18 @@ function shuffle_variable!(rng::AbstractRNG,
 	if !isnothing(synchronize)
 		# check and find all relevant sync variables
 		for s in to_symbol_vector(synchronize)
+			is_covariate(perm_design, s) && throw(ArgumentError("Covariates can't be used to synchronize shuffling."))
 			sync_var_is_within = is_within(perm_design, s)
-			if !sync_var_is_within && iv_is_within
+			if unit_observation(perm_design) == s
+				@warn "Unit of observation variable ('$(s)') is always synchronized during shuffling."
+			elseif !sync_var_is_within && iv_is_within
 				@warn "'$(s)' is a between variable. " *
-					"Between variables can't affect the shuffling of a variable ('$(iv)') " *
-					"within the unit of observations."
+					  "Between variables can't affect the shuffling of a variable ('$(iv)') " *
+					  "within the unit of observations."
 			elseif sync_var_is_within && !iv_is_within
 				@warn "'$(s)' is a within variable. " *
-					"Within variables can't affect the shuffling of a property ('$(iv)') " *
-					"of the unit of observations."
+					  "Within variables can't affect the shuffling of a property ('$(iv)') " *
+					  "of the unit of observations."
 			else
 				push!(sync_vars, s)
 			end

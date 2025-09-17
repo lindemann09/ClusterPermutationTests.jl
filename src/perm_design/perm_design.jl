@@ -23,8 +23,8 @@ function UnitObs(name::Symbol, values::CategoricalArray)
 	return UnitObs(name, values, X, findfirst.(eachrow(X)))
 end
 
-unit_obs(uo::UnitObs) = uo.name
-unit_obs(::NoUnitObs) = nothing
+unit_observation(uo::UnitObs) = uo.name
+unit_observation(::NoUnitObs) = nothing
 
 
 ###
@@ -163,17 +163,18 @@ function make_design(
 	return BetweenDesign(between, co_var_tbl, NoUnitObs(i))
 end
 
-unit_obs(pd::PermutationDesign) = unit_obs(pd.uo)
-names_between(pd::Union{BetweenDesign, MixedDesign}) = setdiff(columnnames(pd.between), [unit_obs(pd)])
+unit_observation(pd::PermutationDesign) = unit_observation(pd.uo)
+names_between(pd::BetweenDesign) = collect(columnnames(pd.between))
+names_between(pd::MixedDesign) = setdiff(columnnames(pd.between), [unit_observation(pd)])
 names_between(::WithinDesign) = Symbol[]
 names_within(pd::Union{WithinDesign, MixedDesign}) = collect(columnnames(pd.within))
 names_within(::BetweenDesign) = Symbol[]
 names_covariates(pd::PermutationDesign) = !isempty(pd.covariates) ? collect(columnnames(pd.covariates)) : Symbol[]
 
 Base.length(x::PermutationDesign) = length(x.uo.i)
-Base.copy(x::BetweenDesign) = BetweenDesign(copy(x.between), x.uo)
-Base.copy(x::WithinDesign) = WithinDesign(copy(x.within), x.uo)
-Base.copy(x::MixedDesign) = MixedDesign(copy(x.between), copy(x.within), x.uo)
+Base.copy(x::BetweenDesign) = BetweenDesign(copy(x.between), x.covariates, x.uo) # does not make a copy of covariates and uo, since they will no be modified
+Base.copy(x::WithinDesign) = WithinDesign(copy(x.within), x.covariates, x.uo)
+Base.copy(x::MixedDesign) = MixedDesign(copy(x.between), copy(x.within), x.covariates, x.uo)
 
 function HypothesisTests.nobs(x::PermutationDesign) ## TODO TEST
 	ids, combis = cell_indices(x)
@@ -183,8 +184,8 @@ end
 
 function Base.show(io::IO, mime::MIME"text/plain", x::PermutationDesign)
 	println(io, "$(typeof(x)) with $(length(x)) rows")
-	tmp = unit_obs(x)
-	!isnothing(tmp) &&	println(io, "  unit obs: $(tmp)")
+	tmp = unit_observation(x)
+	!isnothing(tmp) && println(io, "  unit obs: $(tmp)")
 	tmp = names_between(x)
 	!isempty(tmp) && println(io, "  between: $(join(tmp, ", "))")
 	tmp = names_within(x)
@@ -208,18 +209,45 @@ is_within(::BetweenDesign, var::Symbol) = false
 is_between(::WithinDesign, var::Symbol) = false
 is_within(pd::Union{WithinDesign, MixedDesign}, var::Symbol) = var in names_within(pd)
 is_between(pd::Union{BetweenDesign, MixedDesign}, var::Symbol) = var in names_between(pd)
-has_variable(pd::PermutationDesign, var::String) =
-	is_between(pd, Symbol(var)) || is_within(pd, Symbol(var)) || is_covariate(pd, Symbol(var))
+has_variable(pd::PermutationDesign, var::Symbol) =
+	is_between(pd, var) || is_within(pd, var) || is_covariate(pd, var) || var == unit_observation(pd)
 
 TypedTables.Table(pd::PermutationDesign) = design_table(pd)
 function design_table(pd::PermutationDesign)::Table
 	cov = isempty(pd.covariates) ? (;) : pd.covariates
-	if pd isa MixedDesign
-		return Table(_expand_between(pd), columns(pd.within), cov)
-	elseif pd isa BetweenDesign
-		return Table(_expand_between(pd), cov)
+	between = _expand_between(pd)
+	if pd isa BetweenDesign
+		return Table(between, cov)
+	elseif pd isa MixedDesign
+		return Table(between, pd.within, cov)
 	else
+		# within design
 		return Table((; pd.uo.name => pd.uo.values), pd.within, cov)
+	end
+end
+
+function design_table(pd::PermutationDesign, only_columns::AbstractVector{Symbol})::Table
+	if  !isempty(pd.covariates)
+		cov = select_columns(columns(pd.covariates), only_columns)
+	else
+		cov = (;)
+	end
+	between = select_columns(_expand_between(pd), only_columns)
+	if pd isa BetweenDesign
+		return Table(between, cov)
+	else
+		within = select_columns(columns(pd.within), only_columns)
+		if pd isa MixedDesign
+			return Table(between, within, cov)
+		else
+			if pd.uo.name in only_columns
+				# within design with selected unit obs
+				return Table((; pd.uo.name => pd.uo.values), within, cov)
+			else
+				# within design without selected unit obs
+				return Table(within, cov)
+			end
+		end
 	end
 end
 
@@ -243,7 +271,11 @@ end
 _err_not_in_design(var::Symbol) = throw(ArgumentError("Variable '$(var)' is not in the design table."))
 
 function _expand_between(pd::PermutationDesign)::NamedTuple
-	# expand between design to full length with unit of observations
-	return select_rows(columns(pd.between), pd.uo.i)
+	if pd isa WithinDesign
+		return (;)
+	else
+		# expand between design to full length with unit of observations
+		return select_rows(columns(pd.between), pd.uo.i)
+	end
 end
 
