@@ -1,7 +1,32 @@
+"""
+module defines initial_fit!() and resample!() for all ClusterPermutationTest
+
+A specific test has to define
+
+1. CP<Model> <: ClusterPermutationTest; a struct with the following fields:
+	* cpc::CPCollection
+	* dat::CPData
+	* iv::Symbol
+
+2. parameter_estimates(cpt::ClusterPermutationTest, dat::CPData)::TParameterVector
+    function to estimates for the entire time series
+3. parameter_estimates(cpt::ClusterPermutationTest, dat::CPData, range::TClusterRange)::TParameterVector
+    estimates for a specific section in the time series (cluster)
+
+4. StatsAPI.fit(::Type{}, ...)
+    the function has to create an instance of CP<Model>, call initial_fit!(..) on it
+    to detect clusters to be tested and return the instance
+
+Notes:
+* TParameterVector is a Vector{Float64}
+* TClusterRange is a UnitRange{Int32}
+
+"""
+
 function initial_fit!(cpt::ClusterPermutationTest)
     # initial fit of
     # all data samples (time_series) using (not permuted) design
-    para = _parameter_estimate(cpt, cpt.dat.mtx, cpt.dat.design)
+    para = parameter_estimates(cpt, cpt.dat)
     # replace existing stats
     empty!(cpt.cpc.stats)
     append!(cpt.cpc.stats, para)
@@ -41,36 +66,30 @@ function resample!(rng::AbstractRNG,
     return nothing
 end;
 
-@inline function _parameter_estimate(cpt::ClusterPermutationTest, mtx::Matrix{<:Real},
-	                        permutation::PermutationDesign)
-    # Estimate parameters for a single time series sample
-    mtx, design_tbl = prepare_data(cpt, mtx, permutation)
-    return [estimate(cpt, s, design_tbl) for s in eachcol(mtx)]
-end
-
 @inline function _do_resampling(rng::AbstractRNG,
     cpt::ClusterPermutationTest;
     n_permutations::Integer,
     progressmeter::Union{Nothing,Progress})::Vector{Vector}
 
-    @unpack cpc, dat = cpt
-    mass_fnc = cpc.mass_fnc
-    T = eltype(cpc.stats)
-    cl_ranges = cluster_ranges(cpc)
-    perm_design = copy(dat.design) # shuffle always copy of design
+    mass_fnc = cpt.cpc.mass_fnc
+    T = eltype(cpt.cpc.stats)
+    cl_ranges = cluster_ranges(cpt) # get the ranges of cluster to do the permutation test #TODO console feedback?
 
+    dat = CPData(cpt.dat.mtx, copy(cpt.dat.design)) # shuffle always copy of design
     cl_stats_distr = Vector{T}[] # distribution of cluster-level statistics
+
     for _ in 1:n_permutations
         if !isnothing(progressmeter)
             next!(progressmeter)
         end
-        shuffle_variable!(rng, perm_design, cpt.iv)
+        shuffle_variable!(rng, dat.design, cpt.iv)
         cl_stats = T[]
-        for r in cl_ranges
-            p = _parameter_estimate(cpt, dat.mtx[:, r], perm_design) # FIXME VIEW?
+        for r in cl_ranges # loop over cluster
+            p = parameter_estimates(cpt, dat, r) # FIXME VIEW?
             push!(cl_stats, mass_fnc(p))
         end
         push!(cl_stats_distr, cl_stats)
     end
+
     return cl_stats_distr
 end;

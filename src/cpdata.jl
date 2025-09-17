@@ -36,8 +36,9 @@ function CPData(data_mtx::AbstractMatrix{<:Real},
 	else
 		if !isnothing(unit_obs)
 			unit_obs = Symbol(unit_obs)
-			unit_obs ∈ vars && throw(ArgumentError("unit_obs variable '$unit_obs' also specified in conditions!"))
-			vars = vcat(unit_obs, vars...)
+			if unit_obs ∉ vars
+				vars = vcat(unit_obs, vars...)
+			end
 		end
 		tbl = select_columns(design, vars)
 		perm_design = PermutationDesign(tbl; unit_obs) # select variables
@@ -53,11 +54,9 @@ function CPData(cpdat::CPData; kwargs...)
 	CPData(cpdat.mtx, design_table(cpdat.design); unit_obs, kwargs...) # copy with selection
 end
 
-function CPData(data_mtx::AbstractMatrix{<:Real}, design::Any;
-	unit_obs::OptSymbolOString,	kwargs...)
-	Tables.istable(design) || throw(ArgumentError("Design must be a Tables.jl compatible table (e.g., DataFrame or TypedTable)."))
-	return CPData(data_mtx, Table(design); unit_obs, kwargs...)
-end
+CPData(data_mtx::AbstractMatrix{<:Real}, design::Any; unit_obs::OptSymbolOString, kwargs...) =
+	CPData(data_mtx, ensure_table(design); unit_obs, kwargs...)
+
 
 function select_rows(dat::CPData; kwargs...)
 
@@ -77,10 +76,9 @@ function select_rows(dat::CPData; kwargs...)
 
 	df = Table(select_rows(d_columns, idx)) # selected design table
 	if dsgn.uo isa NoUnitObs # no within
-		perm_design = make_permutation_design(df, variables_between(dsgn))
+		perm_design = make_design(df, variables_between(dsgn))
 	else
-		perm_design = make_permutation_design(df, variables_between(dsgn),
-			variables_within(dsgn), unit_obs(dsgn.uo))
+		perm_design = make_design(df, variables_between(dsgn), variables_within(dsgn), unit_obs(dsgn.uo))
 	end
 	return CPData(dat.mtx[idx, :], perm_design)
 end

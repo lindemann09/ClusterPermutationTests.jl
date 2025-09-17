@@ -24,6 +24,9 @@ export ClusterPermutationTest,
     UnitObs, NoUnitObs,
     variables_within,
     variables_between,
+    has_variable,
+    get_variable,
+    is_within,
     unit_obs,
     design_table,
     nrow,
@@ -54,12 +57,7 @@ export ClusterPermutationTest,
     @formula # reexport
 
 
-#const StringSymbolOReal = Union{AbstractString, Real, Symbol}
-const SymbolOString = Union{Symbol, AbstractString}
-const OptSymbolOString = Union{SymbolOString, Nothing}
-const SymbolVecOrTuple = Base.AbstractVecOrTuple{Symbol}
-const OptMultiSymbolOString = Union{SymbolOString, Base.AbstractVecOrTuple{SymbolOString}, Nothing}
-
+include("utilities.jl")
 include("perm_design/perm_design.jl")
 include("cluster.jl")
 include("cpdata.jl")

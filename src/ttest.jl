@@ -7,7 +7,7 @@ struct CPPairedSampleTTest <: CPTTest
 	iv::Symbol
 	compare::Tuple
 end;
-#{T<:Union{Real, AbstractString, Symbol}}
+
 struct CPEqualVarianceTTest <: CPTwoSampleTTest
 	cpc::CPCollection
 	dat::CPData
@@ -25,11 +25,11 @@ end;
 function StatsAPI.fit(T::Type{<:CPTTest}, # TODO: two value comparison only, needs to be more general
 	iv::SymbolOString,
 	dat::CPData,
-	cluster_criterium::ClusterCritODef;
+	cluster_criterium::TClusterCritODef;
 	mass_fnc::Function = sum)
 
 	iv = Symbol(iv)
-	paired = is_within(iv, dat.design)
+	paired = is_within(dat.design,iv)
 	if T == CPTTest
 		# choose test based on design
 		T = paired ? CPPairedSampleTTest : CPEqualVarianceTTest
@@ -59,7 +59,7 @@ end;
 function StatsAPI.fit(T::Type{<:CPTTest},
 	f::FormulaTerm,
 	data::CPData,
-	cluster_criterium::ClusterCritODef;
+	cluster_criterium::TClusterCritODef;
 	kwargs...)
 
 	(f.lhs isa Term && f.rhs isa Term) || throw(
@@ -68,10 +68,26 @@ function StatsAPI.fit(T::Type{<:CPTTest},
 end
 
 ####
+#### definition of parameter_estimates
+####
+
+function parameter_estimates(cpt::ClusterPermutationTest, dat::CPData)::TParameterVector
+	# Estimate parameters for a time series
+    mtx, design_tbl = _prepare_data(cpt, dat.mtx, dat.design)
+    return [_estimate(cpt, s, design_tbl) for s in eachcol(mtx)]
+end
+
+function parameter_estimates(cpt::ClusterPermutationTest, dat::CPData, range::TClusterRange)::TParameterVector
+	# Estimate parameters for a specific cluster (range)
+	mtx, design_tbl = _prepare_data(cpt, dat.mtx[:, range], dat.design)
+	return [_estimate(cpt, s, design_tbl) for s in eachcol(mtx)]
+end
+
+####
 #### CPPairedSampleTTest
 ####
 
-function prepare_data(cpt::CPPairedSampleTTest,
+@inline function _prepare_data(cpt::CPPairedSampleTTest,
 	mtx::Matrix{<:Real},
 	permutation::PermutationDesign)::Tuple{Matrix{eltype(mtx)}, Table}
 
@@ -82,24 +98,23 @@ function prepare_data(cpt::CPPairedSampleTTest,
 	return b - a, tbl # equal size required
 end
 
-function estimate(::CPPairedSampleTTest, samples::SubArray{<:Real}, ::Table)::Float64
+@inline function _estimate(::CPPairedSampleTTest, samples::SubArray{<:Real}, ::Table)::Float64
 	tt = OneSampleTTest(samples)
 	return tt.t
 end
-
 
 ####
 #### CPTwoSampleTTest
 ####
 
-function prepare_data(cpt::CPTwoSampleTTest,
+@inline function _prepare_data(cpt::CPTwoSampleTTest,
 	mtx::Matrix{<:Real},
 	permutation::PermutationDesign)::Tuple{Matrix{eltype(mtx)}, Table}
 
 	return mtx, Table((; cpt.iv => get_variable(permutation, cpt.iv)))
 end
 
-function estimate(cpt::CPEqualVarianceTTest,
+@inline function _estimate(cpt::CPEqualVarianceTTest,
 	samples::SubArray{<:Real},
 	permutation::Table)::Float64
 
@@ -108,7 +123,7 @@ function estimate(cpt::CPEqualVarianceTTest,
 	return tt.t
 end
 
-function estimate(cpt::CPUnequalVarianceTTest,
+@inline function _estimate(cpt::CPUnequalVarianceTTest,
 	samples::SubArray{<:Real},
 	permutation::Table)::Float64
 

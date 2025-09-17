@@ -10,7 +10,7 @@ end;
 function StatsAPI.fit(::Type{<:CPLinearModel}, # TODO: two value comparison only, needs to be more general
 	f::FormulaTerm,
 	dat::CPData,
-	cluster_criterium::ClusterCritODef;
+	cluster_criterium::TClusterCritODef;
 	mass_fnc::Function = sum)
 
 	if is_mixedmodel(f)
@@ -29,7 +29,7 @@ function StatsAPI.fit(::Type{<:CPLinearModel}, # TODO: two value comparison only
 	return rtn
 end
 
-function prepare_data(cpt::CPLinearModel,
+function _prepare_data(cpt::CPLinearModel,
  	mtx::Matrix{<:Real},
  	permutation::PermutationDesign)::Tuple{Matrix{eltype(mtx)}, Table}
 

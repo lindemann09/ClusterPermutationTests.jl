@@ -3,14 +3,14 @@ function shuffle_variable!(rng::AbstractRNG,
 	iv::Symbol;
 	synchronize::OptMultiSymbolOString = nothing)
 
-	iv_is_within = is_within(iv, perm_design) # to be shuffled variable is within (also checks if in design at all)
+	iv_is_within = is_within(perm_design, iv) # to be shuffled variable is within (also checks if in design at all)
 
 	# prepare shuffle id groups (to improve performance)
 	sync_vars = Symbol[]
 	if !isnothing(synchronize)
 		# check and find all relevant sync variables
 		for s in _to_symbol_vector(synchronize)
-			sync_var_is_within = is_within(s, perm_design)
+			sync_var_is_within = is_within(perm_design, s)
 			if !sync_var_is_within && iv_is_within
 				@warn "'$(s)' is a between variable. " *
 					"Between variables can't affect the shuffling of a variable ('$(iv)') " *

@@ -1,14 +1,16 @@
+TClusterRange = UnitRange{Int32}
+
 struct ClusterCriterium
 	threshold::Real
-	min_size::Int
+	min_size::Int32
 	use_absolute::Bool
 end
 
 struct ClusterDefinition
-	ranges::Vector{UnitRange}
+	ranges::Vector{TClusterRange}
 end
 
-ClusterCritODef = Union{ClusterCriterium, ClusterDefinition}
+TClusterCritODef = Union{ClusterCriterium, ClusterDefinition}
 
 function ClusterCriterium(; threshold::Real,
 	min_size::Int = 10,
@@ -21,12 +23,14 @@ function ClusterDefinition(single_range::UnitRange)
 end
 
 
-function cluster_ranges(dat::Vector{<:Real}, cc::ClusterCriterium)::Vector{UnitRange}
+function cluster_ranges(dat::Vector{<:Real},
+	cc::ClusterCriterium)::Vector{TClusterRange}
+	# find clusters in dat according to cc
 	d = cc.use_absolute ? abs.(dat) : dat
 	@unpack threshold, min_size = cc
 	## find cluster
 	cluster_size = 0
-	ranges = UnitRange[]
+	ranges = TClusterRange[]
 	n = length(d)
 	for (c, x) in enumerate(d)
 		if x >= threshold
@@ -50,13 +54,12 @@ function cluster_ranges(dat::Vector{<:Real}, cc::ClusterCriterium)::Vector{UnitR
 	return ranges
 end;
 
-function cluster_ranges(::Vector{<:Real}, cc::ClusterDefinition)::Vector{UnitRange}
-	return cc.ranges
-end
+cluster_ranges(::Vector{<:Real}, cc::ClusterDefinition)::Vector{TClusterRange} =
+		cc.ranges
 
 function cluster_statistics(mass_fnc::Function,
 	stats::Vector{<:Real},
-	cc::ClusterCritODef)
+	cc::TClusterCritODef)
 	ranges = cluster_ranges(stats, cc)
 	return [mass_fnc(stats[cl]) for cl in ranges]
 end;

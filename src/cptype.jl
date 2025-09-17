@@ -1,20 +1,20 @@
+const TParameterVector = Vector{Float64}
+
 ###
 ### CPCollection
 ###
 
-struct CPCollection{T <: Real}
+struct CPCollection
 	mass_fnc::Function # cluster mass function
-	cc::ClusterCritODef # cluster definition
+	cc::TClusterCritODef # cluster definition
 
-	stats::Vector{T} # test statistic of initial fit at each sample
-	S::Vector{Vector{T}} # samples
+	stats::TParameterVector # test statistic of initial fit at each sample
+	S::Vector{TParameterVector} # samples
 end;
 
-function CPCollection(cluster_criterium::ClusterCritODef, mass_fnc::Function;
-	ftype::Type{<:Float64} = Float64)
-	T = ftype
-	return CPCollection(mass_fnc, cluster_criterium, T[], Vector{T}[])
-end;
+CPCollection(cluster_criterium::TClusterCritODef, mass_fnc::Function) =
+	CPCollection(mass_fnc, cluster_criterium, TParameterVector[], TParameterVector())
+
 
 """
 get cluster ranges from statistics at each sample
@@ -104,12 +104,12 @@ function cluster_table(x::ClusterPermutationTest)
 		sign = sign)
 end
 
-function test_info(x::ClusterPermutationTest)
+function _test_info(x::ClusterPermutationTest)
 	return "$(typeof(x)) ($(x.cpc.mass_fnc))"
 end
 
 function StatsAPI.summary(x::ClusterPermutationTest)
-	println("$(test_info(x))")
+	println("$(_test_info(x))")
 	println("  data: $(nepochs(x)) x $(epoch_length(x))")
 	pt = pretty_table(String, cluster_table(x);
 		show_subheader = false,
@@ -124,7 +124,7 @@ end;
 function Base.show(io::IO, mime::MIME"text/plain", x::ClusterPermutationTest)
 	clr = cluster_ranges(x)
 	cc = cluster_criterium(x)
-	println(io, "$(test_info(x))")
+	println(io, "$(_test_info(x))")
 	println(io, "  data: $(nepochs(x)) x $(epoch_length(x))")
 	if cc isa ClusterDefinition
 		println(io,
