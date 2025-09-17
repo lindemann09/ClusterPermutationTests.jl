@@ -34,6 +34,40 @@ function StatsAPI.fit(::Type{<:CPLinearModel}, # TODO: two value comparison only
 	return rtn
 end
 
+####
+#### definition of parameter_estimates
+####
+parameter_estimates(cpt::ClusterPermutationTest, dat::CPData) = 	parameter_estimates(cpt, dat.design, ZERO_RANGE)
+
+"""estimates for a specific section in the time series (cluster) for a given permutation"""
+function parameter_estimates(cpt::CPLinearModel, design::PermutationDesign, range::TClusterRange)::TParameterVector
+	dv_name = Symbol(cpt.f.lhs.sym)
+	design = design_table(design)
+	if length(range) == 0 # take entire time series if zero_range
+		dat = cpt.dat.mtx
+	else
+		dat = @view cpt.dat.mtx[:, range]
+	end
+	rtn = TParameterVector() # TODO would be vector preallocation faster?
+	i = nothing # index for coefficient of iv
+	for dv in eachcol(dat)
+		design[!, dv_name] = dv
+		md = fit(LinearModel, cpt.f, design) ## fit model!
+		if isnothing(i)
+			i = findfirst(x->x == cpt.iv, coefnames(md))
+		end
+		push!(rtn, coef(md)[i])
+	end
+	return rtn
+end
+
+
+
+###
+### Utilities for regression design tables
+###
+
+"""select columns from formula and add empty column for dependent variable"""
 function prepare_design_table(f::FormulaTerm, design::PermutationDesign;
 	 dv_dtype::Type=Float64)::Table
 
@@ -41,7 +75,6 @@ function prepare_design_table(f::FormulaTerm, design::PermutationDesign;
 	dv = Vector{dv_dtype}(undef, length(design))
 	dv_name = Symbol(f.lhs.sym)
 
-	 # select columns and add empty column (name from formula) for dependent variable
 	pred = predictors(f)
 	for v in pred
 		has_variable(design, v) || throw(ArgumentError("Variable '$(v)' not found in design table!"))
@@ -50,31 +83,3 @@ function prepare_design_table(f::FormulaTerm, design::PermutationDesign;
 
 	return Table(perm_design, (; dv_name => dv)) # add dependent variable column
 end
-
-
-
-## utilities
-is_mixedmodel(f::FormulaTerm) = any(MixedModels.is_randomeffectsterm.(f.rhs))
-coefficient(md::RegressionModel, x::Int)::Float64 = coef(md)[x]
-function coefficient(md::RegressionModel, coefname::String)::Float64
-	i = findfirst(x->x == coefname, coefnames(md))
-	return coefficient(md, i)
-end
-
-function predictors(f::FormulaTerm)
-	rtn = Symbol[]
-	_add_all_vars!(rtn, f.rhs)
-	return rtn
-end
-
-function _add_all_vars!(vec::Vector{Symbol}, x::Tuple)
-	for t in x
-		_add_all_vars!(vec, t)
-	end
-	return vec
-end
-_add_all_vars!(vec::Vector{Symbol}, ::ConstantTerm) = vec # do nothing
-_add_all_vars!(vec::Vector{Symbol}, t::Term) = t.sym in vec ? vec : push!(vec, t.sym)
-_add_all_vars!(vec::Vector{Symbol}, x::InteractionTerm) = _add_all_vars!(vec, x.terms)
-_add_all_vars!(vec::Vector{Symbol}, x::FunctionTerm) = _add_all_vars!(vec, Tuple(x.args))
-

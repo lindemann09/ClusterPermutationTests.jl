@@ -71,15 +71,15 @@ end
 #### definition of parameter_estimates
 ####
 
-function parameter_estimates(cpt::ClusterPermutationTest, dat::CPData)::TParameterVector
+function parameter_estimates(cpt::CPTTest, permutation::PermutationDesign)::TParameterVector
 	# Estimate parameters for a time series
-    mtx, design_tbl = _prepare_data(cpt, dat.mtx, dat.design)
+    mtx, design_tbl = _prepare_data(cpt, cpt.dat.mtx, permutation)
     return [_estimate(cpt, s, design_tbl) for s in eachcol(mtx)]
 end
 
-function parameter_estimates(cpt::ClusterPermutationTest, dat::CPData, range::TClusterRange)::TParameterVector
+function parameter_estimates(cpt::CPTTest, permutation::PermutationDesign, range::TClusterRange)::TParameterVector
 	# Estimate parameters for a specific cluster (range)
-	mtx, design_tbl = _prepare_data(cpt, dat.mtx[:, range], dat.design)
+	mtx, design_tbl = _prepare_data(cpt, cpt.dat.mtx[:, range], permutation) # TODO view?
 	return [_estimate(cpt, s, design_tbl) for s in eachcol(mtx)]
 end
 

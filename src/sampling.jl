@@ -8,10 +8,10 @@ A specific test has to define
 	* dat::CPData
 	* iv::Symbol
 
-2. parameter_estimates(cpt::ClusterPermutationTest, dat::CPData)::TParameterVector
-    function to estimates for the entire time series
-3. parameter_estimates(cpt::ClusterPermutationTest, dat::CPData, range::TClusterRange)::TParameterVector
-    estimates for a specific section in the time series (cluster)
+2. parameter_estimates(cpt::ClusterPermutationTest, permutation::PermutationDesign)::TParameterVector
+    function to estimates for the entire time series for a given permutation
+3. parameter_estimates(cpt::ClusterPermutationTest, permutation::PermutationDesign, range::TClusterRange)::TParameterVector
+    estimates for a specific section in the time series (cluster) for a given permutation
 
 4. StatsAPI.fit(::Type{}, ...)
     the function has to create an instance of CP<Model>, call initial_fit!(..) on it
@@ -26,7 +26,7 @@ Notes:
 function initial_fit!(cpt::ClusterPermutationTest)
     # initial fit of
     # all data samples (time_series) using (not permuted) design
-    para = parameter_estimates(cpt, cpt.dat)
+    para = parameter_estimates(cpt, cpt.dat.design)
     # replace existing stats
     empty!(cpt.cpc.stats)
     append!(cpt.cpc.stats, para)
@@ -75,17 +75,17 @@ end;
     T = eltype(cpt.cpc.stats)
     cl_ranges = cluster_ranges(cpt) # get the ranges of cluster to do the permutation test #TODO console feedback?
 
-    dat = CPData(cpt.dat.mtx, copy(cpt.dat.design)) # shuffle always copy of design
+    design = copy(cpt.dat.design) # shuffle always copy of design
     cl_stats_distr = Vector{T}[] # distribution of cluster-level statistics
 
     for _ in 1:n_permutations
         if !isnothing(progressmeter)
             next!(progressmeter)
         end
-        shuffle_variable!(rng, dat.design, cpt.iv)
+        shuffle_variable!(rng, design, cpt.iv) # shuffle design
         cl_stats = T[]
-        for r in cl_ranges # loop over cluster
-            p = parameter_estimates(cpt, dat, r) # FIXME VIEW?
+        for r in cl_ranges # TODO loop over cluster first then permutations
+            p = parameter_estimates(cpt, design, r)
             push!(cl_stats, mass_fnc(p))
         end
         push!(cl_stats_distr, cl_stats)
