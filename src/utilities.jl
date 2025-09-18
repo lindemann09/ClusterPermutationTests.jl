@@ -3,8 +3,8 @@ const SymbolOString = Union{Symbol, AbstractString}
 const OptSymbolOString = Union{SymbolOString, Nothing}
 const SymbolVecOrTuple = Base.AbstractVecOrTuple{Symbol}
 const OptMultiSymbolOString = Union{SymbolOString, Base.AbstractVecOrTuple{SymbolOString}, Nothing}
-const ZERO_RANGE = 1:0 # range with thelength of zero
 
+const TParameterVector = Vector{Float64}
 
 function ensure_table(design::Any)
 	Tables.istable(design) || throw(ArgumentError("Design must be a Tables.jl compatible table (e.g., DataFrame or TypedTable)."))

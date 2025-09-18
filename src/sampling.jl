@@ -8,14 +8,14 @@ A specific test has to define
 	* dat::CPData
 	* iv::Symbol
 
-2. parameter_estimates(cpt::ClusterPermutationTest, permutation::PermutationDesign)::TParameterVector
-    function to estimates for the entire time series for a given permutation
-3. parameter_estimates(cpt::ClusterPermutationTest, permutation::PermutationDesign, range::TClusterRange)::TParameterVector
-    estimates for a specific section in the time series (cluster) for a given permutation
+2. parameter_estimates(cpt::ClusterPermutationTest, data::CPData)::TParameterVector
+	function to estimates for the entire time series for a given permutation
+	data might contain different data as is cpt (entire time series & not permuted design),
+	that is, the design might be permuted and mtx might be the data of merely a particular cluster
 
-4. StatsAPI.fit(::Type{}, ...)
-    the function has to create an instance of CP<Model>, call initial_fit!(..) on it
-    to detect clusters to be tested and return the instance
+3. StatsAPI.fit(::Type{}, ...)
+	the function has to create an instance of CP<Model>, call initial_fit!(..) on it
+	to detect clusters to be tested and return the instance
 
 Notes:
 * TParameterVector is a Vector{Float64}
@@ -24,72 +24,90 @@ Notes:
 """
 
 function initial_fit!(cpt::ClusterPermutationTest)
-    # initial fit of
-    # all data samples (time_series) using (not permuted) design
-    para = parameter_estimates(cpt, cpt.dat.design)
-    # replace existing stats
-    empty!(cpt.cpc.stats)
-    append!(cpt.cpc.stats, para)
-    return nothing
+	# initial fit of
+	# all data samples (time_series) using (not permuted) design
+	para = parameter_estimates(cpt, cpt.dat)
+	# replace existing stats
+	empty!(cpt.cpc.stats)
+	append!(cpt.cpc.stats, para)
+	return nothing
 end
 
-resample!(cpt::ClusterPermutationTest; kwargs...) = resample!(Random.GLOBAL_RNG, cpt; kwargs...)
+
+resample!(cpt::ClusterPermutationTest; n_permutations::Integer, kwargs...) =
+	resample!(Random.GLOBAL_RNG, cpt, n_permutations; kwargs...)
+resample!(rng::AbstractRNG, cpt::ClusterPermutationTest; n_permutations::Integer, kwargs...) =
+	resample!(rng, cpt, n_permutations; kwargs...)
+resample!(cpt::ClusterPermutationTest, n_permutations::Integer; kwargs...) =
+	resample!(Random.GLOBAL_RNG, cpt, n_permutations; kwargs...)
 
 function resample!(rng::AbstractRNG,
-    cpt::ClusterPermutationTest;
-	n_permutations::Integer,
+	cpt::ClusterPermutationTest,
+	n_permutations::Integer;
 	progressmeter::Bool = true,
 	use_threads::Bool = true)
 
-    if progressmeter
-        prog = Progress(n_permutations, 1, "resampling")
-    else
-        prog = nothing
-    end
-    if use_threads
-        n_thr = Threads.nthreads()
-        npt = convert(Int64, ceil(n_permutations/n_thr)) # n permutations per thread
-        container = Vector{Any}(undef, n_thr)
-        Threads.@threads for n in 1:n_thr
-            container[n] = _do_resampling(rng, cpt;
-                n_permutations=npt, progressmeter=prog)
-            prog = nothing # only first thread should have a progressbar
-        end
-        rstats = Vector{eltype(cpt.cpc.stats)}[] # vector of vector
-        for para in container
-            append!(rstats, para)
-        end
-    else
-        rstats = _do_resampling(rng, cpt; n_permutations, progressmeter=prog)
-    end
-    append!(cpt.cpc.S, rstats)
-    return nothing
+	if progressmeter
+		n_cluster = length(cluster_ranges(cpt.cpc))
+		prog = Progress(n_permutations * n_cluster, 0.2, "resampling")
+	else
+		prog = nothing
+	end
+	if use_threads
+		n_thr = Threads.nthreads()
+		npt = convert(Int64, ceil(n_permutations/n_thr)) # n permutations per thread
+		container = Vector{Vector{TParameterVector}}(undef, n_thr)
+		Threads.@threads for n in 1:n_thr
+			container[n] = _do_resampling(rng, cpt;
+				n_permutations = npt, progressmeter = prog)
+			prog = nothing # only first thread should have a progressbar
+		end
+
+		# combine results of all threads
+		# each thread returns a vector of vector of parameter estimates
+		sampling_results = TParameterVector[]
+		for c in container
+			_append_sampling_results!(sampling_results, c)
+		end
+	else
+		sampling_results = _do_resampling(rng, cpt; n_permutations, progressmeter = prog)
+	end
+	_append_sampling_results!(cpt.cpc.S, sampling_results)
+	return nothing
 end;
 
-@inline function _do_resampling(rng::AbstractRNG,
-    cpt::ClusterPermutationTest;
-    n_permutations::Integer,
-    progressmeter::Union{Nothing,Progress})::Vector{Vector}
+function _append_sampling_results!(a::Vector{TParameterVector}, b::Vector{TParameterVector})
+	if isempty(a)
+		for _ in 1:length(b)
+			push!(a, TParameterVector())
+		end
+	end
+	for (x, y) in zip(a, b)
+		append!(x, y)
+	end
+	return nothing
+end;
 
-    mass_fnc = cpt.cpc.mass_fnc
-    T = eltype(cpt.cpc.stats)
-    cl_ranges = cluster_ranges(cpt) # get the ranges of cluster to do the permutation test #TODO console feedback?
+function _do_resampling(rng::AbstractRNG,
+	cpt::ClusterPermutationTest;
+	n_permutations::Integer,
+	progressmeter::Union{Nothing, Progress})::Vector{TParameterVector}
 
-    design = copy(cpt.dat.design) # shuffle always copy of design
-    cl_stats_distr = Vector{T}[] # distribution of cluster-level statistics
+	mass_fnc = cpt.cpc.mass_fnc
+	design = copy(cpt.dat.design) # shuffle always copy of design
+	cl_ranges = cluster_ranges(cpt) # get the ranges of cluster to do the permutation test #TODO console feedback?
+	cl_stats_distr = TParameterVector[] # distribution of cluster-level statistics per cluster
 
-    for _ in 1:n_permutations
-        if !isnothing(progressmeter)
-            next!(progressmeter)
-        end
-        shuffle_variable!(rng, design, cpt.iv) # shuffle design
-        cl_stats = T[]
-        for r in cl_ranges # TODO loop over cluster first then permutations
-            p = parameter_estimates(cpt, design, r)
-            push!(cl_stats, mass_fnc(p))
-        end
-        push!(cl_stats_distr, cl_stats)
-    end
-
-    return cl_stats_distr
+	for (i, r) in enumerate(cl_ranges) # TODO loop over cluster first then permutations
+		# cluster data with shuffled design
+		dat = CPData(cpt.dat.mtx[:, r], design)
+		push!(cl_stats_distr, TParameterVector())
+		for _ in 1:n_permutations
+			isnothing(progressmeter) || next!(progressmeter)
+			shuffle_variable!(rng, dat.design, cpt.iv) # shuffle design
+			p = parameter_estimates(cpt, dat)
+			push!(cl_stats_distr[i], mass_fnc(p))
+		end
+	end
+	return cl_stats_distr
 end;

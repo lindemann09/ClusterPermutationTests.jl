@@ -23,8 +23,7 @@ function ClusterDefinition(single_range::UnitRange)
 end
 
 
-function cluster_ranges(dat::Vector{<:Real},
-	cc::ClusterCriterium)::Vector{TClusterRange}
+function cluster_ranges(dat::TParameterVector, cc::ClusterCriterium)::Vector{TClusterRange}
 	# find clusters in dat according to cc
 	d = cc.use_absolute ? abs.(dat) : dat
 	@unpack threshold, min_size = cc
@@ -54,11 +53,11 @@ function cluster_ranges(dat::Vector{<:Real},
 	return ranges
 end;
 
-cluster_ranges(::Vector{<:Real}, cc::ClusterDefinition)::Vector{TClusterRange} =
+cluster_ranges(::Any, cc::ClusterDefinition)::Vector{TClusterRange} =
 		cc.ranges
 
 function cluster_statistics(mass_fnc::Function,
-	stats::Vector{<:Real},
+	stats::TParameterVector,
 	cc::TClusterCritODef)
 	ranges = cluster_ranges(stats, cc)
 	return [mass_fnc(stats[cl]) for cl in ranges]

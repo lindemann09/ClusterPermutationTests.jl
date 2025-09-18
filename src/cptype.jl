@@ -1,5 +1,3 @@
-const TParameterVector = Vector{Float64}
-
 ###
 ### CPCollection
 ###
@@ -19,17 +17,15 @@ CPCollection(cluster_criterium::TClusterCritODef, mass_fnc::Function) =
 """
 get cluster ranges from statistics at each sample
 """
-function cluster_ranges(x::CPCollection)
-	return cluster_ranges(x.stats, x.cc)
-end;
+cluster_ranges(x::CPCollection) = cluster_ranges(x.stats, x.cc)
 
-npermutations(x::CPCollection) = length(x.S)
+npermutations(x::CPCollection) = length(x.S) == 0 ? 0 : length(x.S[1])
 
 function fits(x::CPCollection)::Matrix
 	if length(x.S) == 0
-		return zeros(eltype{x.S}, 0, 0)
+		return zeros(eltype(TParameterVector), 0, 0)
 	else
-		return transpose(reduce(hcat, x.S))
+		return reduce(hcat, x.S)
 	end
 end
 
