@@ -16,11 +16,6 @@ A specific test has to define
 3. StatsAPI.fit(::Type{}, ...)
 	the function has to create an instance of CP<Model>, call initial_fit!(..) on it
 	to detect clusters to be tested and return the instance
-
-Notes:
-* TParameterVector is a Vector{Float64}
-* TClusterRange is a UnitRange{Int32}
-
 """
 
 function initial_fit!(cpt::ClusterPermutationTest)
@@ -33,7 +28,9 @@ function initial_fit!(cpt::ClusterPermutationTest)
 	return nothing
 end
 
-
+###
+### Resampling
+###
 resample!(cpt::ClusterPermutationTest; n_permutations::Integer, kwargs...) =
 	resample!(Random.GLOBAL_RNG, cpt, n_permutations; kwargs...)
 resample!(rng::AbstractRNG, cpt::ClusterPermutationTest; n_permutations::Integer, kwargs...) =
@@ -49,41 +46,24 @@ function resample!(rng::AbstractRNG,
 
 	if progressmeter
 		n_cluster = length(cluster_ranges(cpt.cpc))
-		prog = Progress(n_permutations * n_cluster, 0.2, "resampling")
+		prog = Progress(n_permutations * n_cluster, 0.25, "resampling")
 	else
 		prog = nothing
 	end
 	if use_threads
 		n_thr = Threads.nthreads()
 		npt = convert(Int64, ceil(n_permutations/n_thr)) # n permutations per thread
-		container = Vector{Vector{TParameterVector}}(undef, n_thr)
+		results = Vector{Vector{TParameterVector}}(undef, n_thr)
 		Threads.@threads for n in 1:n_thr
-			container[n] = _do_resampling(rng, cpt;
-				n_permutations = npt, progressmeter = prog)
-			prog = nothing # only first thread should have a progressbar
+			results[n] = _do_resampling(rng, cpt; n_permutations = npt, progressmeter = prog)
 		end
-
-		# combine results of all threads
-		# each thread returns a vector of vector of parameter estimates
-		sampling_results = TParameterVector[]
-		for c in container
-			_append_sampling_results!(sampling_results, c)
+		# combine results of all threads (each thread returns a vector of vector of parameter estimates)
+		for r in results
+			_append_sampling_results!(cpt.cpc.S, r)
 		end
 	else
 		sampling_results = _do_resampling(rng, cpt; n_permutations, progressmeter = prog)
-	end
-	_append_sampling_results!(cpt.cpc.S, sampling_results)
-	return nothing
-end;
-
-function _append_sampling_results!(a::Vector{TParameterVector}, b::Vector{TParameterVector})
-	if isempty(a)
-		for _ in 1:length(b)
-			push!(a, TParameterVector())
-		end
-	end
-	for (x, y) in zip(a, b)
-		append!(x, y)
+    	_append_sampling_results!(cpt.cpc.S, sampling_results)
 	end
 	return nothing
 end;
@@ -110,4 +90,16 @@ function _do_resampling(rng::AbstractRNG,
 		end
 	end
 	return cl_stats_distr
+end;
+
+function _append_sampling_results!(a::Vector{TParameterVector}, b::Vector{TParameterVector})
+	if isempty(a)
+		for _ in 1:length(b)
+			push!(a, TParameterVector())
+		end
+	end
+	for (x, y) in zip(a, b)
+		append!(x, y)
+	end
+	return nothing
 end;

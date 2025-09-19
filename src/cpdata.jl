@@ -87,6 +87,7 @@ end
 design_table(x::CPData) = design_table(x.design)
 epoch_length(x::CPData) = size(x.mtx, 2)
 nepochs(x::CPData) = size(x.mtx, 1)
+unit_observation(x::CPData) = unit_observation(x.design.uo)
 
 function Base.show(io::IO, mime::MIME"text/plain", x::CPData)
 	println(io, "CPData: matrix $(size(x.mtx))")
