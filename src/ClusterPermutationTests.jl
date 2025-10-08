@@ -12,8 +12,8 @@ import MixedModels
 using PrettyTables: ft_printf, pretty_table, tf_unicode_rounded
 using ProgressMeter: Progress, next!
 using Random: Random, AbstractRNG, shuffle
-import Tables
-using TypedTables: TypedTables, Table, columnnames, columns
+using Tables: Tables, columnnames, columns, getcolumn
+using TypedTables: TypedTables, Table, columnnames, columns # FIXME check usage of columns, columnnames
 using UnPack: @unpack
 
 export ClusterPermutationTest,
@@ -26,7 +26,6 @@ export ClusterPermutationTest,
     names_between,
     names_covariates,
     has_variable,
-    get_variable,
     is_covariate,
     is_within,
     is_between,
@@ -34,9 +33,12 @@ export ClusterPermutationTest,
     design_table,
     nrow,
     cell_indices,
-    get_variable,
     shuffle_variable!,
     shuffle_variable,
+    # Tables   interface
+    getcolumn,
+    columnnames,
+    columns,
     # data,
     CPData,
     select_rows,

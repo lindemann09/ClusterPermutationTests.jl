@@ -31,6 +31,7 @@ unit_observation(::NoUnitObs) = nothing
 ### PermutationDesign struct
 ###
 
+#abstract type PermutationDesign <: Tables.AbstractColumns end
 abstract type PermutationDesign end
 
 struct BetweenDesign{U <: Union{UnitObs, NoUnitObs}} <: PermutationDesign
@@ -195,15 +196,6 @@ function Base.show(io::IO, mime::MIME"text/plain", x::PermutationDesign)
 	return nothing
 end
 
-function get_variable(pd::PermutationDesign, var::Symbol) # get a single variable
-	if var in names_within(pd)
-		return getproperty(pd.within, var)
-	else
-		return getproperty(pd.between, var)
-	end
-end
-get_variable(pd::PermutationDesign, var::String) = get_variable(pd, Symbol(var))
-
 is_covariate(pd::PermutationDesign, var::Symbol) = var in names_covariates(pd)
 is_within(::BetweenDesign, var::Symbol) = false
 is_between(::WithinDesign, var::Symbol) = false
@@ -213,20 +205,21 @@ has_variable(pd::PermutationDesign, var::Symbol) =
 	is_between(pd, var) || is_within(pd, var) || is_covariate(pd, var) || var == unit_observation(pd)
 
 TypedTables.Table(pd::PermutationDesign) = design_table(pd)
-function design_table(pd::PermutationDesign)::Table
+function design_table(pd::PermutationDesign)::TypedTables.Table
 	cov = isempty(pd.covariates) ? (;) : pd.covariates
 	between = _expand_between(pd)
 	if pd isa BetweenDesign
-		return Table(between, cov)
+		return TypedTables.Table(between, cov)
 	elseif pd isa MixedDesign
-		return Table(between, pd.within, cov)
+		return TypedTables.Table(between, pd.within, cov)
 	else
 		# within design
-		return Table((; pd.uo.name => pd.uo.values), pd.within, cov)
+		return TypedTables.Table((; pd.uo.name => pd.uo.values), pd.within, cov)
 	end
 end
 
-function design_table(pd::PermutationDesign, only_columns::AbstractVector{Symbol})::Table
+
+function design_table(pd::PermutationDesign, only_columns::AbstractVector{Symbol})::TypedTables.Table
 	if  !isempty(pd.covariates)
 		cov = select_columns(columns(pd.covariates), only_columns)
 	else
@@ -234,22 +227,45 @@ function design_table(pd::PermutationDesign, only_columns::AbstractVector{Symbol
 	end
 	between = select_columns(_expand_between(pd), only_columns)
 	if pd isa BetweenDesign
-		return Table(between, cov)
+		return TypedTables.Table(between, cov)
 	else
 		within = select_columns(columns(pd.within), only_columns)
 		if pd isa MixedDesign
-			return Table(between, within, cov)
+			return TypedTables.Table(between, within, cov)
 		else
 			if pd.uo.name in only_columns
 				# within design with selected unit obs
-				return Table((; pd.uo.name => pd.uo.values), within, cov)
+				return TypedTables.Table((; pd.uo.name => pd.uo.values), within, cov)
 			else
 				# within design without selected unit obs
-				return Table(within, cov)
+				return TypedTables.Table(within, cov)
 			end
 		end
 	end
 end
+
+
+# ## Tables interface
+# Tables.istable(::Type{<:PermutationDesign}) = true
+# Tables.columnaccess(::Type{<:PermutationDesign}) = true
+# Tables.columns(pd::PermutationDesign) = design_table(pd)
+# # required Tables.AbstractColumns object methods
+function Tables.getcolumn(pd::PermutationDesign, var::Symbol) # get a single variable
+	if is_within(pd, var)
+		return getproperty(pd.within, var)
+	elseif is_between(pd, var)
+		return getproperty(pd.between, var)
+	elseif is_covariate(pd, var)
+		return getproperty(pd.covariates, var)
+	else
+		_err_not_in_design(var)
+	end
+end
+Tables.getcolumn(pd::PermutationDesign, var::String) = getproperty(pd, Symbol(var))
+Tables.getcolumn(pd::PermutationDesign, ::Type{T}, col::Int, var::Symbol) where {T} = getcolumn(pd, col)
+# FIXME Tables.getcolumn(pd::PermutationDesign, i::Int) = design_table(pd)[:, i]
+Tables.columnnames(pd::PermutationDesign) = vcat(names_between(pd), names_within(pd), names_covariates(pd))
+
 
 # utilities
 

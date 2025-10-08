@@ -85,7 +85,7 @@ end
 	mtx::Matrix{<:Real},
 	permutation::PermutationDesign)::Tuple{Matrix{eltype(mtx)}, Table}
 
-	iv = get_variable(permutation, cpt.iv)
+	iv = getcolumn(permutation, cpt.iv)
 	tbl = Table((; cpt.iv => iv))
 	a = @view mtx[iv .== cpt.compare[1], :]
 	b = @view mtx[iv .== cpt.compare[2], :]
@@ -105,7 +105,7 @@ end
 	mtx::Matrix{<:Real},
 	permutation::PermutationDesign)::Tuple{Matrix{eltype(mtx)}, Table}
 
-	return mtx, Table((; cpt.iv => get_variable(permutation, cpt.iv)))
+	return mtx, Table((; cpt.iv => getproperty(permutation, cpt.iv)))
 end
 
 @inline function _estimate(cpt::CPEqualVarianceTTest,
