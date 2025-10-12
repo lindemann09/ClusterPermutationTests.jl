@@ -41,7 +41,7 @@ abstract type ClusterPermutationTest end
 
 nepochs(x::ClusterPermutationTest) = nepochs(x.dat)
 epoch_length(x::ClusterPermutationTest) = epoch_length(x.dat)
-design_table(x::ClusterPermutationTest) = design_table(x.dat.design)
+design_table(x::ClusterPermutationTest) = design_table(x.dat)
 
 npermutations(x::ClusterPermutationTest) = npermutations(x.cpc)
 unit_observation(x::ClusterPermutationTest) = unit_observation(x.dat.design.uo)

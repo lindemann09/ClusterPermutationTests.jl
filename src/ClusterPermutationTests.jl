@@ -12,8 +12,8 @@ import MixedModels
 using PrettyTables: ft_printf, pretty_table, tf_unicode_rounded
 using ProgressMeter: Progress, next!
 using Random: Random, AbstractRNG, shuffle
-using Tables: Tables, columnnames, columns, getcolumn
-using TypedTables: TypedTables, Table, columnnames, columns # FIXME check usage of columns, columnnames
+using Tables: getcolumn, Tables
+using TypedTables
 using UnPack: @unpack
 
 export ClusterPermutationTest,
@@ -22,6 +22,7 @@ export ClusterPermutationTest,
     # PermuteDesign
     PermutationDesign, BetweenDesign, WithinDesign, MixedDesign,
     UnitObs, NoUnitObs,
+    names,
     names_within,
     names_between,
     names_covariates,
@@ -30,21 +31,17 @@ export ClusterPermutationTest,
     is_within,
     is_between,
     unit_observation,
-    design_table,
-    nrow,
     cell_indices,
     shuffle_variable!,
     shuffle_variable,
-    # Tables   interface
     getcolumn,
-    columnnames,
-    columns,
     # data,
     CPData,
     select_rows,
     epoch_length,
     nepochs,
     nobs,
+    design_table,
     # Cluster
     ClusterCriterium,
     ClusterDefinition,
@@ -71,11 +68,5 @@ include("sampling.jl")
 
 include("ttest.jl")
 include("lm.jl")
-
-
-DataFrames(::PermutationDesign; kwargs...) = throw(ArgumentError("Have you loaded DataFrames?"))
-if !isdefined(Base, :get_extension)
-    include("../ext/DataFramesExt.jl")
-end
 
 end;

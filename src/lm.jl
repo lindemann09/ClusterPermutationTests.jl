@@ -42,7 +42,7 @@ parameter_estimates(cpt::ClusterPermutationTest, dat::CPData) = 	parameter_estim
 """estimates for a specific section in the time series (cluster) for a given permutation"""
 function parameter_estimates(cpt::CPLinearModel, design::PermutationDesign, range::TClusterRange)::TParameterVector
 	dv_name = Symbol(cpt.f.lhs.sym)
-	design = design_table(design)
+	design = columns(design)
 	if length(range) == 0 # take entire time series if zero_range
 		dat = cpt.dat.mtx
 	else
@@ -79,7 +79,8 @@ function prepare_design_table(f::FormulaTerm, design::PermutationDesign;
 	for v in pred
 		has_variable(design, v) || throw(ArgumentError("Variable '$(v)' not found in design table!"))
 	end
-	perm_design = design_table(design, pred) # select required variables
+
+	perm_design = select_columns(columns(design), pred)  # select required variables
 
 	return Table(perm_design, (; dv_name => dv)) # add dependent variable column
 end

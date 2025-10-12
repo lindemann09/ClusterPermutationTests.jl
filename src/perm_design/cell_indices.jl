@@ -1,7 +1,7 @@
 function cell_indices(x::PermutationDesign; variables::OptMultiSymbolOString = nothing)
-	d = design_table(x)
+	d = Table(x)
 	if isnothing(variables)
-		return cell_indices(d, columnnames(d))
+		return cell_indices(d, names(x))
 	else
 		return cell_indices(d, to_symbol_vector(variables))
 	end

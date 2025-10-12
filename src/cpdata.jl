@@ -45,13 +45,14 @@ function CPData(data_mtx::AbstractMatrix{<:Real},
 		return select_rows(CPData(data_mtx, perm_design); kwargs...)
 	end
 end
+
 function CPData(cpdat::CPData; kwargs...)
 	if :unit_obs in keys(kwargs)
 		unit_obs = kwargs[:unit_obs]
 	else
 		unit_obs = unit_obs(cpdat.design.uo)
 	end
-	CPData(cpdat.mtx, design_table(cpdat.design); unit_obs, kwargs...) # copy with selection
+	CPData(cpdat.mtx, columns(cpdat.design); unit_obs, kwargs...) # copy with selection
 end
 
 CPData(data_mtx::AbstractMatrix{<:Real}, design::Any; unit_obs::OptSymbolOString, kwargs...) =
@@ -64,7 +65,7 @@ function select_rows(dat::CPData; kwargs...)
 	length(ivs) > 0 || throw(ArgumentError("No variables and conditions specified!"))
 
 	dsgn = dat.design
-	d_columns = columns(design_table(dsgn))
+	d_columns = columns(dsgn)
 
 	# select subset with specified conditions (ivs)
 	idx = true
@@ -84,7 +85,7 @@ function select_rows(dat::CPData; kwargs...)
 	return CPData(dat.mtx[idx, :], perm_design)
 end
 
-design_table(x::CPData) = design_table(x.design)
+design_table(x::CPData) = columns(x.design)
 epoch_length(x::CPData) = size(x.mtx, 2)
 nepochs(x::CPData) = size(x.mtx, 1)
 unit_observation(x::CPData) = unit_observation(x.design.uo)
