@@ -83,7 +83,7 @@ end
 
 @inline function _prepare_data(cpt::CPPairedSampleTTest,
 	mtx::Matrix{<:Real},
-	permutation::PermutationDesign)::Tuple{Matrix{eltype(mtx)}, Table}
+	permutation::StudyDesign)::Tuple{Matrix{eltype(mtx)}, Table}
 
 	iv = getcolumn(permutation, cpt.iv)
 	tbl = Table((; cpt.iv => iv))
@@ -103,7 +103,7 @@ end
 
 @inline function _prepare_data(cpt::CPTwoSampleTTest,
 	mtx::Matrix{<:Real},
-	permutation::PermutationDesign)::Tuple{Matrix{eltype(mtx)}, Table}
+	permutation::StudyDesign)::Tuple{Matrix{eltype(mtx)}, Table}
 
 	return mtx, Table((; cpt.iv => getproperty(permutation, cpt.iv)))
 end

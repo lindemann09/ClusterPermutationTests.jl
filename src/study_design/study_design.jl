@@ -28,25 +28,25 @@ unit_observation(::NoUnitObs) = nothing
 
 
 ###
-### PermutationDesign struct
+### StudyDesign struct
 ###
 
-#abstract type PermutationDesign <: Tables.AbstractColumns end
-abstract type PermutationDesign end
+#abstract type StudyDesign <: Tables.AbstractColumns end
+abstract type StudyDesign end
 
-struct BetweenDesign{U <: Union{UnitObs, NoUnitObs}} <: PermutationDesign
+struct BetweenDesign{U <: Union{UnitObs, NoUnitObs}} <: StudyDesign
 	between::Table # unique combinations of between variables
 	covariates::Table # covariates (never used for permutations)
 	uo::U
 end
 
-struct WithinDesign <: PermutationDesign
+struct WithinDesign <: StudyDesign
 	within::Table # unique combinations of within variables
 	covariates::Table # covariates (never used for permutations)
 	uo::UnitObs
 end
 
-struct MixedDesign <: PermutationDesign
+struct MixedDesign <: StudyDesign
 	between::Table # unique combinations of between variables
 	within::Table # unique combinations of within variables
 	covariates::Table # covariates (never used for permutations)
@@ -56,14 +56,15 @@ end
 include("cell_indices.jl")
 include("shuffle_variables.jl")
 
-function PermutationDesign(design::Table;
+function StudyDesign(
+	design::Table;
 	unit_obs::OptSymbolOString = nothing,
 	covariates::OptMultiSymbolOString = nothing)
 
 	design_vars = columnnames(design)
 	within_names = Symbol[]
 	between_names = Symbol[]
-	covariates_names = Symbol[]
+	covariate_names = Symbol[]
 
 	# check variables
 	if !isnothing(unit_obs)
@@ -72,17 +73,17 @@ function PermutationDesign(design::Table;
 	end
 	# covariates
 	if !isnothing(covariates)
-		append!(covariates_names, to_symbol_vector(covariates))
-		for x in covariates_names
+		append!(covariate_names, to_symbol_vector(covariates))
+		for x in covariate_names
 			x in design_vars || _err_not_in_design(x)
 		end
 	end
 	# classify variables
 	for v in design_vars
-		if v == unit_obs || v in covariates_names
+		if v == unit_obs || v in covariate_names
 			continue
 		elseif !_guess_is_categorical(design, v)
-			push!(covariates_names, v)
+			push!(covariate_names, v)
 		elseif !isnothing(unit_obs) && _guess_is_within(design, v, unit_obs) # also checks if v in design
 			push!(within_names, v)
 		else
@@ -92,50 +93,43 @@ function PermutationDesign(design::Table;
 
 	isempty(between_names) && isempty(within_names) && throw(ArgumentError("No categorical variables found."))
 
-	if isnothing(unit_obs)
-		# no unit of observation: pure between design with no repeated measures/unit_obs
-		return make_design(design, between_names, covariates_names)
-	else
-		return make_design(design, between_names, within_names, covariates_names, unit_obs)
-	end
+	return make_design(design, unit_obs; between_names, within_names, covariate_names)
 end
 
-PermutationDesign(design::Any; kwargs...) = PermutationDesign(ensure_table(design); kwargs...)
+StudyDesign(design::Any; kwargs...) = StudyDesign(ensure_table(design); kwargs...)
 
-# Helper function to create a `PermutationDesign` object from a given experimental design `Table`, specifying which variables are between-subject and which are within-subject.
+# Helper function to create a `StudyDesign` object from a given experimental design `Table`, specifying which variables are between-subject and which are within-subject.
 # converts design variable to categorical
-function make_design(
-	design::Table,
-	between_vars::Vector{Symbol},
-	within_vars::Vector{Symbol},
-	covariates::Vector{Symbol},
-	unit_obs::Symbol)
+function make_design(design::Table, unit_obs::Symbol;
+	between_names::Vector{Symbol},
+	within_names::Vector{Symbol},
+	covariate_names::Vector{Symbol})
 
 	# unit obs is defined
 	uo = UnitObs(unit_obs, categorical(getproperty(design, unit_obs)))
 
-	if !isempty(within_vars)
-		within = select_columns(design, within_vars, convert_categorical = true)
+	if !isempty(within_names)
+		within = select_columns(design, within_names, convert_categorical = true)
 	else
 		within = nothing
 	end
 
-	if !isempty(between_vars)
-		if unit_obs ∉ between_vars
-			between_vars = vcat(uo.name, between_vars)
+	if !isempty(between_names)
+		if unit_obs ∉ between_names
+			between_names = vcat(uo.name, between_names)
 		end
-		between = select_columns(design, between_vars, convert_categorical = true)
+		between = select_columns(design, between_names, convert_categorical = true)
 		between = Table(unique(between))
 	else
 		between = nothing
 	end
-	if !isempty(within_vars)
-		within = select_columns(design, within_vars, convert_categorical = true)
+	if !isempty(within_names)
+		within = select_columns(design, within_names, convert_categorical = true)
 	else
 		within = nothing
 	end
 
-	co_var_tbl = isempty(covariates) ? EMPTYTABLE : select_columns(design, covariates)
+	co_var_tbl = isempty(covariate_names) ? EMPTYTABLE : select_columns(design, covariate_names)
 
 	if !isnothing(between) && !isnothing(within)
 		return MixedDesign(between, within, co_var_tbl, uo)
@@ -148,52 +142,49 @@ function make_design(
 	end
 end
 
-function make_design(
-	design::Table,
-	between_vars::Vector{Symbol},
-	covariates::Vector{Symbol})
-
-	# unit_obs is not defined and it is PURE between design
+function make_design(design::Table,	unit_obs::Nothing;
+			between_names::Vector{Symbol},
+			covariate_names::Vector{Symbol},
+			kwargs...)
+	# unit_obs is not defined: It has to be a pure between design
 	# each row is a unit of observation: get cell indices of each unique combination of between variables
-	between = select_columns(design, between_vars, convert_categorical = true)
-	ids_uo, between = cell_indices(between, between_vars)
+	between = select_columns(design, between_names, convert_categorical = true)
+	ids_uo, between = cell_indices(between, between_names)
 	X = reduce(hcat, ids_uo) # vecvec to matrix
 	i = findfirst.(eachrow(X))
-
-	co_var_tbl = isempty(covariates) ? EMPTYTABLE : select_columns(design, covariates)
-
+	co_var_tbl = isempty(covariate_names) ? EMPTYTABLE : select_columns(design, covariate_names)
 	return BetweenDesign(between, co_var_tbl, NoUnitObs(i))
 end
 
-unit_observation(pd::PermutationDesign) = unit_observation(pd.uo)
-names_between(pd::BetweenDesign) = collect(columnnames(pd.between))
-names_between(pd::MixedDesign) = setdiff(columnnames(pd.between), [unit_observation(pd)])
+unit_observation(d::StudyDesign) = unit_observation(d.uo)
+names_between(d::BetweenDesign) = collect(columnnames(d.between))
+names_between(d::MixedDesign) = setdiff(columnnames(d.between), [unit_observation(d)])
 names_between(::WithinDesign) = Symbol[]
-names_within(pd::Union{WithinDesign, MixedDesign}) = collect(columnnames(pd.within))
+names_within(d::Union{WithinDesign, MixedDesign}) = collect(columnnames(d.within))
 names_within(::BetweenDesign) = Symbol[]
-names_covariates(pd::PermutationDesign) = !isempty(pd.covariates) ? collect(columnnames(pd.covariates)) : Symbol[]
-function Base.names(pd::PermutationDesign)
-	uo = unit_observation(pd)
-	rtn = vcat(names_between(pd), names_within(pd), names_covariates(pd))
+names_covariates(d::StudyDesign) = !isempty(d.covariates) ? collect(columnnames(d.covariates)) : Symbol[]
+function Base.names(d::StudyDesign)
+	uo = unit_observation(d)
+	rtn = vcat(names_between(d), names_within(d), names_covariates(d))
 	if isnothing(uo)
 		return rtn
 	else
-		return vcat(unit_observation(pd), rtn)
+		return vcat(unit_observation(d), rtn)
 	end
 end
 
-Base.length(x::PermutationDesign) = length(x.uo.i)
+Base.length(x::StudyDesign) = length(x.uo.i)
 Base.copy(x::BetweenDesign) = BetweenDesign(copy(x.between), x.covariates, x.uo) # does not make a copy of covariates and uo, since they will no be modified
 Base.copy(x::WithinDesign) = WithinDesign(copy(x.within), x.covariates, x.uo)
 Base.copy(x::MixedDesign) = MixedDesign(copy(x.between), copy(x.within), x.covariates, x.uo)
 
-function HypothesisTests.nobs(x::PermutationDesign) ## TODO TEST
+function HypothesisTests.nobs(x::StudyDesign) ## TODO TEST
 	ids, combis = cell_indices(x)
 	n = (; nobs = [sum(i) for i in ids])
 	return Table(combis, n)
 end
 
-function Base.show(io::IO, mime::MIME"text/plain", x::PermutationDesign)
+function Base.show(io::IO, mime::MIME"text/plain", x::StudyDesign)
 	println(io, "$(typeof(x)) with $(length(x)) rows")
 	tmp = unit_observation(x)
 	!isnothing(tmp) && println(io, "  unit obs: $(tmp)")
@@ -206,47 +197,47 @@ function Base.show(io::IO, mime::MIME"text/plain", x::PermutationDesign)
 	return nothing
 end
 
-is_covariate(pd::PermutationDesign, var::Symbol) = var in names_covariates(pd)
+is_covariate(d::StudyDesign, var::Symbol) = var in names_covariates(d)
 is_within(::BetweenDesign, var::Symbol) = false
 is_between(::WithinDesign, var::Symbol) = false
-is_within(pd::Union{WithinDesign, MixedDesign}, var::Symbol) = var in names_within(pd)
-is_between(pd::Union{BetweenDesign, MixedDesign}, var::Symbol) = var in names_between(pd)
-has_variable(pd::PermutationDesign, var::Symbol) =
-	is_between(pd, var) || is_within(pd, var) || is_covariate(pd, var) || var == unit_observation(pd)
+is_within(d::Union{WithinDesign, MixedDesign}, var::Symbol) = var in names_within(d)
+is_between(d::Union{BetweenDesign, MixedDesign}, var::Symbol) = var in names_between(d)
+has_variable(d::StudyDesign, var::Symbol) =
+	is_between(d, var) || is_within(d, var) || is_covariate(d, var) || var == unit_observation(d)
 
 
 # required Tables.AbstractColumns object methods
 # ## Tables interface
 
-function Tables.getcolumn(pd::PermutationDesign, var::Symbol) # get a single variable
-	if is_within(pd, var)
-		return getproperty(pd.within, var)
-	elseif is_between(pd, var)
-		btw_var = getproperty(pd.between, var)
-		return btw_var[pd.uo.i]
-	elseif is_covariate(pd, var)
-		return getproperty(pd.covariates, var)
+function Tables.getcolumn(d::StudyDesign, var::Symbol) # get a single variable
+	if is_within(d, var)
+		return getproperty(d.within, var)
+	elseif is_between(d, var)
+		btw_var = getproperty(d.between, var)
+		return btw_var[d.uo.i]
+	elseif is_covariate(d, var)
+		return getproperty(d.covariates, var)
 	else
 		_err_not_in_design(var)
 	end
 end
 
-Tables.istable(::Type{<:PermutationDesign}) = true
-Tables.columnaccess(::Type{<:PermutationDesign}) = true
-function Tables.columns(pd::PermutationDesign)::NamedTuple
-	cov = isempty(pd.covariates) ? (;) : columns(pd.covariates)
-	if pd isa BetweenDesign
-		return merge(_expand_between(pd), cov)
-	elseif pd isa MixedDesign
-		return merge(_expand_between(pd), columns(pd.within), cov)
+Tables.istable(::Type{<:StudyDesign}) = true
+Tables.columnaccess(::Type{<:StudyDesign}) = true
+function Tables.columns(d::StudyDesign)::NamedTuple
+	cov = isempty(d.covariates) ? (;) : columns(d.covariates)
+	if d isa BetweenDesign
+		return merge(_expand_between(d), cov)
+	elseif d isa MixedDesign
+		return merge(_expand_between(d), columns(d.within), cov)
 	else
 		# within design
-		return merge((; pd.uo.name => pd.uo.values), columns(pd.within), cov)
+		return merge((; d.uo.name => d.uo.values), columns(d.within), cov)
 	end
 end
-Tables.getcolumn(pd::PermutationDesign, ::Type{T}, col::Int, var::Symbol) where {T} = getcolumn(pd, var)
-Tables.getcolumn(pd::PermutationDesign, i::Int) = getcolumn(pd, names(pd)[i])
-Tables.columnnames(pd::PermutationDesign) = names(pd)
+Tables.getcolumn(d::StudyDesign, ::Type{T}, col::Int, var::Symbol) where {T} = getcolumn(d, var)
+Tables.getcolumn(d::StudyDesign, i::Int) = getcolumn(d, names(d)[i])
+Tables.columnnames(d::StudyDesign) = names(d)
 
 
 # utilities
@@ -267,12 +258,12 @@ end
 
 _err_not_in_design(var::Symbol) = throw(ArgumentError("Variable '$(var)' is not in the design table."))
 
-@inline function _expand_between(pd::PermutationDesign)::NamedTuple
-	if pd isa WithinDesign
+@inline function _expand_between(d::StudyDesign)::NamedTuple
+	if d isa WithinDesign
 		return (;)
 	else
 		# expand between design to full length with unit of observations
-		return select_rows(columns(pd.between), pd.uo.i)
+		return select_rows(columns(d.between), d.uo.i)
 	end
 end
 

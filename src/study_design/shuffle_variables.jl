@@ -1,5 +1,5 @@
 function shuffle_variable!(rng::AbstractRNG,
-	perm_design::PermutationDesign,
+	perm_design::StudyDesign,
 	iv::Symbol;
 	synchronize::OptMultiSymbolOString = nothing)
 
@@ -56,21 +56,21 @@ function shuffle_variable!(rng::AbstractRNG,
 	return perm_design
 end
 
-shuffle_variable!(perm_design::PermutationDesign, iv::Union{Symbol, String}; synchronize::OptMultiSymbolOString = nothing) =
+shuffle_variable!(perm_design::StudyDesign, iv::Union{Symbol, String}; synchronize::OptMultiSymbolOString = nothing) =
 	shuffle_variable!(Random.GLOBAL_RNG, perm_design, iv; synchronize)
-shuffle_variable!(rng::AbstractRNG, perm_design::PermutationDesign, iv::String;
+shuffle_variable!(rng::AbstractRNG, perm_design::StudyDesign, iv::String;
 	synchronize::OptMultiSymbolOString = nothing) = shuffle_variable!(rng, perm_design, Symbol(iv); synchronize)
 
-function shuffle_variable(rng::AbstractRNG, perm_design::PermutationDesign, iv::Symbol;
+function shuffle_variable(rng::AbstractRNG, perm_design::StudyDesign, iv::Symbol;
 	synchronize::OptMultiSymbolOString = nothing)
 
-	pd = copy(perm_design)
-	shuffle_variable!(rng, pd, iv; synchronize)
-	return pd
+	rtn = copy(perm_design)
+	shuffle_variable!(rng, rtn, iv; synchronize)
+	return rtn
 end
 
-shuffle_variable(perm_design::PermutationDesign, iv::Union{Symbol, String}; synchronize::OptMultiSymbolOString = nothing) =
+shuffle_variable(perm_design::StudyDesign, iv::Union{Symbol, String}; synchronize::OptMultiSymbolOString = nothing) =
 	shuffle_variable(Random.GLOBAL_RNG, perm_design, iv; synchronize)
-shuffle_variable(rng::AbstractRNG, perm_design::PermutationDesign, iv::String;
+shuffle_variable(rng::AbstractRNG, perm_design::StudyDesign, iv::String;
 	synchronize::OptMultiSymbolOString = nothing) = shuffle_variable(rng, perm_design, Symbol(iv); synchronize)
 

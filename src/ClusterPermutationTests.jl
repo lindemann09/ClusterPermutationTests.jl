@@ -3,9 +3,9 @@ module ClusterPermutationTests
 import DataAPI
 using StatsAPI: StatsAPI, fit, params, pvalue, nobs
 using CategoricalArrays: CategoricalValue, CategoricalArray, categorical
-using StatsModels: RegressionModel, @formula, FormulaTerm, Term,
+using StatsModels: RegressionModel, @formula, FormulaTerm, Term, coefnames,
             InteractionTerm, FunctionTerm, ConstantTerm
-import GLM: lm
+import GLM: lm, LinearModel
 using HypothesisTests: HypothesisTests, EqualVarianceTTest, OneSampleTTest,
                         UnequalVarianceTTest
 import MixedModels
@@ -19,8 +19,8 @@ using UnPack: @unpack
 export ClusterPermutationTest,
     CPTTest, CPPairedSampleTTest, CPEqualVarianceTTest, CPUnequalVarianceTTest,
     CPRegressionModel, CPLinearModel,
-    # PermuteDesign
-    PermutationDesign, BetweenDesign, WithinDesign, MixedDesign,
+    # StudyDesign
+    StudyDesign, BetweenDesign, WithinDesign, MixedDesign,
     UnitObs, NoUnitObs,
     names,
     names_within,
@@ -60,7 +60,7 @@ export ClusterPermutationTest,
 
 
 include("utilities.jl")
-include("perm_design/perm_design.jl")
+include("study_design/study_design.jl")
 include("cluster.jl")
 include("cpdata.jl")
 include("cptype.jl")

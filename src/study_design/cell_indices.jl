@@ -1,4 +1,4 @@
-function cell_indices(x::PermutationDesign; variables::OptMultiSymbolOString = nothing)
+function cell_indices(x::StudyDesign; variables::OptMultiSymbolOString = nothing)
 	d = Table(x)
 	if isnothing(variables)
 		return cell_indices(d, names(x))

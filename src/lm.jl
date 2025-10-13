@@ -40,9 +40,9 @@ end
 parameter_estimates(cpt::ClusterPermutationTest, dat::CPData) = 	parameter_estimates(cpt, dat.design, ZERO_RANGE)
 
 """estimates for a specific section in the time series (cluster) for a given permutation"""
-function parameter_estimates(cpt::CPLinearModel, design::PermutationDesign, range::TClusterRange)::TParameterVector
+function parameter_estimates(cpt::CPLinearModel, design::StudyDesign, range::TClusterRange)::TParameterVector
 	dv_name = Symbol(cpt.f.lhs.sym)
-	design = columns(design)
+	design = Table(design)
 	if length(range) == 0 # take entire time series if zero_range
 		dat = cpt.dat.mtx
 	else
@@ -50,8 +50,9 @@ function parameter_estimates(cpt::CPLinearModel, design::PermutationDesign, rang
 	end
 	rtn = TParameterVector() # TODO would be vector preallocation faster?
 	i = nothing # index for coefficient of iv
+	dv_data = getproperty(design, dv_name)
 	for dv in eachcol(dat)
-		design[!, dv_name] = dv
+		dv_data[:] = dv
 		md = fit(LinearModel, cpt.f, design) ## fit model!
 		if isnothing(i)
 			i = findfirst(x->x == cpt.iv, coefnames(md))
@@ -68,7 +69,7 @@ end
 ###
 
 """select columns from formula and add empty column for dependent variable"""
-function prepare_design_table(f::FormulaTerm, design::PermutationDesign;
+function prepare_design_table(f::FormulaTerm, design::StudyDesign;
 	 dv_dtype::Type=Float64)::Table
 
 	 # dv

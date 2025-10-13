@@ -5,9 +5,9 @@ Data for a cluster permutation analysis
 """
 struct CPData{T <: Real}
 	mtx::Matrix{T}
-	design::PermutationDesign
+	design::StudyDesign
 
-	function CPData(mtx::Matrix{T}, design::PermutationDesign) where {T <: Real}
+	function CPData(mtx::Matrix{T}, design::StudyDesign) where {T <: Real}
 		size(mtx, 1) == length(design) || throw(
 			DimensionMismatch(
 				"Matrix and design table must have the same number of rows!"),
@@ -32,7 +32,7 @@ function CPData(data_mtx::AbstractMatrix{<:Real},
 	vars = keys(kwargs)
 	if length(vars) == 0
 		# take all, except unit_obs
-		return CPData(data_mtx, PermutationDesign(design; unit_obs))
+		return CPData(data_mtx, StudyDesign(design; unit_obs))
 	else
 		if !isnothing(unit_obs)
 			unit_obs = Symbol(unit_obs)
@@ -41,7 +41,7 @@ function CPData(data_mtx::AbstractMatrix{<:Real},
 			end
 		end
 		tbl = select_columns(design, vars)
-		perm_design = PermutationDesign(tbl; unit_obs) # select variables
+		perm_design = StudyDesign(tbl; unit_obs) # select variables
 		return select_rows(CPData(data_mtx, perm_design); kwargs...)
 	end
 end
@@ -76,16 +76,14 @@ function select_rows(dat::CPData; kwargs...)
 	end
 
 	df = Table(select_rows(d_columns, idx)) # selected design table
-	if dsgn.uo isa NoUnitObs # no within
-		perm_design = make_design(df, names_between(dsgn), names_covariates(dsgn))
-	else
-		perm_design = make_design(df, names_between(dsgn), names_within(dsgn),
-			names_covariates(dsgn), unit_observation(dsgn.uo))
-	end
+	perm_design = make_design(df, unit_observation(dsgn.uo);
+				between_names = names_between(dsgn),
+				within_names = names_within(dsgn),
+				covariate_names = names_covariates(dsgn))
 	return CPData(dat.mtx[idx, :], perm_design)
 end
 
-design_table(x::CPData) = columns(x.design)
+design_table(x::CPData) = Tables.columns(x.design)
 epoch_length(x::CPData) = size(x.mtx, 2)
 nepochs(x::CPData) = size(x.mtx, 1)
 unit_observation(x::CPData) = unit_observation(x.design.uo)
