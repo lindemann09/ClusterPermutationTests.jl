@@ -1,6 +1,7 @@
 module StudyDesigns
 
-using StatsAPI: StatsAPI
+using DataAPI: DataAPI, nrow, ncol
+using StatsAPI
 using CategoricalArrays: CategoricalValue, CategoricalArray, categorical
 using Tables
 using Tables: getcolumn, columnnames
@@ -20,8 +21,9 @@ export StudyDesign, BetweenDesign, WithinDesign, MixedDesign,
     unit_observation,
     shuffle_variable!,
     shuffle_variable,
-    getcolumn,
-    nobs
+    nobs,
+	nrows,
+	ncols
 
 
 ###
@@ -66,7 +68,6 @@ struct MixedDesign <: StudyDesign
 	covariates::Table # covariates (never used for permutations)
 	uo::UnitObs
 end
-
 
 include("utilities.jl")
 include("designs.jl")

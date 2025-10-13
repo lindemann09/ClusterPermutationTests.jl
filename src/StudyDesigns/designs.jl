@@ -143,7 +143,7 @@ function StatsAPI.nobs(x::StudyDesign)
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", x::StudyDesign)
-	println(io, "$(typeof(x)) with $(length(x)) rows")
+	println(io, "$(typeof(x)) with $(nrow(x)) rows")
 	tmp = unit_observation(x)
 	!isnothing(tmp) && println(io, "  unit obs: $(tmp)")
 	tmp = names_between(x)

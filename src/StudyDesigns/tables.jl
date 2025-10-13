@@ -30,6 +30,10 @@ Tables.getcolumn(d::StudyDesign, ::Type{T}, col::Int, var::Symbol) where {T} = g
 Tables.getcolumn(d::StudyDesign, i::Int) = getcolumn(d, names(d)[i])
 Tables.columnnames(d::StudyDesign) = names(d)
 
+DataAPI.nrow(d::StudyDesign) = length(d.uo.i)
+DataAPI.ncol(d::StudyDesign) = length(names(d))
+
+
 @inline function _expand_between(d::StudyDesign)::NamedTuple
 	if d isa WithinDesign
 		return (;)

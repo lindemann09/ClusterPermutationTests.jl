@@ -12,7 +12,7 @@ using PrettyTables: ft_printf, pretty_table, tf_unicode_rounded
 using ProgressMeter: Progress, next!
 using UnPack: @unpack
 using Random
-using Tables: columntable
+using Tables: columntable, getcolumn
 using TypedTables: Table
 
 include("StudyDesigns/StudyDesigns.jl")
