@@ -56,7 +56,7 @@ function CPData(cpdat::CPData; kwargs...)
 end
 
 CPData(data_mtx::AbstractMatrix{<:Real}, design::Any; unit_obs::OptSymbolOString, kwargs...) =
-	CPData(data_mtx, ensure_table(design); unit_obs, kwargs...)
+	CPData(data_mtx, StudyDesigns.ensure_table(design); unit_obs, kwargs...)
 
 
 function select_rows(dat::CPData; kwargs...)
@@ -76,7 +76,7 @@ function select_rows(dat::CPData; kwargs...)
 	end
 
 	df = Table(select_rows(d_columns, idx)) # selected design table
-	perm_design = make_design(df, unit_observation(dsgn.uo);
+	perm_design = StudyDesigns.make_design(df, unit_observation(dsgn.uo);
 				between_names = names_between(dsgn),
 				within_names = names_within(dsgn),
 				covariate_names = names_covariates(dsgn))
@@ -86,7 +86,7 @@ end
 design_table(x::CPData) = Tables.columns(x.design)
 epoch_length(x::CPData) = size(x.mtx, 2)
 nepochs(x::CPData) = size(x.mtx, 1)
-unit_observation(x::CPData) = unit_observation(x.design.uo)
+StudyDesigns.unit_observation(x::CPData) = unit_observation(x.design.uo)
 
 function Base.show(io::IO, mime::MIME"text/plain", x::CPData)
 	println(io, "CPData: matrix $(size(x.mtx))")

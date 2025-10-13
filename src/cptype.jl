@@ -44,7 +44,7 @@ epoch_length(x::ClusterPermutationTest) = epoch_length(x.dat)
 design_table(x::ClusterPermutationTest) = design_table(x.dat)
 
 npermutations(x::ClusterPermutationTest) = npermutations(x.cpc)
-unit_observation(x::ClusterPermutationTest) = unit_observation(x.dat.design.uo)
+StudyDesigns.unit_observation(x::ClusterPermutationTest) = unit_observation(x.dat.design.uo)
 cluster_ranges(x::ClusterPermutationTest) = cluster_ranges(x.cpc)
 cluster_criterium(x::ClusterPermutationTest) = x.cpc.cc
 fits(x::ClusterPermutationTest) = fits(x.cpc)

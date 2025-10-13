@@ -1,8 +1,7 @@
 module ClusterPermutationTests
 
-import DataAPI
-using StatsAPI: StatsAPI, fit, params, pvalue, nobs
-using CategoricalArrays: CategoricalValue, CategoricalArray, categorical
+using Reexport: @reexport
+using StatsAPI: StatsAPI, fit, params, pvalue
 using StatsModels: RegressionModel, @formula, FormulaTerm, Term, coefnames,
             InteractionTerm, FunctionTerm, ConstantTerm
 import GLM: lm, LinearModel
@@ -11,36 +10,21 @@ using HypothesisTests: HypothesisTests, EqualVarianceTTest, OneSampleTTest,
 import MixedModels
 using PrettyTables: ft_printf, pretty_table, tf_unicode_rounded
 using ProgressMeter: Progress, next!
-using Random: Random, AbstractRNG, shuffle
-using Tables: getcolumn, Tables
-using TypedTables
 using UnPack: @unpack
+using Random
+using TypedTables: Table, columns
+
+include("StudyDesigns/StudyDesigns.jl")
+@reexport using .StudyDesigns
 
 export ClusterPermutationTest,
     CPTTest, CPPairedSampleTTest, CPEqualVarianceTTest, CPUnequalVarianceTTest,
     CPRegressionModel, CPLinearModel,
-    # StudyDesign
-    StudyDesign, BetweenDesign, WithinDesign, MixedDesign,
-    UnitObs, NoUnitObs,
-    names,
-    names_within,
-    names_between,
-    names_covariates,
-    has_variable,
-    is_covariate,
-    is_within,
-    is_between,
-    unit_observation,
-    cell_indices,
-    shuffle_variable!,
-    shuffle_variable,
-    getcolumn,
     # data,
     CPData,
     select_rows,
     epoch_length,
     nepochs,
-    nobs,
     design_table,
     # Cluster
     ClusterCriterium,
@@ -58,9 +42,8 @@ export ClusterPermutationTest,
     summary,
     @formula # reexport
 
-
+include("StudyDesigns/utilities.jl")
 include("utilities.jl")
-include("study_design/study_design.jl")
 include("cluster.jl")
 include("cpdata.jl")
 include("cptype.jl")

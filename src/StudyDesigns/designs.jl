@@ -1,21 +1,7 @@
+
 const EMPTYTABLE = Table((; _ = Vector{Int64}()))
 
-###
-### Unit of Observation struct
-###
-struct UnitObs
-	name::Symbol
-	values::CategoricalArray
-	# X: bit matrix for selection of unit of observation to speeds up later processing
-	# each column corresponds to bitvector for one unit_obs
-	X::BitMatrix
-	# indices to reconstruct rows in between design (which only stores unique combinations of between variables)
-	i::Vector{Int}
-end
-
-struct NoUnitObs
-	i::Vector{Int}
-end
+### unit opbs
 
 function UnitObs(name::Symbol, values::CategoricalArray)
 	ids_uo = [values .== u for u in unique(values)]
@@ -26,35 +12,7 @@ end
 unit_observation(uo::UnitObs) = uo.name
 unit_observation(::NoUnitObs) = nothing
 
-
-###
-### StudyDesign struct
-###
-
-#abstract type StudyDesign <: Tables.AbstractColumns end
-abstract type StudyDesign end
-
-struct BetweenDesign{U <: Union{UnitObs, NoUnitObs}} <: StudyDesign
-	between::Table # unique combinations of between variables
-	covariates::Table # covariates (never used for permutations)
-	uo::U
-end
-
-struct WithinDesign <: StudyDesign
-	within::Table # unique combinations of within variables
-	covariates::Table # covariates (never used for permutations)
-	uo::UnitObs
-end
-
-struct MixedDesign <: StudyDesign
-	between::Table # unique combinations of between variables
-	within::Table # unique combinations of within variables
-	covariates::Table # covariates (never used for permutations)
-	uo::UnitObs
-end
-
-include("cell_indices.jl")
-include("shuffle_variables.jl")
+### StudyDesign
 
 function StudyDesign(
 	design::Table;
@@ -178,7 +136,7 @@ Base.copy(x::BetweenDesign) = BetweenDesign(copy(x.between), x.covariates, x.uo)
 Base.copy(x::WithinDesign) = WithinDesign(copy(x.within), x.covariates, x.uo)
 Base.copy(x::MixedDesign) = MixedDesign(copy(x.between), copy(x.within), x.covariates, x.uo)
 
-function HypothesisTests.nobs(x::StudyDesign) ## TODO TEST
+function StatsAPI.nobs(x::StudyDesign)
 	ids, combis = cell_indices(x)
 	n = (; nobs = [sum(i) for i in ids])
 	return Table(combis, n)
@@ -206,41 +164,53 @@ has_variable(d::StudyDesign, var::Symbol) =
 	is_between(d, var) || is_within(d, var) || is_covariate(d, var) || var == unit_observation(d)
 
 
-# required Tables.AbstractColumns object methods
-# ## Tables interface
+# utilities / helper
 
-function Tables.getcolumn(d::StudyDesign, var::Symbol) # get a single variable
-	if is_within(d, var)
-		return getproperty(d.within, var)
-	elseif is_between(d, var)
-		btw_var = getproperty(d.between, var)
-		return btw_var[d.uo.i]
-	elseif is_covariate(d, var)
-		return getproperty(d.covariates, var)
+function cell_indices(x::StudyDesign; variables::OptMultiSymbolOString = nothing)
+	d = Table(x)
+	if isnothing(variables)
+		return cell_indices(d, names(x))
 	else
-		_err_not_in_design(var)
+		return cell_indices(d, to_symbol_vector(variables))
 	end
 end
 
-Tables.istable(::Type{<:StudyDesign}) = true
-Tables.columnaccess(::Type{<:StudyDesign}) = true
-function Tables.columns(d::StudyDesign)::NamedTuple
-	cov = isempty(d.covariates) ? (;) : columns(d.covariates)
-	if d isa BetweenDesign
-		return merge(_expand_between(d), cov)
-	elseif d isa MixedDesign
-		return merge(_expand_between(d), columns(d.within), cov)
-	else
-		# within design
-		return merge((; d.uo.name => d.uo.values), columns(d.within), cov)
+
+"""get the indices (bool vector) of all combinations of the columns"""
+function cell_indices(dat::Table, columns::SymbolVecOrTuple)
+	# returns cell indices (bool vectors) and unique combinations (dataframe)
+
+	# find indices (bool vectors) of each unique value in each column and write to dict
+	# this intermediate index dict vectors avoids redundant searches in dataframe and speed up code
+	unique_vals = [unique(getproperty(dat, col)) for col in columns]
+	index_dict = Dict{Symbol, Dict{Any, BitVector}}() # dict[column][val] = [...indices...]
+	for (values, col) in zip(unique_vals, columns)
+		index_dict[col] = Dict{Any, BitVector}()
+		dat_column = getproperty(dat, col)
+		for val in values
+			index_dict[col][val] = dat_column .== val
+		end
 	end
+
+	# all combinations of column values => logically combine bool vector of indices
+    ids = BitVector[]
+	existing_combis = NamedTuple[]
+    for uval in Iterators.product(unique_vals...) # loop each possible combi
+		x = true
+        row = [n=>c for (n, c) in zip(columns, uval)] # naming unique combis,  Vector{Pair{Symbol, String}}
+		for (col, val) in row
+			x = x .& index_dict[col][val]
+		end
+		if any(x)
+			push!(ids, x)
+            push!(existing_combis, NamedTuple(row))
+		end
+	end
+
+	return ids, Table(existing_combis)
 end
-Tables.getcolumn(d::StudyDesign, ::Type{T}, col::Int, var::Symbol) where {T} = getcolumn(d, var)
-Tables.getcolumn(d::StudyDesign, i::Int) = getcolumn(d, names(d)[i])
-Tables.columnnames(d::StudyDesign) = names(d)
 
 
-# utilities
 function _guess_is_within(dat::Table, var::Symbol, unit_obs::Symbol)
 	values = getproperty(dat, var)
 	uobs = getproperty(dat, unit_obs)
@@ -257,13 +227,4 @@ function _guess_is_categorical(dat::Table, var::Symbol)
 end
 
 _err_not_in_design(var::Symbol) = throw(ArgumentError("Variable '$(var)' is not in the design table."))
-
-@inline function _expand_between(d::StudyDesign)::NamedTuple
-	if d isa WithinDesign
-		return (;)
-	else
-		# expand between design to full length with unit of observations
-		return select_rows(columns(d.between), d.uo.i)
-	end
-end
 
