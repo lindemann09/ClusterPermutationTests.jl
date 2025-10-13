@@ -40,7 +40,7 @@ function CPData(data_mtx::AbstractMatrix{<:Real},
 				vars = vcat(unit_obs, vars...)
 			end
 		end
-		tbl = select_columns(design, vars)
+		tbl = select_col(design, vars)
 		perm_design = StudyDesign(tbl; unit_obs) # select variables
 		return select_rows(CPData(data_mtx, perm_design); kwargs...)
 	end
@@ -52,7 +52,7 @@ function CPData(cpdat::CPData; kwargs...)
 	else
 		unit_obs = unit_obs(cpdat.design.uo)
 	end
-	CPData(cpdat.mtx, columns(cpdat.design); unit_obs, kwargs...) # copy with selection
+	CPData(cpdat.mtx, columntable(cpdat.design); unit_obs, kwargs...) # copy with selection
 end
 
 CPData(data_mtx::AbstractMatrix{<:Real}, design::Any; unit_obs::OptSymbolOString, kwargs...) =
@@ -65,7 +65,7 @@ function select_rows(dat::CPData; kwargs...)
 	length(ivs) > 0 || throw(ArgumentError("No variables and conditions specified!"))
 
 	dsgn = dat.design
-	d_columns = columns(dsgn)
+	d_columns = columntable(dsgn)
 
 	# select subset with specified conditions (ivs)
 	idx = true
@@ -83,7 +83,7 @@ function select_rows(dat::CPData; kwargs...)
 	return CPData(dat.mtx[idx, :], perm_design)
 end
 
-design_table(x::CPData) = Tables.columns(x.design)
+design_table(x::CPData) = Table(x.design)
 epoch_length(x::CPData) = size(x.mtx, 2)
 nepochs(x::CPData) = size(x.mtx, 1)
 StudyDesigns.unit_observation(x::CPData) = unit_observation(x.design.uo)

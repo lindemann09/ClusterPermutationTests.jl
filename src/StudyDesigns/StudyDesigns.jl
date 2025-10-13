@@ -2,8 +2,9 @@ module StudyDesigns
 
 using StatsAPI: StatsAPI
 using CategoricalArrays: CategoricalValue, CategoricalArray, categorical
-using Tables: getcolumn, Tables
-using TypedTables
+using Tables
+using Tables: getcolumn, columnnames
+using TypedTables: Table
 using Random: Random, AbstractRNG, shuffle
 
 export StudyDesign, BetweenDesign, WithinDesign, MixedDesign,

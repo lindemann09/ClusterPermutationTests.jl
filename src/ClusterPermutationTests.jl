@@ -12,7 +12,8 @@ using PrettyTables: ft_printf, pretty_table, tf_unicode_rounded
 using ProgressMeter: Progress, next!
 using UnPack: @unpack
 using Random
-using TypedTables: Table, columns
+using Tables: columntable
+using TypedTables: Table
 
 include("StudyDesigns/StudyDesigns.jl")
 @reexport using .StudyDesigns

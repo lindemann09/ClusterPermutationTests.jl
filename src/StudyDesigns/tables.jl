@@ -16,14 +16,14 @@ end
 Tables.istable(::Type{<:StudyDesign}) = true
 Tables.columnaccess(::Type{<:StudyDesign}) = true
 function Tables.columns(d::StudyDesign)::NamedTuple
-	cov = isempty(d.covariates) ? (;) : columns(d.covariates)
+	cov = isempty(d.covariates) ? (;) : Tables.columns(d.covariates)
 	if d isa BetweenDesign
 		return merge(_expand_between(d), cov)
 	elseif d isa MixedDesign
-		return merge(_expand_between(d), columns(d.within), cov)
+		return merge(_expand_between(d), Tables.columns(d.within), cov)
 	else
 		# within design
-		return merge((; d.uo.name => d.uo.values), columns(d.within), cov)
+		return merge((; d.uo.name => d.uo.values), Tables.columns(d.within), cov)
 	end
 end
 Tables.getcolumn(d::StudyDesign, ::Type{T}, col::Int, var::Symbol) where {T} = getcolumn(d, var)
@@ -35,6 +35,6 @@ Tables.columnnames(d::StudyDesign) = names(d)
 		return (;)
 	else
 		# expand between design to full length with unit of observations
-		return select_rows(columns(d.between), d.uo.i)
+		return select_rows(columntable(d.between), d.uo.i)
 	end
 end
