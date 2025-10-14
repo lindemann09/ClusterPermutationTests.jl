@@ -6,9 +6,9 @@ A specific test has to define
 1. CP<Model> <: ClusterPermutationTest; a struct with the following fields:
 	* cpc::CPCollection
 	* dat::CPData
-	* iv::Symbol
+	* effect::Symbol
 
-2. parameter_estimates(cpt::ClusterPermutationTest, data::CPData)::TParameterVector
+2. parameter_estimates(cpt::ClusterPermutationTest, dat::CPData)::TParameterVector
 	function to estimates for the entire time series for a given permutation
 	data might contain different data as is cpt (entire time series & not permuted design),
 	that is, the design might be permuted and mtx might be the data of merely a particular cluster
@@ -78,13 +78,13 @@ function _do_resampling(rng::AbstractRNG,
 	cl_ranges = cluster_ranges(cpt) # get the ranges of cluster to do the permutation test #TODO console feedback?
 	cl_stats_distr = TParameterVector[] # distribution of cluster-level statistics per cluster
 
-	for (i, r) in enumerate(cl_ranges) # TODO loop over cluster first then permutations
+	for (i, r) in enumerate(cl_ranges)
 		# cluster data with shuffled design
-		dat = CPData(cpt.dat.mtx[:, r], design)
+		dat = CPData(cpt.dat.mtx[:, r], design) # TODO view?
 		push!(cl_stats_distr, TParameterVector())
 		for _ in 1:n_permutations
 			isnothing(progressmeter) || next!(progressmeter)
-			shuffle_variable!(rng, dat.design, cpt.iv) # shuffle design
+			shuffle_variable!(rng, dat.design, cpt.effect) # shuffle design
 			p = parameter_estimates(cpt, dat)
 			push!(cl_stats_distr[i], mass_fnc(p))
 		end

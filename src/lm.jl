@@ -3,16 +3,32 @@ abstract type CPRegressionModel <: ClusterPermutationTest end
 struct CPLinearModel <: CPRegressionModel
 	cpc::CPCollection
 	dat::CPData
-	iv::Symbol
+	effect::String # to be tested effect
 	f::FormulaTerm
+	contrasts::Dict{Symbol, AbstractContrasts} # contrasts for LinearModel
 end;
+
+function StatsAPI.fit(T::Type{<:CPLinearModel}, # TODO: two value comparison only, needs to be more general
+	f::FormulaTerm, dat::CPData, cluster_criterium::TClusterCritODef; kwargs...)
+
+	# use first rhs variable from formula as effect
+	if f.rhs isa Term
+    	effect = f.rhs
+	else
+		effect = first(f.rhs)
+		@warn("Effect is not defined. Using '$effect'.")
+	end
+	fit(T, f, Symbol(effect), dat, cluster_criterium; kwargs...)
+end
+
 
 function StatsAPI.fit(::Type{<:CPLinearModel}, # TODO: two value comparison only, needs to be more general
 	f::FormulaTerm,
-	iv::Symbol,
+	effect::SymbolOString,
 	dat::CPData,
 	cluster_criterium::TClusterCritODef;
-	mass_fnc::Function = sum)
+	mass_fnc::Function = sum,
+	contrasts::Dict{Symbol, AbstractContrasts} = Dict{Symbol, AbstractContrasts}())
 
 	if is_mixedmodel(f)
 		throw(ArgumentError("Mixed models are not yet supported."))
@@ -25,11 +41,9 @@ function StatsAPI.fit(::Type{<:CPLinearModel}, # TODO: two value comparison only
 	if unit_obs ∉ columnnames(tbl)
 		unit_obs = nothing
 	end
-	prepared_data = CPData(dat.mtx, tbl; unit_obs)
 
 	rtn = CPLinearModel(CPCollection(cluster_criterium, mass_fnc),
-					prepared_data, iv, f)
-	return
+					CPData(dat.mtx, tbl; unit_obs), String(effect), f, contrasts)
 	initial_fit!(rtn)
 	return rtn
 end
@@ -37,27 +51,19 @@ end
 ####
 #### definition of parameter_estimates
 ####
-parameter_estimates(cpt::ClusterPermutationTest, dat::CPData) = 	parameter_estimates(cpt, dat.design, ZERO_RANGE)
 
-"""estimates for a specific section in the time series (cluster) for a given permutation"""
-function parameter_estimates(cpt::CPLinearModel, design::StudyDesign, range::TClusterRange)::TParameterVector
+"""estimates for a specific section in the time series (cluster) for a given permutation
+"""
+function parameter_estimates(cpt::CPLinearModel, dat::CPData)::TParameterVector
 	dv_name = Symbol(cpt.f.lhs.sym)
-	design = Table(design)
-	if length(range) == 0 # take entire time series if zero_range
-		dat = cpt.dat.mtx
-	else
-		dat = @view cpt.dat.mtx[:, range]
-	end
+	design = Table(dat.design)
 	rtn = TParameterVector() # TODO would be vector preallocation faster?
 	i = nothing # index for coefficient of iv
 	dv_data = getproperty(design, dv_name)
-	for dv in eachcol(dat)
+	for dv in eachcol(dat.mtx)
 		dv_data[:] = dv
-		md = fit(LinearModel, cpt.f, design) ## fit model!
-		if isnothing(i)
-			i = findfirst(x->x == cpt.iv, coefnames(md))
-		end
-		push!(rtn, coef(md)[i])
+		md = fit(LinearModel, cpt.f, design; contrasts = cpt.contrasts) ## fit model!
+		push!(rtn, get_coefficient(md, cpt.effect)) ## FIXME find first i and use coef(md)[i]
 	end
 	return rtn
 end
@@ -72,7 +78,6 @@ end
 function prepare_design_table(f::FormulaTerm, design::StudyDesign;
 	 dv_dtype::Type=Float64)::Table
 
-	 # dv
 	dv = Vector{dv_dtype}(undef, length(design))
 	dv_name = Symbol(f.lhs.sym)
 

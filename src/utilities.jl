@@ -4,16 +4,34 @@ const TParameterVector = Vector{Float64}
 
 is_mixedmodel(f::FormulaTerm) = any(MixedModels.is_randomeffectsterm.(f.rhs))
 
-coefficient(md::RegressionModel, x::Int)::Float64 = coef(md)[x]
-function coefficient(md::RegressionModel, coefname::String)::Float64
-	i = findfirst(x->x == coefname, coefnames(md))
-	return coefficient(md, i)
-end
-
 function predictors(f::FormulaTerm)
 	rtn = Symbol[]
 	_add_all_vars!(rtn, f.rhs)
 	return rtn
+end
+
+get_coefficient(md::RegressionModel, x::Int)::Float64 = coef(md)[x]
+function get_coefficient(md::StatisticalModel, effect::String)
+	# get p value of a specific effect for coeftable
+	# for binary  categorial variables is the variable names is sufficient and level (..: level) is not required
+
+	# find exact match
+    n = coefnames(md)
+    i = findfirst(x -> x == effect, n)
+	if isnothing(i)
+        # find binary categorical variable match
+		idx = findall(x-> startswith(x, "$effect: "), n)
+        if length(idx) == 1
+            i = idx[1] # only two levels
+        elseif length(idx) > 1
+            throw(ArgumentError("Specific one of the effects: '$(n)'."))
+        else
+            i = 0
+        end
+    end
+    i > 0 || throw(ArgumentError("Can not find effect '$effect'."))
+
+    return coef(md)[i]
 end
 
 function _add_all_vars!(vec::Vector{Symbol}, x::Tuple)

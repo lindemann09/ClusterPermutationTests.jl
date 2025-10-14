@@ -4,7 +4,7 @@ abstract type CPTwoSampleTTest <: CPTTest end
 struct CPPairedSampleTTest <: CPTTest
 	cpc::CPCollection
 	dat::CPData
-	iv::Symbol
+	effect::Symbol
 	compare::Tuple
 end;
 
@@ -58,13 +58,13 @@ end;
 # formula interface
 function StatsAPI.fit(T::Type{<:CPTTest},
 	f::FormulaTerm,
-	data::CPData,
+	dat::CPData,
 	cluster_criterium::TClusterCritODef;
 	kwargs...)
 
 	(f.lhs isa Term && f.rhs isa Term) || throw(
 		ArgumentError("Incorrect t.test formula: '$f'"))
-	return fit(T, Symbol(f.rhs), data, cluster_criterium; kwargs...)
+	return fit(T, Symbol(f.rhs), dat, cluster_criterium; kwargs...)
 end
 
 ####
@@ -85,8 +85,8 @@ end
 	mtx::Matrix{<:Real},
 	permutation::StudyDesign)::Tuple{Matrix{eltype(mtx)}, Table}
 
-	iv = getcolumn(permutation, cpt.iv)
-	tbl = Table((; cpt.iv => iv))
+	iv = getcolumn(permutation, cpt.effect)
+	tbl = Table((; cpt.effect => iv))
 	a = @view mtx[iv .== cpt.compare[1], :]
 	b = @view mtx[iv .== cpt.compare[2], :]
 	return b - a, tbl # equal size required
@@ -105,7 +105,7 @@ end
 	mtx::Matrix{<:Real},
 	permutation::StudyDesign)::Tuple{Matrix{eltype(mtx)}, Table}
 
-	return mtx, Table((; cpt.iv => getproperty(permutation, cpt.iv)))
+	return mtx, Table((; cpt.effect => getproperty(permutation, cpt.effect)))
 end
 
 @inline function _estimate(cpt::CPEqualVarianceTTest,
@@ -128,7 +128,7 @@ end
 
 @inline function _ttest_get_data(cpt::CPTTest, samples::SubArray{<:Real}, permutation::Table)
 	# perform sequential ttests -> parameter
-	iv = getproperty(permutation, cpt.iv)
+	iv = getproperty(permutation, cpt.effect)
 	dat_a = @view samples[iv .== cpt.compare[1]] # FIXME check
 	dat_b = @view samples[iv .== cpt.compare[2]]
 	return dat_a, dat_b

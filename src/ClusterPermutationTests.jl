@@ -1,9 +1,10 @@
 module ClusterPermutationTests
 
 using Reexport: @reexport
-using StatsAPI: StatsAPI, fit, params, pvalue
+using StatsAPI: StatsAPI, fit, params, pvalue, coef
 using StatsModels: RegressionModel, @formula, FormulaTerm, Term, coefnames,
-            InteractionTerm, FunctionTerm, ConstantTerm
+            InteractionTerm, FunctionTerm, ConstantTerm, AbstractContrasts
+using StatsBase: coeftable
 import GLM: lm, LinearModel
 using HypothesisTests: HypothesisTests, EqualVarianceTTest, OneSampleTTest,
                         UnequalVarianceTTest
@@ -13,7 +14,7 @@ using ProgressMeter: Progress, next!
 using UnPack: @unpack
 using Random
 using Tables: columntable, getcolumn
-using TypedTables: Table
+using TypedTables: Table, columnnames
 
 include("StudyDesigns/StudyDesigns.jl")
 @reexport using .StudyDesigns
