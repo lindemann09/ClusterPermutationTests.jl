@@ -10,10 +10,9 @@ function predictors(f::FormulaTerm)
 	return rtn
 end
 
-get_coefficient(md::RegressionModel, x::Int)::Float64 = coef(md)[x]
-function get_coefficient(md::StatisticalModel, effect::String)
-	# get p value of a specific effect for coeftable
-	# for binary  categorial variables is the variable names is sufficient and level (..: level) is not required
+function get_coefficient_row(md::StatisticalModel, effect::String)
+	# get row id of a specific effect in the coefficient vector/coeftable
+    # for binary  categorial variables is the variable names is sufficient and level (..: level) is not required
 
 	# find exact match
     n = coefnames(md)
@@ -24,14 +23,13 @@ function get_coefficient(md::StatisticalModel, effect::String)
         if length(idx) == 1
             i = idx[1] # only two levels
         elseif length(idx) > 1
-            throw(ArgumentError("Specific one of the effects: '$(n)'."))
+            throw(ArgumentError("Multiple effects found. Specific one of the effects: '$(n)'."))
         else
             i = 0
         end
     end
     i > 0 || throw(ArgumentError("Can not find effect '$effect'."))
-
-    return coef(md)[i]
+    return i
 end
 
 function _add_all_vars!(vec::Vector{Symbol}, x::Tuple)

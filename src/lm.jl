@@ -1,14 +1,15 @@
 abstract type CPRegressionModel <: ClusterPermutationTest end
 
 struct CPLinearModel <: CPRegressionModel
-	cpc::CPCollection
+	cpc::CPCollection{StatsModels.TableRegressionModel}
 	dat::CPData
-	effect::String # to be tested effect
+
 	f::FormulaTerm
+	effect::String # name of effect to be tested
 	contrasts::Dict{Symbol, AbstractContrasts} # contrasts for LinearModel
 end;
 
-function StatsAPI.fit(T::Type{<:CPLinearModel}, # TODO: two value comparison only, needs to be more general
+function StatsAPI.fit(T::Type{<:CPLinearModel},
 	f::FormulaTerm, dat::CPData, cluster_criterium::TClusterCritODef; kwargs...)
 
 	# use first rhs variable from formula as effect
@@ -18,10 +19,11 @@ function StatsAPI.fit(T::Type{<:CPLinearModel}, # TODO: two value comparison onl
 		effect = first(f.rhs)
 		@warn("Effect is not defined. Using '$effect'.")
 	end
-	fit(T, f, Symbol(effect), dat, cluster_criterium; kwargs...)
+	fit(T, f, effect.sym, dat, cluster_criterium; kwargs...)
 end
 
 
+# TODO: two value comparison only, needs to be more general
 function StatsAPI.fit(::Type{<:CPLinearModel}, # TODO: two value comparison only, needs to be more general
 	f::FormulaTerm,
 	effect::SymbolOString,
@@ -35,15 +37,17 @@ function StatsAPI.fit(::Type{<:CPLinearModel}, # TODO: two value comparison only
 	end
 	# TODO only pure between design: check is unit obs must be random effect -> mixedModel
 
-	tbl = prepare_design_table(f, dat.design, dv_dtype = eltype(dat.mtx))
+	effect = String(effect)
+	iv = first(split(effect, ": "))
+	tbl = _prepare_design_table(f, dat.design, dv_dtype = eltype(dat.mtx))
 
 	unit_obs = unit_observation(dat.design)
 	if unit_obs ∉ columnnames(tbl)
 		unit_obs = nothing
 	end
 
-	rtn = CPLinearModel(CPCollection(cluster_criterium, mass_fnc),
-					CPData(dat.mtx, tbl; unit_obs), String(effect), f, contrasts)
+	cpc = CPCollection{StatsModels.TableRegressionModel}(iv, mass_fnc, cluster_criterium)
+	rtn = CPLinearModel(cpc, CPData(dat.mtx, tbl; unit_obs), f, effect, contrasts)
 	initial_fit!(rtn)
 	return rtn
 end
@@ -54,18 +58,25 @@ end
 
 """estimates for a specific section in the time series (cluster) for a given permutation
 """
-function parameter_estimates(cpt::CPLinearModel, dat::CPData)::TParameterVector
+@inline function parameter_estimates(cpt::CPLinearModel, dat::CPData;
+		initial_fit::Bool = false)::TParameterVector
 	dv_name = Symbol(cpt.f.lhs.sym)
 	design = Table(dat.design)
-	rtn = TParameterVector() # TODO would be vector preallocation faster?
+	param = TParameterVector() # TODO would be vector preallocation faster?
 	i = nothing # index for coefficient of iv
 	dv_data = getproperty(design, dv_name)
 	for dv in eachcol(dat.mtx)
 		dv_data[:] = dv
 		md = fit(LinearModel, cpt.f, design; contrasts = cpt.contrasts) ## fit model!
-		push!(rtn, get_coefficient(md, cpt.effect)) ## FIXME find first i and use coef(md)[i]
+		i = get_coefficient_row(md, cpt.effect)
+		if initial_fit
+			push!(cpt.cpc.m, md)
+			push!(cpt.cpc.stats, coef(md)[i])
+		else
+			push!(param, coef(md)[i])
+		end
 	end
-	return rtn
+	return param
 end
 
 
@@ -75,7 +86,7 @@ end
 ###
 
 """select columns from formula and add empty column for dependent variable"""
-function prepare_design_table(f::FormulaTerm, design::StudyDesign;
+function _prepare_design_table(f::FormulaTerm, design::StudyDesign;
 	 dv_dtype::Type=Float64)::Table
 
 	dv = Vector{dv_dtype}(undef, length(design))

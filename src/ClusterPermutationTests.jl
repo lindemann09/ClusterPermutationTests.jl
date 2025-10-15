@@ -1,13 +1,12 @@
 module ClusterPermutationTests
 
 using Reexport: @reexport
+using StatsModels
 using StatsAPI: StatsAPI, fit, params, pvalue, coef
-using StatsModels: RegressionModel, @formula, FormulaTerm, Term, coefnames,
-            InteractionTerm, FunctionTerm, ConstantTerm, AbstractContrasts
 using StatsBase: coeftable
 import GLM: lm, LinearModel
 using HypothesisTests: HypothesisTests, EqualVarianceTTest, OneSampleTTest,
-                        UnequalVarianceTTest
+                        UnequalVarianceTTest, HypothesisTest
 import MixedModels
 using PrettyTables: ft_printf, pretty_table, tf_unicode_rounded
 using ProgressMeter: Progress, next!
@@ -39,6 +38,8 @@ export ClusterPermutationTest,
     params,
     fits,
     fit,
+    initial_fit,
+    initial_fits,
     resample!,
     pvalues,
     summary,

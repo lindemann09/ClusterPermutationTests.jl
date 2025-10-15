@@ -2,16 +2,19 @@
 ### CPCollection
 ###
 
-struct CPCollection
+struct CPCollection{M}
+	iv::Symbol # name of the to be shuffled independent variable
 	mass_fnc::Function # cluster mass function
 	cc::TClusterCritODef # cluster definition
 
 	stats::TParameterVector # test statistic of initial fit at each sample
+	m::Vector{M} # fitted models of initial fit
 	S::Vector{TParameterVector} # samples
 end;
 
-CPCollection(cluster_criterium::TClusterCritODef, mass_fnc::Function) =
-	CPCollection(mass_fnc, cluster_criterium, TParameterVector[], TParameterVector())
+CPCollection{M}(iv::SymbolOString, mass_fnc::Function, cluster_criterium::TClusterCritODef) where {M} =
+	CPCollection(Symbol(iv), mass_fnc, cluster_criterium, TParameterVector(),
+			M[], TParameterVector[])
 
 
 """
@@ -49,6 +52,8 @@ cluster_ranges(x::ClusterPermutationTest) = cluster_ranges(x.cpc)
 cluster_criterium(x::ClusterPermutationTest) = x.cpc.cc
 fits(x::ClusterPermutationTest) = fits(x.cpc)
 StatsAPI.params(x::ClusterPermutationTest) = x.cpc.stats
+initial_fits(x::ClusterPermutationTest) = x.cpc.m
+initial_fit(x::ClusterPermutationTest, i::Integer) = x.cpc.m[i]
 
 function cluster_statistics(x::ClusterPermutationTest)
 	return cluster_statistics(x.cpc.mass_fnc, x.cpc.stats, x.cpc.cc)

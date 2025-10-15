@@ -2,23 +2,20 @@ abstract type CPTTest <: ClusterPermutationTest end
 abstract type CPTwoSampleTTest <: CPTTest end
 
 struct CPPairedSampleTTest <: CPTTest
-	cpc::CPCollection
+	cpc::CPCollection{OneSampleTTest}
 	dat::CPData
-	effect::Symbol
 	compare::Tuple
 end;
 
 struct CPEqualVarianceTTest <: CPTwoSampleTTest
-	cpc::CPCollection
+	cpc::CPCollection{EqualVarianceTTest}
 	dat::CPData
-	iv::Symbol
 	compare::Tuple
 end;
 
 struct CPUnequalVarianceTTest <: CPTwoSampleTTest
-	cpc::CPCollection
+	cpc::CPCollection{UnequalVarianceTTest}
 	dat::CPData
-	iv::Symbol
 	compare::Tuple
 end;
 
@@ -29,7 +26,7 @@ function StatsAPI.fit(T::Type{<:CPTTest}, # TODO: two value comparison only, nee
 	mass_fnc::Function = sum)
 
 	iv = Symbol(iv)
-	paired = is_within(dat.design,iv)
+	paired = is_within(dat.design, iv)
 	if T == CPTTest
 		# choose test based on design
 		T = paired ? CPPairedSampleTTest : CPEqualVarianceTTest
@@ -48,9 +45,19 @@ function StatsAPI.fit(T::Type{<:CPTTest}, # TODO: two value comparison only, nee
 	length(compare) == 2 || throw(ArgumentError(
 		"'$iv' comprises $(length(compare)) categories; two required."))
 
-	cpc = CPCollection(cluster_criterium, mass_fnc)
+	if T == CPPairedSampleTTest
+		M = OneSampleTTest
+	elseif T != CPEqualVarianceTTest
+		M = EqualVarianceTTest
+	elseif T == CPUnequalVarianceTTest
+		M = UnequalVarianceTTest
+	else
+		throw(ArgumentError("Test $(T) not supported for t.test."))
+	end
+	cpc = CPCollection{M}(iv, mass_fnc, cluster_criterium)
 
-	rtn = T(cpc, dat, iv, (compare[1], compare[2]))
+	rtn = T(cpc, dat, (compare[1], compare[2]))
+
 	initial_fit!(rtn)
 	return rtn
 end;
@@ -71,10 +78,20 @@ end
 #### definition of parameter_estimates
 ####
 
-function parameter_estimates(cpt::CPTTest, dat::CPData)::TParameterVector
+@inline function parameter_estimates(cpt::CPTTest, dat::CPData; initial_fit::Bool = false)::TParameterVector
 	# Estimate parameters for a specific cluster (range)
 	mtx, design_tbl = _prepare_data(cpt, dat.mtx, dat.design) # TODO view?
-	return [_estimate(cpt, s, design_tbl) for s in eachcol(mtx)]
+	param = TParameterVector() # TODO would be vector preallocation faster?
+	for s in eachcol(mtx)
+		tt = _estimate(cpt, s, design_tbl)
+		if initial_fit
+			push!(cpt.cpc.m, tt)
+			push!(cpt.cpc.stats, tt.t)
+		else
+			push!(param, tt.t)
+		end
+	end
+	return param
 end
 
 ####
@@ -85,16 +102,15 @@ end
 	mtx::Matrix{<:Real},
 	permutation::StudyDesign)::Tuple{Matrix{eltype(mtx)}, Table}
 
-	iv = getcolumn(permutation, cpt.effect)
-	tbl = Table((; cpt.effect => iv))
+	iv = getcolumn(permutation, cpt.cpc.iv)
+	tbl = Table((; cpt.cpc.iv => iv))
 	a = @view mtx[iv .== cpt.compare[1], :]
 	b = @view mtx[iv .== cpt.compare[2], :]
 	return b - a, tbl # equal size required
 end
 
-@inline function _estimate(::CPPairedSampleTTest, samples::SubArray{<:Real}, ::Table)::Float64
-	tt = OneSampleTTest(samples)
-	return tt.t
+@inline function _estimate(::CPPairedSampleTTest, samples::SubArray{<:Real}, ::Table)
+	return OneSampleTTest(samples)
 end
 
 ####
@@ -105,30 +121,28 @@ end
 	mtx::Matrix{<:Real},
 	permutation::StudyDesign)::Tuple{Matrix{eltype(mtx)}, Table}
 
-	return mtx, Table((; cpt.effect => getproperty(permutation, cpt.effect)))
+	return mtx, Table((; cpt.cpc.iv => getproperty(permutation, cpt.cpc.iv)))
 end
 
 @inline function _estimate(cpt::CPEqualVarianceTTest,
 	samples::SubArray{<:Real},
-	permutation::Table)::Float64
+	permutation::Table)
 
 	(dat_a, dat_b) = _ttest_get_data(cpt, samples, permutation)
-	tt = EqualVarianceTTest(dat_a, dat_b)
-	return tt.t
+	return EqualVarianceTTest(dat_a, dat_b)
 end
 
 @inline function _estimate(cpt::CPUnequalVarianceTTest,
 	samples::SubArray{<:Real},
-	permutation::Table)::Float64
+	permutation::Table)
 
 	(dat_a, dat_b) = _ttest_get_data(cpt, samples, permutation)
-	tt = UnequalVarianceTTest(dat_a, dat_b)
-	return tt.t
+	return UnequalVarianceTTest(dat_a, dat_b)
 end
 
 @inline function _ttest_get_data(cpt::CPTTest, samples::SubArray{<:Real}, permutation::Table)
 	# perform sequential ttests -> parameter
-	iv = getproperty(permutation, cpt.effect)
+	iv = getproperty(permutation, cpt.cpc.iv)
 	dat_a = @view samples[iv .== cpt.compare[1]] # FIXME check
 	dat_b = @view samples[iv .== cpt.compare[2]]
 	return dat_a, dat_b
