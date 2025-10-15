@@ -9,7 +9,7 @@ struct CPLinearModel <: CPRegressionModel
 	contrasts::Dict{Symbol, AbstractContrasts} # contrasts for LinearModel
 end;
 
-function StatsAPI.fit(T::Type{<:CPLinearModel},
+function StatsAPI.fit(T::Type{<:CPRegressionModel},
 	f::FormulaTerm, dat::CPData, cluster_criterium::TClusterCritODef; kwargs...)
 
 	# use first rhs variable from formula as effect
@@ -60,7 +60,7 @@ end
 @inline function parameter_estimates(cpt::CPLinearModel, dat::CPData;
 		initial_fit::Bool = false)::TParameterVector
 	dv_name = Symbol(cpt.f.lhs.sym)
-	design = Table(dat.design)
+	design = columntable(dat.design)
 	param = TParameterVector() # TODO would be vector preallocation faster?
 	i = nothing # index for coefficient of iv
 	dv_data = getproperty(design, dv_name)
@@ -80,8 +80,6 @@ end
 	end
 	return param
 end
-
-
 
 ###
 ### Utilities for regression design tables

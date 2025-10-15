@@ -49,14 +49,17 @@ function resample!(rng::AbstractRNG,
 	progressmeter::Bool = true,
 	use_threads::Bool = true)
 
+	n_samples = sum(length.(cluster_ranges(cpt.cpc)))
+	print("number of samples to be tested: $n_samples")
 	if progressmeter
-		n_cluster = length(cluster_ranges(cpt.cpc))
-		prog = Progress(n_permutations * n_cluster, 0.25, "resampling")
+		prog = Progress(n_samples * n_permutations, 0.25, "resampling")
 	else
 		prog = nothing
 	end
 	if use_threads
 		n_thr = Threads.nthreads()
+		println(", using $n_thr threads")
+
 		npt = convert(Int64, ceil(n_permutations/n_thr)) # n permutations per thread
 		results = Vector{Vector{TParameterVector}}(undef, n_thr)
 		Threads.@threads for n in 1:n_thr
@@ -67,6 +70,7 @@ function resample!(rng::AbstractRNG,
 			_append_sampling_results!(cpt.cpc.S, r)
 		end
 	else
+		println("")
 		sampling_results = _do_resampling(rng, cpt; n_permutations, progressmeter = prog)
     	_append_sampling_results!(cpt.cpc.S, sampling_results)
 	end
@@ -85,13 +89,13 @@ function _do_resampling(rng::AbstractRNG,
 
 	for (i, r) in enumerate(cl_ranges)
 		# cluster data with shuffled design
-		dat = CPData(cpt.dat.mtx[:, r], design) # TODO view?
+		dat = CPData(cpt.dat.mtx[:, r], design)
 		push!(cl_stats_distr, TParameterVector())
 		for _ in 1:n_permutations
-			isnothing(progressmeter) || next!(progressmeter)
 			shuffle_variable!(rng, dat.design, cpt.cpc.iv) # shuffle design
 			p = parameter_estimates(cpt, dat) # get parameter estimates for this cluster
 			push!(cl_stats_distr[i], mass_fnc(p))
+			isnothing(progressmeter) || next!(progressmeter, step = length(r))
 		end
 	end
 	return cl_stats_distr
