@@ -23,19 +23,18 @@ function StatsAPI.fit(T::Type{<:CPLinearModel},
 end
 
 
-# TODO: two value comparison only, needs to be more general
-function StatsAPI.fit(::Type{<:CPLinearModel}, # TODO: two value comparison only, needs to be more general
+function StatsAPI.fit(::Type{<:CPLinearModel},
 	f::FormulaTerm,
 	effect::SymbolOString,
 	dat::CPData,
 	cluster_criterium::TClusterCritODef;
 	mass_fnc::Function = sum,
-	contrasts::Dict{Symbol, AbstractContrasts} = Dict{Symbol, AbstractContrasts}())
+	contrasts::Dict{Symbol, <:AbstractContrasts} = Dict{Symbol, AbstractContrasts}())
+
 
 	if is_mixedmodel(f)
-		throw(ArgumentError("Mixed models are not yet supported."))
+		throw(ArgumentError("Use CPMixedModels for mixed models."))
 	end
-	# TODO only pure between design: check is unit obs must be random effect -> mixedModel
 
 	effect = String(effect)
 	iv = first(split(effect, ": "))
@@ -68,12 +67,15 @@ end
 	for dv in eachcol(dat.mtx)
 		dv_data[:] = dv
 		md = fit(LinearModel, cpt.f, design; contrasts = cpt.contrasts) ## fit model!
-		i = get_coefficient_row(md, cpt.effect)
+		if isnothing(i)
+			i = get_coefficient_row(md, cpt.effect)
+		end
+		z = coef(md)[i] / stderror(md)[i] # parameter: t-value of effect
 		if initial_fit
 			push!(cpt.cpc.m, md)
-			push!(cpt.cpc.stats, coef(md)[i])
+			push!(cpt.cpc.stats, z)
 		else
-			push!(param, coef(md)[i])
+			push!(param, z)
 		end
 	end
 	return param

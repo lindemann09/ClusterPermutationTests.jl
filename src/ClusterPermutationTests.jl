@@ -1,9 +1,9 @@
 module ClusterPermutationTests
 
 using Reexport: @reexport
-using StatsModels
 using StatsAPI: StatsAPI, fit, params, pvalue, coef
-using StatsBase: coeftable
+using StatsBase: coeftable, stderror
+using StatsModels
 import GLM: lm, LinearModel
 using HypothesisTests: HypothesisTests, EqualVarianceTTest, OneSampleTTest,
                         UnequalVarianceTTest, HypothesisTest
