@@ -1,7 +1,7 @@
 module ClusterPermutationTests
 
 using Reexport: @reexport
-using StatsAPI: StatsAPI, fit, params, pvalue, coef
+using StatsAPI: StatsAPI, fit, pvalue, coef
 using StatsBase: coeftable, stderror
 using StatsModels
 import GLM: lm, LinearModel
@@ -33,16 +33,15 @@ export ClusterPermutationTest,
     ClusterDefinition,
     cluster_statistics,
     cluster_ranges,
+    cluster_pvalues,
+    cluster_table,
+    cluster_parameter,
     npermutations,
     reset,
-    cluster_table,
-    params,
-    fits,
+    sample_statistics,
     fit,
-    initial_fit,
     initial_fits,
     resample!,
-    pvalues,
     summary,
     @formula # reexport
 

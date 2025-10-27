@@ -19,6 +19,10 @@ struct CPUnequalVarianceTTest <: CPTwoSampleTTest
 	compare::Tuple
 end;
 
+function test_info(x::CPTTest)
+	return "$(typeof(x)), (compare=$(string.(x.compare)), $(x.cpc.mass_fnc))"
+end
+
 function StatsAPI.fit(T::Type{<:CPTTest}, # TODO: two value comparison only, needs to be more general
 	iv::SymbolOString,
 	dat::CPData,
@@ -77,6 +81,10 @@ end
 ####
 #### definition of parameter_estimates
 ####
+function sample_statistics(cpt::CPTTest)::TParameterVector
+	# extract test statistics from initial fit
+	return [x.t for x in cpt.cpc.m]
+end
 
 @inline function parameter_estimates(cpt::CPTTest, dat::CPData; store_fits::Bool = false)::TParameterVector
 	# Estimate parameters for a specific cluster (range)
@@ -86,7 +94,6 @@ end
 		tt = _estimate(cpt, s, design_tbl)
 		if store_fits
 			push!(cpt.cpc.m, tt)
-			push!(cpt.cpc.stats, tt.t)
 		else
 			push!(param, tt.t)
 		end

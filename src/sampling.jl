@@ -6,7 +6,6 @@ A specific test has to define
 1. CP<Model> <: ClusterPermutationTest; a struct with the following fields:
 	* cpc::CPCollection
 	* dat::CPData
-	* m::Vector{StatisticalModel} # fitted models of initial fit
 
 2. parameter_estimates(cpt::ClusterPermutationTest, dat::CPData; store_fits::Bool = false)::TParameterVector
 	function to estimates for the entire time series for a given permutation
@@ -14,20 +13,20 @@ A specific test has to define
 	that is, the design might be permuted and mtx might be the data of merely a particular cluster
 
 	list of test_statistics has to be returned as TParameterVector
-	if initial_fit is true,
-		* the function has to store the fitted models in cpt.cpc.m
-		* the function has to store the test statistics in cpt.cpc.stats
-
-3. StatsAPI.fit(::Type{}, ...)
+	if initial_fit is true, the function has to store the fitted models in cpt.cpc.m
+3. sample_statistics(cpt::ClusterPermutationTest)::TParameterVector
+	function to extract the test statistics from the initial fit stored in cpt.cpc.m
+4. StatsAPI.fit(::Type{}, ...)
 	the function has to create an instance of CP<Model>, call initial_fit!(..) on it
 	to detect clusters to be tested and return the instance
+5. test_info(x::ClusterPermutationTest)
+	function returning a string with information about the test
 """
 
 function initial_fit!(cpt::ClusterPermutationTest)
 	# initial fit of
 	# all data samples (time_series) using (not permuted) design
 	# replace existing stats
-	empty!(cpt.cpc.stats)
 	empty!(cpt.cpc.m)
 	parameter_estimates(cpt, cpt.dat; store_fits = true)
 	return nothing
@@ -57,7 +56,7 @@ function resample!(rng::AbstractRNG,
 		n_threads = 1
 	end
 
-	n_samples = sum(length.(cluster_ranges(cpt.cpc)))
+	n_samples = sum(length.(cluster_ranges(cpt)))
 	print("number of samples to be tested: $n_samples")
 	if progressmeter
 		prog = Progress(n_samples * n_permutations, 1, "resampling")

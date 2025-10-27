@@ -18,7 +18,9 @@ struct CPMixedModel <: CPRegressionModel
 	contrasts::Dict{Symbol, AbstractContrasts} # contrasts for LinearModel
 end;
 
-is_mixedmodel(f::FormulaTerm) = any(is_randomeffectsterm.(f.rhs))
+function test_info(x::CPRegressionModel)
+	return "$(typeof(x)) (effect=$(x.effect), $(x.cpc.mass_fnc))\n  $(x.f))"
+end
 
 function StatsAPI.fit(T::Type{<:CPRegressionModel},
 	f::FormulaTerm, dat::CPData, cluster_criterium::TClusterCritODef; kwargs...)
@@ -28,7 +30,6 @@ function StatsAPI.fit(T::Type{<:CPRegressionModel},
     	effect = f.rhs
 	else
 		effect = first(f.rhs)
-		@warn("Effect is not defined. Using '$effect'.")
 	end
 	fit(T, f, effect.sym, dat, cluster_criterium; kwargs...)
 end
@@ -48,7 +49,7 @@ function StatsAPI.fit(T::Type{<:CPRegressionModel},
 
 	# cpcollection
 	if T == CPLinearModel
-		is_mixedmodel(f) && throw(ArgumentError("Use CPMixedModel for mixed models."))
+		_is_mixedmodel(f) && throw(ArgumentError("Use CPMixedModel for mixed models."))
 
 		cpc = CPCollection{StatsModels.TableRegressionModel}(iv, mass_fnc, cluster_criterium)
 		rtn = CPLinearModel(cpc, CPData(dat.mtx, tbl; unit_obs), f, effect, contrasts)
@@ -61,12 +62,29 @@ function StatsAPI.fit(T::Type{<:CPRegressionModel},
 	end
 
 	initial_fit!(rtn)
+
+	# check effect
+	n = coefnames(rtn.cpc.m[1])
+    i = findfirst(x -> x == effect, n)
+	if isnothing(i)
+		@warn("Effect '$effect' not found in model fit. Effects: '$(n)'.")
+	end
+
 	return rtn
 end
 
 ####
 #### definition of parameter_estimates
 ####
+sample_statistics(cpt::CPRegressionModel) = sample_statistics(cpt, cpt.effect)
+function sample_statistics(cpt::CPRegressionModel, effect::SymbolOString)::TParameterVector
+	length(cpt.cpc.m) > 0 || return TParameterVector()
+	# extract test statistics from initial fit
+	i = get_coefficient_row(cpt.cpc.m[1], String(effect))
+	# calculate z values
+	return [coef(md)[i] / stderror(md)[i] for md in cpt.cpc.m]
+end
+
 
 """estimates for a specific section in the time series (cluster) for a given permutation
 """
@@ -79,16 +97,14 @@ end
 	for dv in eachcol(dat.mtx)
 		dv_data[:] = dv
 		md = fit(LinearModel, cpt.f, design; contrasts = cpt.contrasts) ## fit model!
-		#calc z for effect
-		if isnothing(i)
-			i = get_coefficient_row(md, cpt.effect)
-		end
-		z = coef(md)[i] / stderror(md)[i] # parameter: t-value of effect
-
 		if store_fits
 			push!(cpt.cpc.m, md)
-			push!(cpt.cpc.stats, z)
 		else
+			#calc z for effect
+			if isnothing(i)
+				i = get_coefficient_row(md, cpt.effect)
+			end
+			z = coef(md)[i] / stderror(md)[i] # parameter: t-value of effect
 			push!(param, z)
 		end
 	end
@@ -109,16 +125,14 @@ end
 					progress=false, REML=true) ## fit model!
 		end # logger
 
-		#calc z for effect
-		if isnothing(i)
-			i = get_coefficient_row(md, cpt.effect)
-		end
-		z = coef(md)[i] / stderror(md)[i] # parameter: t-value of effect
-
 		if store_fits
 			push!(cpt.cpc.m, md)
-			push!(cpt.cpc.stats, z)
 		else
+			#calc z for effect
+			if isnothing(i)
+				i = get_coefficient_row(md, cpt.effect)
+			end
+			z = coef(md)[i] / stderror(md)[i] # parameter: t-value of effect
 			push!(param, z)
 		end
 	end
@@ -130,6 +144,7 @@ n_threads_default(::CPMixedModel) = floor(Int64, Threads.nthreads()/4)
 ###
 ### Utilities for regression design tables
 ###
+_is_mixedmodel(f::FormulaTerm) = any(is_randomeffectsterm.(f.rhs))
 
 """select columns from formula and add empty column for dependent variable"""
 function _prepare_design_table(f::FormulaTerm, design::StudyDesign;
