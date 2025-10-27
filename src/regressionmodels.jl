@@ -65,11 +65,14 @@ function StatsAPI.fit(T::Type{<:CPRegressionModel},
 
 	# check effect
 	n = coefnames(rtn.cpc.m[1])
-    i = findfirst(x -> x == effect, n)
-	if isnothing(i)
-		@warn("Effect '$effect' not found in model fit. Effects: '$(n)'.")
+    try
+		i = get_coefficient_row(rtn.cpc.m[1], effect)
+		if i == 0
+			@warn("Effect '$effect' not found in model. Effects: '$(n)'.")
+		end
+	catch e
+		@warn("Effect '$effect' unclear. Effects: '$(n)'.") # found multiple effects
 	end
-
 	return rtn
 end
 
@@ -81,6 +84,7 @@ function sample_statistics(cpt::CPRegressionModel, effect::SymbolOString)::TPara
 	length(cpt.cpc.m) > 0 || return TParameterVector()
 	# extract test statistics from initial fit
 	i = get_coefficient_row(cpt.cpc.m[1], String(effect))
+	i == 0 && return TParameterVector() # effect not found
 	# calculate z values
 	return [coef(md)[i] / stderror(md)[i] for md in cpt.cpc.m]
 end
@@ -176,7 +180,7 @@ function get_coefficient_row(md::StatisticalModel, effect::String)
         if length(idx) == 1
             i = idx[1] # only two levels
         elseif length(idx) > 1
-            throw(ArgumentError("Multiple effects found. Specific one of the effects: '$(n)'."))
+            throw(ArgumentError("Effect '$effect' unclear. Available effects: '$(n)'."))
         else
             return 0
         end
