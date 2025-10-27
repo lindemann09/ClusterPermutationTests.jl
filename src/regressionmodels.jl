@@ -125,7 +125,7 @@ end
 	return param
 end
 
-use_threads_default(::CPMixedModel) = floor(Int64, Threads.nthreads()/4)
+n_threads_default(::CPMixedModel) = floor(Int64, Threads.nthreads()/4)
 
 ###
 ### Utilities for regression design tables

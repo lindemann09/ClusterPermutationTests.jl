@@ -47,14 +47,11 @@ function resample!(rng::AbstractRNG,
 	cpt::ClusterPermutationTest,
 	n_permutations::Integer;
 	progressmeter::Bool = true,
-	use_threads::Union{Integer, Bool, Nothing} = nothing)
+	use_threads::Union{Integer, Bool} = true)
 
-	if isnothing(use_threads)
-		use_threads = use_threads_default(cpt)
-	end
 	if use_threads === true
-		n_threads = Threads.nthreads()
-	elseif use_threads > 1
+		n_threads = n_threads_default(cpt)
+	elseif use_threads > 1 # use_threads is integer
 		n_threads = min(use_threads, Threads.nthreads())
 	else
 		n_threads = 1

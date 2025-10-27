@@ -55,7 +55,7 @@ StatsAPI.params(x::ClusterPermutationTest) = x.cpc.stats
 initial_fits(x::ClusterPermutationTest) = x.cpc.m
 initial_fit(x::ClusterPermutationTest, i::Integer) = x.cpc.m[i]
 
-use_threads_default(::ClusterPermutationTest) = true
+n_threads_default(::ClusterPermutationTest) = Threads.nthreads()
 
 function cluster_statistics(x::ClusterPermutationTest)
 	return cluster_statistics(x.cpc.mass_fnc, x.cpc.stats, x.cpc.cc)
