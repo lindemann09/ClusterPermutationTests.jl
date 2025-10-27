@@ -7,10 +7,11 @@ using StatsModels
 import GLM: lm, LinearModel
 using HypothesisTests: HypothesisTests, EqualVarianceTTest, OneSampleTTest,
                         UnequalVarianceTTest, HypothesisTest
-import MixedModels
+import MixedModels: LinearMixedModel, is_randomeffectsterm
 using PrettyTables: ft_printf, pretty_table, tf_unicode_rounded
 using ProgressMeter: Progress, next!
 using UnPack: @unpack
+using Logging: with_logger, NullLogger
 using Random
 using Tables: columntable, getcolumn
 using TypedTables: Table, columnnames
@@ -20,7 +21,7 @@ include("StudyDesigns/StudyDesigns.jl")
 
 export ClusterPermutationTest,
     CPTTest, CPPairedSampleTTest, CPEqualVarianceTTest, CPUnequalVarianceTTest,
-    CPRegressionModel, CPLinearModel,
+    CPRegressionModel, CPLinearModel, CPMixedModel,
     # data,
     CPData,
     select_rows,
@@ -45,14 +46,14 @@ export ClusterPermutationTest,
     summary,
     @formula # reexport
 
+
 include("StudyDesigns/utilities.jl")
-include("utilities.jl")
 include("cluster.jl")
 include("cpdata.jl")
 include("cptype.jl")
 include("sampling.jl")
 
 include("ttest.jl")
-include("lm.jl")
+include("regressionmodels.jl")
 
 end;

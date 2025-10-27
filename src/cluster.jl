@@ -1,4 +1,5 @@
-TClusterRange = UnitRange{Int32}
+const TParameterVector = Vector{Float64}
+const TClusterRange = UnitRange{Int32}
 
 struct ClusterCriterium
 	threshold::Real
@@ -10,7 +11,7 @@ struct ClusterDefinition
 	ranges::Vector{TClusterRange}
 end
 
-TClusterCritODef = Union{ClusterCriterium, ClusterDefinition}
+const TClusterCritODef = Union{ClusterCriterium, ClusterDefinition}
 
 function ClusterCriterium(; threshold::Real,
 	min_size::Int = 10,

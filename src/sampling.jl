@@ -8,7 +8,7 @@ A specific test has to define
 	* dat::CPData
 	* m::Vector{StatisticalModel} # fitted models of initial fit
 
-2. parameter_estimates(cpt::ClusterPermutationTest, dat::CPData; initial_fit::Bool = false)::TParameterVector
+2. parameter_estimates(cpt::ClusterPermutationTest, dat::CPData; store_fits::Bool = false)::TParameterVector
 	function to estimates for the entire time series for a given permutation
 	data might contain different data as is cpt (entire time series & not permuted design),
 	that is, the design might be permuted and mtx might be the data of merely a particular cluster
@@ -29,7 +29,7 @@ function initial_fit!(cpt::ClusterPermutationTest)
 	# replace existing stats
 	empty!(cpt.cpc.stats)
 	empty!(cpt.cpc.m)
-	parameter_estimates(cpt, cpt.dat; initial_fit = true)
+	parameter_estimates(cpt, cpt.dat; store_fits = true)
 	return nothing
 end
 
@@ -47,22 +47,32 @@ function resample!(rng::AbstractRNG,
 	cpt::ClusterPermutationTest,
 	n_permutations::Integer;
 	progressmeter::Bool = true,
-	use_threads::Bool = true)
+	use_threads::Union{Integer, Bool, Nothing} = nothing)
+
+	if isnothing(use_threads)
+		use_threads = use_threads_default(cpt)
+	end
+	if use_threads === true
+		n_threads = Threads.nthreads()
+	elseif use_threads > 1
+		n_threads = min(use_threads, Threads.nthreads())
+	else
+		n_threads = 1
+	end
 
 	n_samples = sum(length.(cluster_ranges(cpt.cpc)))
 	print("number of samples to be tested: $n_samples")
 	if progressmeter
-		prog = Progress(n_samples * n_permutations, 0.25, "resampling")
+		prog = Progress(n_samples * n_permutations, 1, "resampling")
 	else
 		prog = nothing
 	end
-	if use_threads
-		n_thr = Threads.nthreads()
-		println(", using $n_thr threads")
 
-		npt = convert(Int64, ceil(n_permutations/n_thr)) # n permutations per thread
-		results = Vector{Vector{TParameterVector}}(undef, n_thr)
-		Threads.@threads for n in 1:n_thr
+	if n_threads > 1
+		println(", using $n_threads threads")
+		npt = convert(Int64, ceil(n_permutations/n_threads)) # n permutations per thread
+		results = Vector{Vector{TParameterVector}}(undef, n_threads)
+		Threads.@threads for n in 1:n_threads
 			results[n] = _do_resampling(rng, cpt; n_permutations = npt, progressmeter = prog)
 		end
 		# combine results of all threads (each thread returns a vector of vector of parameter estimates)

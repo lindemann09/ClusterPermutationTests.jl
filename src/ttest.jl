@@ -78,13 +78,13 @@ end
 #### definition of parameter_estimates
 ####
 
-@inline function parameter_estimates(cpt::CPTTest, dat::CPData; initial_fit::Bool = false)::TParameterVector
+@inline function parameter_estimates(cpt::CPTTest, dat::CPData; store_fits::Bool = false)::TParameterVector
 	# Estimate parameters for a specific cluster (range)
 	mtx, design_tbl = _prepare_data(cpt, dat.mtx, dat.design) # TODO view?
 	param = TParameterVector() # TODO would be vector preallocation faster?
 	for s in eachcol(mtx)
 		tt = _estimate(cpt, s, design_tbl)
-		if initial_fit
+		if store_fits
 			push!(cpt.cpc.m, tt)
 			push!(cpt.cpc.stats, tt.t)
 		else
