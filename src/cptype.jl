@@ -14,9 +14,8 @@ end;
 CPCollection{M}(iv::SymbolOString, mass_fnc::Function, cluster_criterium::TClusterCritODef) where {M} =
 	CPCollection(Symbol(iv), mass_fnc, cluster_criterium, M[], TParameterVector[])
 
-
 npermutations(x::CPCollection) = length(x.S) == 0 ? 0 : length(x.S[1])
-function cluster_parameter_samples(x::CPCollection)::Matrix
+function permutation_stats(x::CPCollection)::Matrix
 	if length(x.S) == 0
 		return zeros(eltype(TParameterVector), 0, 0)
 	else
@@ -32,7 +31,6 @@ abstract type ClusterPermutationTest end
 #requires
 #	cpc::CPCollection
 #	dat::CPData
-#	iv::Symbol
 
 nepochs(x::ClusterPermutationTest) = nepochs(x.dat)
 epoch_length(x::ClusterPermutationTest) = epoch_length(x.dat)
@@ -40,18 +38,15 @@ design_table(x::ClusterPermutationTest) = design_table(x.dat)
 StudyDesigns.unit_observation(x::ClusterPermutationTest) = unit_observation(x.dat.design.uo)
 
 npermutations(x::ClusterPermutationTest) = npermutations(x.cpc)
-cluster_parameter_samples(x::ClusterPermutationTest) = cluster_parameter_samples(x.cpc)
+permutation_stats(x::ClusterPermutationTest) = permutation_stats(x.cpc)
 cluster_criterium(x::ClusterPermutationTest) = x.cpc.cc
 initial_fits(x::ClusterPermutationTest) = x.cpc.m
-cluster_ranges(x::ClusterPermutationTest) = cluster_ranges(sample_statistics(x), x.cpc.cc)
+cluster_ranges(x::ClusterPermutationTest) = cluster_ranges(sample_stats(x), x.cpc.cc)
 cluster_ranges(x::ClusterPermutationTest, effect::SymbolOString) =
-	cluster_ranges(sample_statistics(x, effect), x.cpc.cc)
-cluster_statistics(x::ClusterPermutationTest) = cluster_statistics(x.cpc.mass_fnc, sample_statistics(x), x.cpc.cc)
-cluster_statistics(x::ClusterPermutationTest, effect::SymbolOString) =
-		cluster_statistics(x.cpc.mass_fnc, sample_statistics(x, effect), x.cpc.cc)
-
-
-n_threads_default(::ClusterPermutationTest) = Threads.nthreads()
+	cluster_ranges(sample_stats(x, effect), x.cpc.cc)
+cluster_stats(x::ClusterPermutationTest) = cluster_stats(x.cpc.mass_fnc, sample_stats(x), x.cpc.cc)
+cluster_stats(x::ClusterPermutationTest, effect::SymbolOString) =
+	cluster_stats(x.cpc.mass_fnc, sample_stats(x, effect), x.cpc.cc)
 
 function cluster_pvalues(x::ClusterPermutationTest;
 	inhibit_warning::Bool = false)::Vector{Float64}
@@ -69,9 +64,9 @@ function cluster_pvalues(x::ClusterPermutationTest;
 	end
 
 	p = []
-	spl = cluster_parameter_samples(x)
-	clstats = cluster_statistics(x)
-	for (i, stats) in enumerate(clstats)
+	spl = permutation_stats(x)
+	cl_stats = cluster_stats(x)
+	for (i, stats) in enumerate(cl_stats)
 		n_l = sum(spl[:, i] .> abs(stats))
 		append!(p, 2 * (n_l / n))
 	end
@@ -79,14 +74,14 @@ function cluster_pvalues(x::ClusterPermutationTest;
 end;
 
 
-cluster_table(x::ClusterPermutationTest) =
-		_cluster_table(x, cluster_ranges(x), sample_statistics(x))
+cluster_table(x::ClusterPermutationTest) = _cluster_table(x, sample_stats(x))
 cluster_table(x::ClusterPermutationTest, effect::SymbolOString) =
-		_cluster_table(x, cluster_ranges(x, effect), sample_statistics(x, effect))
+				_cluster_table(x, sample_stats(x, effect))
 
 function _cluster_table(x::ClusterPermutationTest,
-		cl_ranges::Vector{TClusterRange},
-		sample_stats::TParameterVector)::Table
+	smpl_stats::TParameterVector)::Table
+
+	cl_ranges = cluster_ranges(smpl_stats, x.cpc.cc)
 	pvals = cluster_pvalues(x; inhibit_warning = true)
 	if length(pvals) > 0
 		p = pvals
@@ -95,12 +90,13 @@ function _cluster_table(x::ClusterPermutationTest,
 		p = repeat(["?"], length(cl_ranges))
 		sign = repeat([""], length(cl_ranges))
 	end
+
 	return Table(; id = 1:length(cl_ranges),
 		from = [c.start for c in cl_ranges],
 		to = [c.stop for c in cl_ranges],
 		size = [c.stop - c.start + 1 for c in cl_ranges],
-		min = [minimum(sample_stats[c]) for c in cl_ranges],
-		max = [maximum(sample_stats[c]) for c in cl_ranges],
+		min = [minimum(smpl_stats[c]) for c in cl_ranges],
+		max = [maximum(smpl_stats[c]) for c in cl_ranges],
 		p = p,
 		sign = sign)
 end

@@ -57,7 +57,7 @@ end;
 cluster_ranges(::Any, cc::ClusterDefinition)::Vector{TClusterRange} =
 		cc.ranges
 
-function cluster_statistics(mass_fnc::Function,
+function cluster_stats(mass_fnc::Function,
 	stats::TParameterVector,
 	cc::TClusterCritODef)
 	ranges = cluster_ranges(stats, cc)

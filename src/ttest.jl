@@ -19,10 +19,18 @@ struct CPUnequalVarianceTTest <: CPTwoSampleTTest
 	compare::Tuple
 end;
 
+n_threads_default(::CPTTest) = Threads.nthreads()
+
+####
+#### Test info
+####
 function test_info(x::CPTTest)
 	return "$(typeof(x)), (compare=$(string.(x.compare)), $(x.cpc.mass_fnc))"
 end
 
+####
+#### Fit TTests
+####
 function StatsAPI.fit(T::Type{<:CPTTest}, # TODO: two value comparison only, needs to be more general
 	iv::SymbolOString,
 	dat::CPData,
@@ -79,13 +87,18 @@ function StatsAPI.fit(T::Type{<:CPTTest},
 end
 
 ####
-#### definition of parameter_estimates
+#### Sample statistics
 ####
-function sample_statistics(cpt::CPTTest)::TParameterVector
+sample_stats(::CPTTest, ::SymbolOString) = throw(
+	ArgumentError("Sample statistics with effect not supported for CPTTests."))
+function sample_stats(cpt::CPTTest)::TParameterVector
 	# extract test statistics from initial fit
 	return [x.t for x in cpt.cpc.m]
 end
 
+####
+#### Parameter_estimates
+####
 @inline function parameter_estimates(cpt::CPTTest, dat::CPData; store_fits::Bool = false)::TParameterVector
 	# Estimate parameters for a specific cluster (range)
 	mtx, design_tbl = _prepare_data(cpt, dat.mtx, dat.design) # TODO view?
@@ -150,9 +163,8 @@ end
 @inline function _ttest_get_data(cpt::CPTTest, samples::SubArray{<:Real}, permutation::Table)
 	# perform sequential ttests -> parameter
 	iv = getproperty(permutation, cpt.cpc.iv)
-	dat_a = @view samples[iv .== cpt.compare[1]] # FIXME check
+	dat_a = @view samples[iv .== cpt.compare[1]]
 	dat_b = @view samples[iv .== cpt.compare[2]]
 	return dat_a, dat_b
 end
 
-## TODO improve show for different tests

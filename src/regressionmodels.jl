@@ -18,10 +18,18 @@ struct CPMixedModel <: CPRegressionModel
 	contrasts::Dict{Symbol, AbstractContrasts} # contrasts for LinearModel
 end;
 
+n_threads_default(::CPMixedModel) = floor(Int64, Threads.nthreads()/4)
+
+####
+#### Test info
+####
 function test_info(x::CPRegressionModel)
 	return "$(typeof(x)) (effect=$(x.effect), $(x.cpc.mass_fnc))\n  $(x.f))"
 end
 
+####
+#### Fit Regressions
+####
 function StatsAPI.fit(T::Type{<:CPRegressionModel},
 	f::FormulaTerm, dat::CPData, cluster_criterium::TClusterCritODef; kwargs...)
 
@@ -66,7 +74,7 @@ function StatsAPI.fit(T::Type{<:CPRegressionModel},
 	# check effect
 	n = coefnames(rtn.cpc.m[1])
     try
-		i = get_coefficient_row(rtn.cpc.m[1], effect)
+		i = _get_coefficient_row(rtn.cpc.m[1], effect)
 		if i == 0
 			@warn("Effect '$effect' not found in model. Effects: '$(n)'.")
 		end
@@ -77,19 +85,22 @@ function StatsAPI.fit(T::Type{<:CPRegressionModel},
 end
 
 ####
-#### definition of parameter_estimates
+#### Sample statistics
 ####
-sample_statistics(cpt::CPRegressionModel) = sample_statistics(cpt, cpt.effect)
-function sample_statistics(cpt::CPRegressionModel, effect::SymbolOString)::TParameterVector
+sample_stats(cpt::CPRegressionModel) = sample_stats(cpt, cpt.effect)
+function sample_stats(cpt::CPRegressionModel, effect::SymbolOString)::TParameterVector
 	length(cpt.cpc.m) > 0 || return TParameterVector()
 	# extract test statistics from initial fit
-	i = get_coefficient_row(cpt.cpc.m[1], String(effect))
+	i = _get_coefficient_row(cpt.cpc.m[1], String(effect))
 	i == 0 && return TParameterVector() # effect not found
 	# calculate z values
 	return [coef(md)[i] / stderror(md)[i] for md in cpt.cpc.m]
 end
 
 
+####
+#### Parameter estimates
+####
 """estimates for a specific section in the time series (cluster) for a given permutation
 """
 @inline function parameter_estimates(cpt::CPLinearModel, dat::CPData; store_fits::Bool = false)::TParameterVector
@@ -106,7 +117,7 @@ end
 		else
 			#calc z for effect
 			if isnothing(i)
-				i = get_coefficient_row(md, cpt.effect)
+				i = _get_coefficient_row(md, cpt.effect)
 			end
 			z = coef(md)[i] / stderror(md)[i] # parameter: t-value of effect
 			push!(param, z)
@@ -134,7 +145,7 @@ end
 		else
 			#calc z for effect
 			if isnothing(i)
-				i = get_coefficient_row(md, cpt.effect)
+				i = _get_coefficient_row(md, cpt.effect)
 			end
 			z = coef(md)[i] / stderror(md)[i] # parameter: t-value of effect
 			push!(param, z)
@@ -143,7 +154,6 @@ end
 	return param
 end
 
-n_threads_default(::CPMixedModel) = floor(Int64, Threads.nthreads()/4)
 
 ###
 ### Utilities for regression design tables
@@ -167,7 +177,7 @@ function _prepare_design_table(f::FormulaTerm, design::StudyDesign;
 	return Table(perm_design, (; dv_name => dv)) # add dependent variable column
 end
 
-function get_coefficient_row(md::StatisticalModel, effect::String)
+function _get_coefficient_row(md::StatisticalModel, effect::String)
 	# get row id of a specific effect in the coefficient vector/coeftable
     # for binary  categorial variables is the variable names is sufficient and level (..: level) is not required
 

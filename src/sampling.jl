@@ -6,15 +6,13 @@ A specific test has to define
 1. CP<Model> <: ClusterPermutationTest; a struct with the following fields:
 	* cpc::CPCollection
 	* dat::CPData
-
 2. parameter_estimates(cpt::ClusterPermutationTest, dat::CPData; store_fits::Bool = false)::TParameterVector
 	function to estimates for the entire time series for a given permutation
 	data might contain different data as is cpt (entire time series & not permuted design),
-	that is, the design might be permuted and mtx might be the data of merely a particular cluster
-
+	that is, the design might be permuted and mtx might be the data of merely a particular cluster.
 	list of test_statistics has to be returned as TParameterVector
 	if initial_fit is true, the function has to store the fitted models in cpt.cpc.m
-3. sample_statistics(cpt::ClusterPermutationTest)::TParameterVector
+3. sample_stats(cpt::ClusterPermutationTest)::TParameterVector
 	function to extract the test statistics from the initial fit stored in cpt.cpc.m
 4. StatsAPI.fit(::Type{}, ...)
 	the function has to create an instance of CP<Model>, call initial_fit!(..) on it
@@ -35,10 +33,6 @@ end
 ###
 ### Resampling
 ###
-resample!(cpt::ClusterPermutationTest; n_permutations::Integer, kwargs...) =
-	resample!(Random.GLOBAL_RNG, cpt, n_permutations; kwargs...)
-resample!(rng::AbstractRNG, cpt::ClusterPermutationTest; n_permutations::Integer, kwargs...) =
-	resample!(rng, cpt, n_permutations; kwargs...)
 resample!(cpt::ClusterPermutationTest, n_permutations::Integer; kwargs...) =
 	resample!(Random.GLOBAL_RNG, cpt, n_permutations; kwargs...)
 
