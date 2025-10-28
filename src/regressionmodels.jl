@@ -18,6 +18,7 @@ struct CPMixedModel <: CPRegressionModel
 	contrasts::Dict{Symbol, AbstractContrasts} # contrasts for LinearModel
 end;
 
+n_threads_default(::CPLinearModel) = Threads.nthreads()
 n_threads_default(::CPMixedModel) = floor(Int64, Threads.nthreads()/4)
 
 ####

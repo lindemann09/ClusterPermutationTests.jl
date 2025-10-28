@@ -43,8 +43,10 @@ export ClusterPermutationTest,
     initial_fits,
     resample!,
     summary,
-    @formula # reexport
-
+    @formula, # reexport
+    # plotting
+    plot_sample_stats!,
+    plot_sample_distribution!
 
 include("StudyDesigns/utilities.jl")
 include("cluster.jl")
@@ -54,5 +56,12 @@ include("sampling.jl")
 
 include("ttest.jl")
 include("regressionmodels.jl")
+
+
+
+## Makie extensions
+_makie_error() = throw(ArgumentError("Have you loaded an appropriate Makie backend?"))
+plot_sample_stats!(::Any, ::Any; kwargs...) = _makie_error()
+plot_sample_distribution!(::Any, ::Any; kwargs...) = _makie_error()
 
 end;
