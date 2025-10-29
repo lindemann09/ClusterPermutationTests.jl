@@ -11,9 +11,13 @@ function ClusterPermutationTests.plot_sample_stats!(ax::Axis,
 	para = sample_stats(cpt)
 	xs = 1:(length(para))
 	lines!(ax, xs, para, color = :red)
+	return ax
 end
-ClusterPermutationTests.plot_sample_stats!(fig::Figure, cpt::ClusterPermutationTest) =
-		plot_sample_stats!(Axis(fig[1, 1]), cpt)
+
+function ClusterPermutationTests.plot_sample_stats!(fig::Figure, cpt::ClusterPermutationTest)
+	plot_sample_stats!(Axis(fig[1, 1]), cpt)
+	return fig
+end;
 
 function ClusterPermutationTests.plot_sample_distribution!(fig::Figure, cpt::ClusterPermutationTest;
 	xlabel = "test statistics", bins=100)
@@ -26,6 +30,7 @@ function ClusterPermutationTests.plot_sample_distribution!(fig::Figure, cpt::Clu
 		vlines!(ax, [cs[i]]; color = :black,
 			linewidth = 3, linestyle = :dash)
 	end
+	return fig
 end;
 
 
