@@ -1,7 +1,7 @@
 name = "ClusterPermutationTests"
 uuid = "e3bc594e-7e39-4b61-be5a-4b8b3e7ff14e"
 authors = ["Oliver Lindemann"]
-version = "0.3.0-dev"
+version = "0.3.0"
 
 [deps]
 CategoricalArrays = "324d7699-5711-5eae-9e2f-1d82baa6b597"
@@ -27,14 +27,13 @@ Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
 [extensions]
 CPTestMakieExt = ["Makie"]
 
-
 [compat]
 CategoricalArrays = "0.10, 1"
 DataAPI = "1.16.0"
 GLM = "1.9.0"
 HypothesisTests = "0.11"
 Logging = "1.11.0"
-MixedModels = "5.0.4"
+MixedModels = "5.1.0"
 PrettyTables = "2"
 ProgressMeter = "1"
 Reexport = "1.2.2"

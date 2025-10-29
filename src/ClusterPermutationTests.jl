@@ -1,8 +1,8 @@
 module ClusterPermutationTests
 
 using Reexport: @reexport
-using StatsAPI: StatsAPI, fit, pvalue, coef
-using StatsBase: coeftable, stderror
+using StatsAPI: StatsAPI, fit, coef
+using StatsBase: stderror
 using StatsModels
 import GLM: lm, LinearModel
 using HypothesisTests: HypothesisTests, EqualVarianceTTest, OneSampleTTest,
@@ -56,6 +56,7 @@ include("sampling.jl")
 
 include("ttest.jl")
 include("regressionmodels.jl")
+include("mixedmodels.jl")
 
 
 

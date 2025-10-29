@@ -9,17 +9,7 @@ struct CPLinearModel <: CPRegressionModel
 	contrasts::Dict{Symbol, AbstractContrasts} # contrasts for LinearModel
 end;
 
-struct CPMixedModel <: CPRegressionModel
-	cpc::CPCollection{LinearMixedModel}
-	dat::CPData
-
-	f::FormulaTerm
-	effect::String # name of effect to be tested
-	contrasts::Dict{Symbol, AbstractContrasts} # contrasts for LinearModel
-end;
-
 n_threads_default(::CPLinearModel) = Threads.nthreads()
-n_threads_default(::CPMixedModel) = floor(Int64, Threads.nthreads()/4)
 
 ####
 #### Test info
@@ -43,7 +33,7 @@ function StatsAPI.fit(T::Type{<:CPRegressionModel},
 	fit(T, f, effect.sym, dat, cluster_criterium; kwargs...)
 end
 
-function StatsAPI.fit(T::Type{<:CPRegressionModel},
+function StatsAPI.fit(::Type{<:CPLinearModel},
 	f::FormulaTerm,
 	effect::SymbolOString,
 	dat::CPData,
@@ -54,36 +44,17 @@ function StatsAPI.fit(T::Type{<:CPRegressionModel},
 	effect = String(effect)
 	iv = first(split(effect, ": "))
 	tbl = _prepare_design_table(f, dat.design, dv_dtype = eltype(dat.mtx))
-	unit_obs = unit_observation(dat.design)
-
-	# cpcollection
-	if T == CPLinearModel
-		_is_mixedmodel(f) && throw(ArgumentError("Use CPMixedModel for mixed models."))
-
-		cpc = CPCollection{StatsModels.TableRegressionModel}(iv, mass_fnc, cluster_criterium)
-		rtn = CPLinearModel(cpc, CPData(dat.mtx, tbl; unit_obs), f, effect, contrasts)
-
-	elseif T == CPMixedModel
-		cpc = CPCollection{LinearMixedModel}(iv, mass_fnc, cluster_criterium)
-		rtn = CPMixedModel(cpc, CPData(dat.mtx, tbl; unit_obs), f, effect, contrasts)
-	else
-		throw(ArgumentError("Unknown regression model type '$T'."))
-	end
-
+	cpc = CPCollection{StatsModels.TableRegressionModel}(iv, mass_fnc, cluster_criterium)
+	rtn = CPLinearModel(cpc,
+			CPData(dat.mtx, tbl; unit_obs = unit_observation(dat.design)),
+			f, effect, contrasts)
 	initial_fit!(rtn)
-
-	# check effect
-	n = coefnames(rtn.cpc.m[1])
-    try
-		i = _get_coefficient_row(rtn.cpc.m[1], effect)
-		if i == 0
-			@warn("Effect '$effect' not found in model. Effects: '$(n)'.")
-		end
-	catch e
-		@warn("Effect '$effect' unclear. Effects: '$(n)'.") # found multiple effects
-	end
+	_check_effects(rtn.cpc.m[1], effect)
 	return rtn
 end
+
+
+
 
 ####
 #### Sample statistics
@@ -97,7 +68,6 @@ function sample_stats(cpt::CPRegressionModel, effect::SymbolOString)::TParameter
 	# calculate z values
 	return [coef(md)[i] / stderror(md)[i] for md in cpt.cpc.m]
 end
-
 
 ####
 #### Parameter estimates
@@ -127,39 +97,9 @@ end
 	return param
 end
 
-@inline function parameter_estimates(cpt::CPMixedModel, dat::CPData; store_fits::Bool = false)::TParameterVector
-	design = columntable(dat.design)
-	param = TParameterVector() # TODO would be vector preallocation faster?
-	i = nothing # index for coefficient of iv
-	dv_data = getproperty(design, cpt.f.lhs.sym)
-	logger = NullLogger()
-	local md
-	for dv in eachcol(dat.mtx)
-		dv_data[:] = dv
-		with_logger(logger) do # FIXME improve logging
-			md = fit(LinearMixedModel, cpt.f, design; contrasts = cpt.contrasts,
-					progress=false, REML=true) ## fit model!
-		end # logger
-
-		if store_fits
-			push!(cpt.cpc.m, md)
-		else
-			#calc z for effect
-			if isnothing(i)
-				i = _get_coefficient_row(md, cpt.effect)
-			end
-			z = coef(md)[i] / stderror(md)[i] # parameter: t-value of effect
-			push!(param, z)
-		end
-	end
-	return param
-end
-
-
 ###
 ### Utilities for regression design tables
 ###
-_is_mixedmodel(f::FormulaTerm) = any(is_randomeffectsterm.(f.rhs))
 
 """select columns from formula and add empty column for dependent variable"""
 function _prepare_design_table(f::FormulaTerm, design::StudyDesign;
@@ -176,6 +116,18 @@ function _prepare_design_table(f::FormulaTerm, design::StudyDesign;
 	dv = Vector{dv_dtype}(undef, length(design))
 	dv_name = Symbol(f.lhs.sym)
 	return Table(perm_design, (; dv_name => dv)) # add dependent variable column
+end
+
+function _check_effects(model::RegressionModel, effect::String)
+	n = coefnames(model)
+	try
+		i = _get_coefficient_row(model, effect)
+		if i == 0
+			@warn("Effect '$effect' not found in model. Effects: '$(n)'.")
+		end
+	catch e
+		@warn("Effect '$effect' unclear. Effects: '$(n)'.") # found multiple effects
+	end
 end
 
 function _get_coefficient_row(md::StatisticalModel, effect::String)
@@ -199,7 +151,6 @@ function _get_coefficient_row(md::StatisticalModel, effect::String)
     i > 0 || throw(ArgumentError("Can not find effect '$effect'."))
     return i
 end
-
 
 function _add_all_vars!(vec::Vector{Symbol}, x::Tuple)
 	for t in x
