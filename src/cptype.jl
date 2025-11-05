@@ -8,8 +8,10 @@ struct CPCollection{M}
 	cc::TClusterCritODef # cluster definition
 
 	m::Vector{M} # fitted models of initial fit
-	S::Vector{TParameterVector} # samples
+	S::Vector{TParameterVector} # permutations
 end;
+
+# cluster, sample, parameter, effect
 
 CPCollection{M}(iv::SymbolOString, mass_fnc::Function, cluster_criterium::TClusterCritODef) where {M} =
 	CPCollection(Symbol(iv), mass_fnc, cluster_criterium, M[], TParameterVector[])
@@ -41,12 +43,12 @@ npermutations(x::ClusterPermutationTest) = npermutations(x.cpc)
 permutation_stats(x::ClusterPermutationTest) = permutation_stats(x.cpc)
 cluster_criterium(x::ClusterPermutationTest) = x.cpc.cc
 initial_fits(x::ClusterPermutationTest) = x.cpc.m
-cluster_ranges(x::ClusterPermutationTest) = cluster_ranges(sample_stats(x), x.cpc.cc)
+cluster_ranges(x::ClusterPermutationTest) = cluster_ranges(time_series_stats(x), x.cpc.cc)
 cluster_ranges(x::ClusterPermutationTest, effect::SymbolOString) =
-	cluster_ranges(sample_stats(x, effect), x.cpc.cc)
-cluster_stats(x::ClusterPermutationTest) = cluster_stats(x.cpc.mass_fnc, sample_stats(x), x.cpc.cc)
-cluster_stats(x::ClusterPermutationTest, effect::SymbolOString) =
-	cluster_stats(x.cpc.mass_fnc, sample_stats(x, effect), x.cpc.cc)
+	cluster_ranges(time_series_stats(x, effect), x.cpc.cc)
+cluster_mass(x::ClusterPermutationTest) = cluster_mass(x.cpc.mass_fnc, time_series_stats(x), x.cpc.cc)
+cluster_mass(x::ClusterPermutationTest, effect::SymbolOString) =
+	cluster_mass(x.cpc.mass_fnc, time_series_stats(x, effect), x.cpc.cc)
 
 function cluster_pvalues(x::ClusterPermutationTest;
 	inhibit_warning::Bool = false)::Vector{Float64}
@@ -65,7 +67,7 @@ function cluster_pvalues(x::ClusterPermutationTest;
 
 	p = []
 	spl = permutation_stats(x)
-	cl_stats = cluster_stats(x)
+	cl_stats = cluster_mass(x)
 	for (i, stats) in enumerate(cl_stats)
 		n_l = sum(spl[:, i] .> abs(stats))
 		append!(p, 2 * (n_l / n))
@@ -74,9 +76,9 @@ function cluster_pvalues(x::ClusterPermutationTest;
 end;
 
 
-cluster_table(x::ClusterPermutationTest) = _cluster_table(x, sample_stats(x))
+cluster_table(x::ClusterPermutationTest) = _cluster_table(x, time_series_stats(x))
 cluster_table(x::ClusterPermutationTest, effect::SymbolOString) =
-				_cluster_table(x, sample_stats(x, effect))
+				_cluster_table(x, time_series_stats(x, effect))
 
 function _cluster_table(x::ClusterPermutationTest,
 	smpl_stats::TParameterVector)::Table

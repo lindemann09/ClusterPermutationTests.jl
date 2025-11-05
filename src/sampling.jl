@@ -12,7 +12,7 @@ A specific test has to define
 	that is, the design might be permuted and/or epochs might be the data of merely a particular cluster.
 	list of test_statistics has to be returned as TParameterVector
 	if initial_fit is true, the function has to store the fitted models in cpt.cpc.m
-3. sample_stats(cpt::ClusterPermutationTest)::TParameterVector
+3. time_series_stats(cpt::ClusterPermutationTest)::TParameterVector
 	function to extract the test statistics from the initial fit stored in cpt.cpc.m
 4. StatsAPI.fit(::Type{}, ...)
 	the function has to create an instance of CP<Model>, call initial_fit!(..) on it

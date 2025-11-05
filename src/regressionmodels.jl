@@ -59,8 +59,8 @@ end
 ####
 #### Sample statistics
 ####
-sample_stats(cpt::CPRegressionModel) = sample_stats(cpt, cpt.effect)
-function sample_stats(cpt::CPRegressionModel, effect::SymbolOString)::TParameterVector
+time_series_stats(cpt::CPRegressionModel) = time_series_stats(cpt, cpt.effect)
+function time_series_stats(cpt::CPRegressionModel, effect::SymbolOString)::TParameterVector
 	length(cpt.cpc.m) > 0 || return TParameterVector()
 	# extract test statistics from initial fit
 	i = _get_coefficient_row(cpt.cpc.m[1], String(effect))

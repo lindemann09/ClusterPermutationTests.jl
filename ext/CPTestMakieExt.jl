@@ -3,25 +3,25 @@ module CPTestMakieExt
 using Makie
 using ClusterPermutationTests
 
-export 	plot_sample_stats!,
-		plot_sample_distribution!
+export 	plot_time_series_stats!,
+		plot_cluster_mass_distribution!
 
-function ClusterPermutationTests.plot_sample_stats!(ax::Axis,
+function ClusterPermutationTests.plot_time_series_stats!(ax::Axis,
 	cpt::ClusterPermutationTest)
-	para = sample_stats(cpt)
+	para = time_series_stats(cpt)
 	xs = 1:(length(para))
 	lines!(ax, xs, para, color = :red)
 	return ax
 end
 
-function ClusterPermutationTests.plot_sample_stats!(fig::Figure, cpt::ClusterPermutationTest)
-	plot_sample_stats!(Axis(fig[1, 1]), cpt)
+function ClusterPermutationTests.plot_time_series_stats!(fig::Figure, cpt::ClusterPermutationTest)
+	plot_time_series_stats!(Axis(fig[1, 1]), cpt)
 	return fig
 end;
 
-function ClusterPermutationTests.plot_sample_distribution!(fig::Figure, cpt::ClusterPermutationTest;
+function ClusterPermutationTests.plot_cluster_mass_distribution!(fig::Figure, cpt::ClusterPermutationTest;
 	xlabel = "test statistics", bins=100)
-	cs = cluster_stats(cpt)
+	cs = cluster_mass(cpt)
 	dist = permutation_stats(cpt)
 	for i in 1:size(dist, 2)
 		ax = Axis(fig[i, 1]; xlabel, ylabel = "count")

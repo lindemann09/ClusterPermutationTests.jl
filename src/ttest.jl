@@ -89,9 +89,9 @@ end
 ####
 #### Sample statistics
 ####
-sample_stats(::CPTTest, ::SymbolOString) = throw(
+time_series_stats(::CPTTest, ::SymbolOString) = throw(
 	ArgumentError("Sample statistics with effect not supported for CPTTests."))
-function sample_stats(cpt::CPTTest)::TParameterVector
+function time_series_stats(cpt::CPTTest)::TParameterVector
 	# extract test statistics from initial fit
 	return [x.t for x in cpt.cpc.m]
 end
