@@ -43,10 +43,10 @@ function StatsAPI.fit(::Type{<:CPLinearModel},
 
 	effect = String(effect)
 	iv = first(split(effect, ": "))
-	tbl = _prepare_design_table(f, dat.design, dv_dtype = eltype(dat.mtx))
+	tbl = _prepare_design_table(f, dat.design, dv_dtype = eltype(dat.epochs))
 	cpc = CPCollection{StatsModels.TableRegressionModel}(iv, mass_fnc, cluster_criterium)
 	rtn = CPLinearModel(cpc,
-			CPData(dat.mtx, tbl; unit_obs = unit_observation(dat.design)),
+			CPData(dat.epochs, tbl; unit_obs = unit_observation(dat.design)),
 			f, effect, contrasts)
 	initial_fit!(rtn)
 	_check_effects(rtn.cpc.m[1], effect)
@@ -80,7 +80,7 @@ end
 	param = TParameterVector() # TODO would be vector preallocation faster?
 	i = nothing # index for coefficient of iv
 	dv_data = getproperty(design, cpt.f.lhs.sym)
-	for dv in eachcol(dat.mtx)
+	for dv in eachcol(dat.epochs)
 		dv_data[:] = dv
 		md = fit(LinearModel, cpt.f, design; contrasts = cpt.contrasts) ## fit model!
 		if store_fits

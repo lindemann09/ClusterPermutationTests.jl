@@ -8,8 +8,8 @@ A specific test has to define
 	* dat::CPData
 2. parameter_estimates(cpt::ClusterPermutationTest, dat::CPData; store_fits::Bool = false)::TParameterVector
 	function to estimates for the entire time series for a given permutation
-	data might contain different data as is cpt (entire time series & not permuted design),
-	that is, the design might be permuted and mtx might be the data of merely a particular cluster.
+	data might contain different data as in cpt struct (entire time series & not permuted design),
+	that is, the design might be permuted and/or epochs might be the data of merely a particular cluster.
 	list of test_statistics has to be returned as TParameterVector
 	if initial_fit is true, the function has to store the fitted models in cpt.cpc.m
 3. sample_stats(cpt::ClusterPermutationTest)::TParameterVector
@@ -89,7 +89,7 @@ function _do_resampling(rng::AbstractRNG,
 
 	for (i, r) in enumerate(cl_ranges)
 		# cluster data with shuffled design
-		dat = CPData(cpt.dat.mtx[:, r], design)
+		dat = CPData(cpt.dat.epochs[:, r], design)
 		push!(cl_stats_distr, TParameterVector())
 		for _ in 1:n_permutations
 			shuffle_variable!(rng, dat.design, cpt.cpc.iv) # shuffle design

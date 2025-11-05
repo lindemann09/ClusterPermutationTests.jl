@@ -101,9 +101,9 @@ end
 ####
 @inline function parameter_estimates(cpt::CPTTest, dat::CPData; store_fits::Bool = false)::TParameterVector
 	# Estimate parameters for a specific cluster (range)
-	mtx, design_tbl = _prepare_data(cpt, dat.mtx, dat.design) # TODO view?
+	epochs, design_tbl = _prepare_data(cpt, dat.epochs, dat.design) # TODO view?
 	param = TParameterVector() # TODO would be vector preallocation faster?
-	for s in eachcol(mtx)
+	for s in eachcol(epochs)
 		tt = _estimate(cpt, s, design_tbl)
 		if store_fits
 			push!(cpt.cpc.m, tt)
@@ -119,13 +119,13 @@ end
 ####
 
 @inline function _prepare_data(cpt::CPPairedSampleTTest,
-	mtx::Matrix{<:Real},
-	permutation::StudyDesign)::Tuple{Matrix{eltype(mtx)}, Table}
+	epochs::Matrix{<:Real},
+	permutation::StudyDesign)::Tuple{Matrix{eltype(epochs)}, Table}
 
 	iv = getcolumn(permutation, cpt.cpc.iv)
 	tbl = Table((; cpt.cpc.iv => iv))
-	a = @view mtx[iv .== cpt.compare[1], :]
-	b = @view mtx[iv .== cpt.compare[2], :]
+	a = @view epochs[iv .== cpt.compare[1], :]
+	b = @view epochs[iv .== cpt.compare[2], :]
 	return b - a, tbl # equal size required
 end
 
@@ -138,10 +138,10 @@ end
 ####
 
 @inline function _prepare_data(cpt::CPTwoSampleTTest,
-	mtx::Matrix{<:Real},
-	permutation::StudyDesign)::Tuple{Matrix{eltype(mtx)}, Table}
+	epochs::Matrix{<:Real},
+	permutation::StudyDesign)::Tuple{Matrix{eltype(epochs)}, Table}
 
-	return mtx, Table((; cpt.cpc.iv => getproperty(permutation, cpt.cpc.iv)))
+	return epochs, Table((; cpt.cpc.iv => getproperty(permutation, cpt.cpc.iv)))
 end
 
 @inline function _estimate(cpt::CPEqualVarianceTTest,

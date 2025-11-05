@@ -13,9 +13,7 @@ to_symbol_vector(x::SymbolOString) = [Symbol(x)]
 to_symbol_vector(x::Base.AbstractVecOrTuple{String}) = [Symbol(v) for v in x]
 to_symbol_vector(x::SymbolVecOrTuple) = vec(x)
 
-
 ## NamedTuple utilities
-
 function select_rows(nt::NamedTuple,
 	idx::Union{BitVector, AbstractVector{Bool}, AbstractVector{Int}})::NamedTuple
 	# utility to select rows of a NamedTuple representation df tabular data
