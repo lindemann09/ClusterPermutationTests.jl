@@ -129,8 +129,8 @@ end
 	return b - a, tbl # equal size required
 end
 
-@inline function _estimate(::CPPairedSampleTTest, samples::SubArray{<:Real}, ::Table)
-	return OneSampleTTest(samples)
+@inline function _estimate(::CPPairedSampleTTest, values::SubArray{<:Real}, ::Table)
+	return OneSampleTTest(values)
 end
 
 ####
@@ -145,26 +145,26 @@ end
 end
 
 @inline function _estimate(cpt::CPEqualVarianceTTest,
-	samples::SubArray{<:Real},
+	values::SubArray{<:Real},
 	permutation::Table)
 
-	(dat_a, dat_b) = _ttest_get_data(cpt, samples, permutation)
+	(dat_a, dat_b) = _ttest_get_data(cpt, values, permutation)
 	return EqualVarianceTTest(dat_a, dat_b)
 end
 
 @inline function _estimate(cpt::CPUnequalVarianceTTest,
-	samples::SubArray{<:Real},
+	values::SubArray{<:Real},
 	permutation::Table)
 
-	(dat_a, dat_b) = _ttest_get_data(cpt, samples, permutation)
+	(dat_a, dat_b) = _ttest_get_data(cpt, values, permutation)
 	return UnequalVarianceTTest(dat_a, dat_b)
 end
 
-@inline function _ttest_get_data(cpt::CPTTest, samples::SubArray{<:Real}, permutation::Table)
+@inline function _ttest_get_data(cpt::CPTTest, values::SubArray{<:Real}, permutation::Table)
 	# perform sequential ttests -> parameter
 	iv = getproperty(permutation, cpt.cpc.iv)
-	dat_a = @view samples[iv .== cpt.compare[1]]
-	dat_b = @view samples[iv .== cpt.compare[2]]
+	dat_a = @view values[iv .== cpt.compare[1]]
+	dat_b = @view values[iv .== cpt.compare[2]]
 	return dat_a, dat_b
 end
 
