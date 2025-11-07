@@ -26,7 +26,7 @@ function StatsAPI.fit(T::Type{<:CPRegressionModel},
 
 	# use first rhs variable from formula as effect
 	if f.rhs isa Term
-    	effect = f.rhs
+		effect = f.rhs
 	else
 		effect = first(f.rhs)
 	end
@@ -46,9 +46,9 @@ function StatsAPI.fit(::Type{<:CPLinearModel},
 	tbl = _prepare_design_table(f, dat.design, dv_dtype = eltype(dat.epochs))
 	cpc = CPCollection{StatsModels.TableRegressionModel}(iv, mass_fnc, cluster_criterium)
 	rtn = CPLinearModel(cpc,
-			CPData(dat.epochs, tbl; unit_obs = unit_observation(dat.design)),
-			f, effect, contrasts)
-	initial_fit!(rtn)
+		CPData(dat.epochs, tbl; unit_obs = unit_observation(dat.design)),
+		f, effect, contrasts)
+	fit_initial_time_series!(rtn)
 	_check_effects(rtn.cpc.m[1], effect)
 	return rtn
 end
@@ -59,12 +59,13 @@ end
 ####
 #### Sample statistics
 ####
-time_series_stats(cpt::CPRegressionModel) = time_series_stats(cpt, cpt.effect)
-function time_series_stats(cpt::CPRegressionModel, effect::SymbolOString)::TParameterVector
-	length(cpt.cpc.m) > 0 || return TParameterVector()
+time_series_stats(cpt::CPRegressionModel) = throw(
+	ArgumentError("Specify effect to get time_series_stats."))
+function time_series_stats(cpt::CPRegressionModel, effect::SymbolOString)::Vector{Float64}
+	length(cpt.cpc.m) > 0 || return Float64[]
 	# extract test statistics from initial fit
 	i = _get_coefficient_row(cpt.cpc.m[1], String(effect))
-	i == 0 && return TParameterVector() # effect not found
+	i == 0 && return Float64[]
 	# calculate z values
 	return [coef(md)[i] / stderror(md)[i] for md in cpt.cpc.m]
 end
@@ -74,24 +75,23 @@ end
 ####
 """estimates for a specific section in the time series (cluster) for a given permutation
 """
-@inline function parameter_estimates(cpt::CPLinearModel, dat::CPData; store_fits::Bool = false)::TParameterVector
+@inline function parameter_estimates(cpt::CPLinearModel,
+	cl_ranges::Vector{TClusterRange};
+	store_fits::Bool = false)::TParameterVector
 
 	design = columntable(dat.design)
-	param = TParameterVector() # TODO would be vector preallocation faster?
+	param = TParameterVector()
 	i = nothing # index for coefficient of iv
 	dv_data = getproperty(design, cpt.f.lhs.sym)
-	for dv in eachcol(dat.epochs)
+	for (t, dv) in enumerate(eachcol(dat.epochs))
 		dv_data[:] = dv
 		md = fit(LinearModel, cpt.f, design; contrasts = cpt.contrasts) ## fit model!
 		if store_fits
 			push!(cpt.cpc.m, md)
 		else
 			#calc z for effect
-			if isnothing(i)
-				i = _get_coefficient_row(md, cpt.effect)
-			end
-			z = coef(md)[i] / stderror(md)[i] # parameter: t-value of effect
-			push!(param, z)
+			z = coef(md) ./ stderror(md)# parameter: t-value of effect
+			push!(param, TPStats(t, z))
 		end
 	end
 	return param
@@ -103,7 +103,7 @@ end
 
 """select columns from formula and add empty column for dependent variable"""
 function _prepare_design_table(f::FormulaTerm, design::StudyDesign;
-								dv_dtype::Type=Float64)::Table
+	dv_dtype::Type = Float64)::Table
 	# get all predictors
 	pred = Symbol[]
 	_add_all_vars!(pred, f.rhs)
@@ -132,24 +132,24 @@ end
 
 function _get_coefficient_row(md::StatisticalModel, effect::String)
 	# get row id of a specific effect in the coefficient vector/coeftable
-    # for binary  categorial variables is the variable names is sufficient and level (..: level) is not required
+	# for binary  categorial variables is the variable names is sufficient and level (..: level) is not required
 
 	# find exact match
-    n = coefnames(md)
-    i = findfirst(x -> x == effect, n)
+	n = coefnames(md)
+	i = findfirst(x -> x == effect, n)
 	if isnothing(i)
-        # find binary categorical variable match
-		idx = findall(x-> startswith(x, "$effect: "), n)
-        if length(idx) == 1
-            i = idx[1] # only two levels
-        elseif length(idx) > 1
-            throw(ArgumentError("Effect '$effect' unclear. Available effects: '$(n)'."))
-        else
-            return 0
-        end
-    end
-    i > 0 || throw(ArgumentError("Can not find effect '$effect'."))
-    return i
+		# find binary categorical variable match
+		idx = findall(x -> startswith(x, "$effect: "), n)
+		if length(idx) == 1
+			i = idx[1] # only two levels
+		elseif length(idx) > 1
+			throw(ArgumentError("Effect '$effect' unclear. Available effects: '$(n)'."))
+		else
+			return 0
+		end
+	end
+	i > 0 || throw(ArgumentError("Can not find effect '$effect'."))
+	return i
 end
 
 function _add_all_vars!(vec::Vector{Symbol}, x::Tuple)

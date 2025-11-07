@@ -1,6 +1,28 @@
-const TParameterVector = Vector{Float64}
-const TClusterRange = UnitRange{Int32}
+###
+### TimePoint Statistics & TParameterVector
+###
+struct TPStats{} # time point statistics
+	t::Int32 # time point
+	z::Vector{Float64} # parameter
+end
 
+TPStats(t::Integer, x::Real) = TPStats(t, [Float64(x)])
+TPStats(t::Integer, x::NTuple{N, <:Real}) where N = TPStats(Int32(t), collect(x))
+TPStats(t::Integer, x::Vector{<:Real}) = TPStats(Int32(t), Float64.(x))
+
+const TParameterVector = Vector{TPStats}
+get_parameter(vs::TParameterVector, t::Integer, parameter_id::Integer)::Vector{Float64} =
+	[v.z[parameter_id] for v in vs if v.t == t]
+get_parameter(vs::TParameterVector, t::Integer)::Vector{Vector{Float64}} =
+	[v.z for v in vs if v.t == t]
+get_parameter(vs::TParameterVector, t::UnitRange, parameter_id::Integer)::Vector{Float64} =
+	[v.z[parameter_id] for v in vs if v.t in t]
+get_parameter(vs::TParameterVector, t::UnitRange)::Vector{Vector{Float64}} =
+	[v.z for v in vs if v.t in t]
+###
+### Cluster definitions and criteriums
+###
+const TClusterRange = UnitRange{Int32}
 struct ClusterCriterium
 	threshold::Real
 	min_size::Int32
@@ -23,8 +45,7 @@ function ClusterDefinition(single_range::UnitRange)
 	return ClusterDefinition([single_range])
 end
 
-
-function cluster_ranges(dat::TParameterVector, cc::ClusterCriterium)::Vector{TClusterRange}
+function cluster_ranges(dat::Vector{Float64}, cc::ClusterCriterium)::Vector{TClusterRange}
 	# find clusters in dat according to cc
 	d = cc.use_absolute ? abs.(dat) : dat
 	@unpack threshold, min_size = cc
@@ -54,11 +75,10 @@ function cluster_ranges(dat::TParameterVector, cc::ClusterCriterium)::Vector{TCl
 	return ranges
 end;
 
-cluster_ranges(::Any, cc::ClusterDefinition)::Vector{TClusterRange} =
-		cc.ranges
+cluster_ranges(::Any, cc::ClusterDefinition)::Vector{TClusterRange} = cc.ranges
 
 function cluster_mass(mass_fnc::Function,
-	stats::TParameterVector,
+	stats::Vector{Float64},
 	cc::TClusterCritODef)
 	ranges = cluster_ranges(stats, cc)
 	return [mass_fnc(stats[cl]) for cl in ranges]

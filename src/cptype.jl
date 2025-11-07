@@ -8,15 +8,13 @@ struct CPCollection{M}
 	cc::TClusterCritODef # cluster definition
 
 	m::Vector{M} # fitted models of initial fit
-	S::Vector{TParameterVector} # permutations
+	S::Vector{TParameterVector} # time series stats for the permutations
 end;
-
-# cluster, sample, parameter, effect
 
 CPCollection{M}(iv::SymbolOString, mass_fnc::Function, cluster_criterium::TClusterCritODef) where {M} =
 	CPCollection(Symbol(iv), mass_fnc, cluster_criterium, M[], TParameterVector[])
 
-npermutations(x::CPCollection) = length(x.S) == 0 ? 0 : length(x.S[1])
+npermutations(x::CPCollection) = length(x.S)
 function permutation_stats(x::CPCollection)::Matrix
 	if length(x.S) == 0
 		return zeros(eltype(TParameterVector), 0, 0)
@@ -81,7 +79,7 @@ cluster_table(x::ClusterPermutationTest, effect::SymbolOString) =
 				_cluster_table(x, time_series_stats(x, effect))
 
 function _cluster_table(x::ClusterPermutationTest,
-	smpl_stats::TParameterVector)::Table
+	smpl_stats::Vector{Float64})::Table
 
 	cl_ranges = cluster_ranges(smpl_stats, x.cpc.cc)
 	pvals = cluster_pvalues(x; inhibit_warning = true)

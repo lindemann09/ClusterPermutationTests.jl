@@ -70,7 +70,7 @@ function StatsAPI.fit(T::Type{<:CPTTest}, # TODO: two value comparison only, nee
 
 	rtn = T(cpc, dat, (compare[1], compare[2]))
 
-	initial_fit!(rtn)
+	fit_initial_time_series!(rtn)
 	return rtn
 end;
 
@@ -90,8 +90,8 @@ end
 #### Sample statistics
 ####
 time_series_stats(::CPTTest, ::SymbolOString) = throw(
-	ArgumentError("Sample statistics with effect not supported for CPTTests."))
-function time_series_stats(cpt::CPTTest)::TParameterVector
+	ArgumentError("Time series statistics with effect not supported for CPTTests."))
+function time_series_stats(cpt::CPTTest)::Vector{Float64}
 	# extract test statistics from initial fit
 	return [x.t for x in cpt.cpc.m]
 end
@@ -99,16 +99,21 @@ end
 ####
 #### Parameter_estimates
 ####
-@inline function parameter_estimates(cpt::CPTTest, dat::CPData; store_fits::Bool = false)::TParameterVector
+@inline function parameter_estimates(cpt::CPTTest,
+				design::StudyDesign,
+				cl_ranges::Vector{TClusterRange};
+				store_fits::Bool = false)::TParameterVector
 	# Estimate parameters for a specific cluster (range)
-	epochs, design_tbl = _prepare_data(cpt, dat.epochs, dat.design) # TODO view?
-	param = TParameterVector() # TODO would be vector preallocation faster?
-	for s in eachcol(epochs)
-		tt = _estimate(cpt, s, design_tbl)
-		if store_fits
-			push!(cpt.cpc.m, tt)
-		else
-			push!(param, tt.t)
+	epochs, design_tbl = _prepare_data(cpt, cpt.dat.epochs, design) # TODO view?
+	param = TParameterVector()
+	for cr in cl_ranges
+		for t in cr
+			tt = _estimate(cpt, view(epochs, :, t), design_tbl)
+			if store_fits
+				push!(cpt.cpc.m, tt)
+			else
+				push!(param, TPStats(t, tt.t))
+			end
 		end
 	end
 	return param
@@ -117,7 +122,6 @@ end
 ####
 #### CPPairedSampleTTest
 ####
-
 @inline function _prepare_data(cpt::CPPairedSampleTTest,
 	epochs::Matrix{<:Real},
 	permutation::StudyDesign)::Tuple{Matrix{eltype(epochs)}, Table}

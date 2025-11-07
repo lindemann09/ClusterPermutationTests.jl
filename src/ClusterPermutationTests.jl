@@ -55,8 +55,8 @@ include("cptype.jl")
 include("sampling.jl")
 
 include("ttest.jl")
-include("regressionmodels.jl")
-include("mixedmodels.jl")
+#include("regressionmodels.jl")
+#include("mixedmodels.jl")
 
 
 

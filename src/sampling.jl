@@ -1,32 +1,34 @@
 """
-module defines initial_fit!() and resample!() for all ClusterPermutationTest
+module defines fit_initial_time_series!() and resample!() for all ClusterPermutationTest
 
 A specific test has to define
 
 1. CP<Model> <: ClusterPermutationTest; a struct with the following fields:
 	* cpc::CPCollection
 	* dat::CPData
-2. parameter_estimates(cpt::ClusterPermutationTest, dat::CPData; store_fits::Bool = false)::TParameterVector
+2. parameter_estimates(cpt::ClusterPermutationTest;
+			fit_cluster_only::Bool=false, store_fits::Bool = false)::TParameterVector
 	function to estimates for the entire time series for a given permutation
 	data might contain different data as in cpt struct (entire time series & not permuted design),
 	that is, the design might be permuted and/or epochs might be the data of merely a particular cluster.
 	list of test_statistics has to be returned as TParameterVector
-	if initial_fit is true, the function has to store the fitted models in cpt.cpc.m
+	if store_fits is true, the function has to store the fitted models in cpt.cpc.m
 3. time_series_stats(cpt::ClusterPermutationTest)::TParameterVector
 	function to extract the test statistics from the initial fit stored in cpt.cpc.m
 4. StatsAPI.fit(::Type{}, ...)
-	the function has to create an instance of CP<Model>, call initial_fit!(..) on it
+	the function has to create an instance of CP<Model>, call fit_initial_time_series!(..) on it
 	to detect clusters to be tested and return the instance
 5. test_info(x::ClusterPermutationTest)
 	function returning a string with information about the test
 """
 
-function initial_fit!(cpt::ClusterPermutationTest)
+function fit_initial_time_series!(cpt::ClusterPermutationTest)
 	# initial fit of
 	# all data samples (time_series) using (not permuted) design
 	# replace existing stats
 	empty!(cpt.cpc.m)
-	parameter_estimates(cpt, cpt.dat; store_fits = true)
+	cl_ranges = [Int32(1):Int32(epoch_length(cpt.dat))] # fit all time points
+	parameter_estimates(cpt, cpt.dat.design, cl_ranges; store_fits = true)
 	return nothing
 end
 
@@ -53,7 +55,7 @@ function resample!(rng::AbstractRNG,
 	n_samples = sum(length.(cluster_ranges(cpt)))
 	print("number of samples to be tested: $n_samples")
 	if progressmeter
-		prog = Progress(n_samples * n_permutations, 1, "resampling")
+		prog = Progress(n_permutations, 0.25, "resampling")
 	else
 		prog = nothing
 	end
@@ -67,12 +69,12 @@ function resample!(rng::AbstractRNG,
 		end
 		# combine results of all threads (each thread returns a vector of vector of parameter estimates)
 		for r in results
-			_append_sampling_results!(cpt.cpc.S, r)
+			append!(cpt.cpc.S, r)
 		end
 	else
 		println("")
 		sampling_results = _do_resampling(rng, cpt; n_permutations, progressmeter = prog)
-    	_append_sampling_results!(cpt.cpc.S, sampling_results)
+		append!(cpt.cpc.S, sampling_results)
 	end
 	return nothing
 end;
@@ -82,33 +84,15 @@ function _do_resampling(rng::AbstractRNG,
 	n_permutations::Integer,
 	progressmeter::Union{Nothing, Progress})::Vector{TParameterVector}
 
-	mass_fnc = cpt.cpc.mass_fnc
 	design = copy(cpt.dat.design) # shuffle always copy of design
 	cl_ranges = cluster_ranges(cpt) # get the ranges of cluster to do the permutation test #TODO console feedback?
 	cl_stats_distr = TParameterVector[] # distribution of cluster-level statistics per cluster
 
-	for (i, r) in enumerate(cl_ranges)
-		# cluster data with shuffled design
-		dat = CPData(cpt.dat.epochs[:, r], design)
-		push!(cl_stats_distr, TParameterVector())
-		for _ in 1:n_permutations
-			shuffle_variable!(rng, dat.design, cpt.cpc.iv) # shuffle design
-			p = parameter_estimates(cpt, dat) # get parameter estimates for this cluster
-			push!(cl_stats_distr[i], mass_fnc(p))
-			isnothing(progressmeter) || next!(progressmeter, step = length(r))
-		end
+	for _ in 1:n_permutations
+		shuffle_variable!(rng, design, cpt.cpc.iv) # shuffle design
+		p = parameter_estimates(cpt, design, cl_ranges) # get parameter estimates for this cluster
+		push!(cl_stats_distr, p)
+		isnothing(progressmeter) || next!(progressmeter)
 	end
 	return cl_stats_distr
-end;
-
-function _append_sampling_results!(a::Vector{TParameterVector}, b::Vector{TParameterVector})
-	if isempty(a)
-		for _ in 1:length(b)
-			push!(a, TParameterVector())
-		end
-	end
-	for (x, y) in zip(a, b)
-		append!(x, y)
-	end
-	return nothing
 end;
