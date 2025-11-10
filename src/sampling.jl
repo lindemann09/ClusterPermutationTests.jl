@@ -27,6 +27,7 @@ function fit_initial_time_series!(cpt::ClusterPermutationTest)
 	# all data samples (time_series) using (not permuted) design
 	# replace existing stats
 	empty!(cpt.cpc.m)
+	empty!(cpt.cpc.ts)
 	cl_ranges = [Int32(1):Int32(epoch_length(cpt.dat))] # fit all time points
 	parameter_estimates(cpt, cpt.dat.design, cl_ranges; store_fits = true)
 	return nothing

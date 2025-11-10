@@ -38,6 +38,8 @@ export ClusterPermutationTest,
     time_series_stats,
     npermutations,
     permutation_stats,
+    perm_table, #FIXME TMP
+    get_parameter, #FIXME TMP
     reset,
     fit,
     initial_fits,

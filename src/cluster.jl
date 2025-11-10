@@ -11,14 +11,15 @@ TPStats(t::Integer, x::NTuple{N, <:Real}) where N = TPStats(Int32(t), collect(x)
 TPStats(t::Integer, x::Vector{<:Real}) = TPStats(Int32(t), Float64.(x))
 
 const TParameterVector = Vector{TPStats}
-get_parameter(vs::TParameterVector, t::Integer, parameter_id::Integer)::Vector{Float64} =
-	[v.z[parameter_id] for v in vs if v.t == t]
-get_parameter(vs::TParameterVector, t::Integer)::Vector{Vector{Float64}} =
-	[v.z for v in vs if v.t == t]
-get_parameter(vs::TParameterVector, t::UnitRange, parameter_id::Integer)::Vector{Float64} =
-	[v.z[parameter_id] for v in vs if v.t in t]
+get_parameter(vs::TParameterVector)::Vector{Vector{Float64}} =
+	[v.z for v in vs]
+get_parameter(vs::TParameterVector, parameter_id::Integer)::Vector{Float64} =
+	[v.z[parameter_id] for v in vs]
 get_parameter(vs::TParameterVector, t::UnitRange)::Vector{Vector{Float64}} =
 	[v.z for v in vs if v.t in t]
+get_parameter(vs::TParameterVector, t::UnitRange, parameter_id::Integer)::Vector{Float64} =
+	[v.z[parameter_id] for v in vs if v.t in t]
+
 ###
 ### Cluster definitions and criteriums
 ###
@@ -45,11 +46,11 @@ function ClusterDefinition(single_range::UnitRange)
 	return ClusterDefinition([single_range])
 end
 
-function cluster_ranges(dat::Vector{Float64}, cc::ClusterCriterium)::Vector{TClusterRange}
+function _cluster_ranges(dat::Vector{Float64}, cc::ClusterCriterium)::Vector{TClusterRange}
 	# find clusters in dat according to cc
 	d = cc.use_absolute ? abs.(dat) : dat
 	@unpack threshold, min_size = cc
-	## find cluster
+	# find cluster
 	cluster_size = 0
 	ranges = TClusterRange[]
 	n = length(d)
@@ -77,9 +78,71 @@ end;
 
 cluster_ranges(::Any, cc::ClusterDefinition)::Vector{TClusterRange} = cc.ranges
 
-function cluster_mass(mass_fnc::Function,
-	stats::Vector{Float64},
-	cc::TClusterCritODef)
-	ranges = cluster_ranges(stats, cc)
-	return [mass_fnc(stats[cl]) for cl in ranges]
+function _cluster_mass(mass_fnc::Function, dat::Vector{Float64}, cl_ranges::Vector{TClusterRange})
+	# compute cluster mass for all clusters detected in dat
+	return [mass_fnc(dat[cl]) for cl in cl_ranges]
 end;
+
+function _cluster_pvalues(
+	perm_stats::Matrix{Float64},
+	cluster_mass::Vector{Float64},
+	inhibit_warning::Bool)::Vector{Float64}
+	# Monte Carlo permutation p value
+
+	n = size(perm_stats, 1)
+	if n < 5_000
+		if !inhibit_warning
+			@warn "Small number of permutations. Estimate of p is not precise! " *
+				  "Call resample!."
+		end
+		if n < 1_000
+			return []
+		end
+	end
+
+	p = []
+	for (i, stats) in enumerate(cluster_mass)
+		n_l = sum(perm_stats[:, i] .> abs(stats))
+		append!(p, 2 * (n_l / n))
+	end
+	return p
+end;
+
+
+function _cluster_table(smpl_stats::Vector{Float64},
+	cl_ranges::Vector{TClusterRange},
+	pvals::Vector{Float64})::Table
+
+	if length(pvals) > 0
+		p = pvals
+		sign = [p <= 0.05 ? "*" : "" for p in pvals]
+	else
+		p = repeat(["?"], length(cl_ranges))
+		sign = repeat([""], length(cl_ranges))
+	end
+
+	return Table(; id = 1:length(cl_ranges),
+		from = [c.start for c in cl_ranges],
+		to = [c.stop for c in cl_ranges],
+		size = [c.stop - c.start + 1 for c in cl_ranges],
+		min = [minimum(smpl_stats[c]) for c in cl_ranges],
+		max = [maximum(smpl_stats[c]) for c in cl_ranges],
+		p = p,
+		sign = sign)
+end
+
+
+
+## helper function
+function join_ranges(vec::Vector{UnitRange{T}}) where T
+	rtn::Vector{UnitRange{T}} = []
+	for x in sort(vec)
+		if isempty(rtn) || (rtn[end].stop+1 < x.start)
+			push!(rtn, x)
+		else
+			rtn[end] = rtn[end].start:maximum((x.stop, rtn[end].stop))
+		end
+	end
+	return rtn
+end
+join_ranges(vec::Vector{Vector{UnitRange{Int}}}) = join_ranges(vcat(vec...))

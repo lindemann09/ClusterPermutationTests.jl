@@ -54,21 +54,18 @@ function StatsAPI.fit(::Type{<:CPLinearModel},
 end
 
 
-
-
 ####
 #### Sample statistics
 ####
-time_series_stats(cpt::CPRegressionModel) = throw(
-	ArgumentError("Specify effect to get time_series_stats."))
-function time_series_stats(cpt::CPRegressionModel, effect::SymbolOString)::Vector{Float64}
+function time_series_stats(cpt::CPRegressionModel, effect::SymbolOString)
 	length(cpt.cpc.m) > 0 || return Float64[]
 	# extract test statistics from initial fit
 	i = _get_coefficient_row(cpt.cpc.m[1], String(effect))
-	i == 0 && return Float64[]
-	# calculate z values
-	return [coef(md)[i] / stderror(md)[i] for md in cpt.cpc.m]
+	return time_series_stats(cpt::CPRegressionModel, i)
 end
+
+time_series_stats(cpt::CPRegressionModel, parameter_id::Integer) =
+	get_parameter(cpt.cpc.ts, parameter_id)
 
 ####
 #### Parameter estimates
@@ -86,16 +83,52 @@ end
 	for (t, dv) in enumerate(eachcol(dat.epochs))
 		dv_data[:] = dv
 		md = fit(LinearModel, cpt.f, design; contrasts = cpt.contrasts) ## fit model!
+		z = coef(md) ./ stderror(md) # parameter: z or t-value of effect
 		if store_fits
 			push!(cpt.cpc.m, md)
+			push!(cpt.cpc.ts, TPStats(t, z))
 		else
 			#calc z for effect
-			z = coef(md) ./ stderror(md)# parameter: t-value of effect
 			push!(param, TPStats(t, z))
 		end
 	end
 	return param
 end
+
+
+##
+## permutation stats
+##
+permutation_stats(cpt::CPRegressionModel, effect::Union{Integer, Symbol, String}) =
+	_permutation_stats(cpt.cpc, cluster_ranges(cpt), effect)
+
+##
+## Cluster Functions
+##
+cluster_ranges(cpt::CPTTest, effect::Union{Integer, Symbol, String}) =
+		_cluster_ranges(time_series_stats(cpt, effect), cpt.cpc.cc)
+
+function cluster_mass(cpt::CPTTest, effect::Union{Integer, Symbol, String})
+	ts = time_series_stats(cpt, effect)
+	cl_ranges = _cluster_ranges(ts, cpt.cpc.cc)
+	return _cluster_mass(cpt.cpc.mass_fnc, ts, cl_ranges)
+end
+
+function cluster_pvalues(cpt::CPTTest, effect::Union{Integer, Symbol, String};
+		inhibit_warning::Bool = false)
+
+	if effect isa Integer
+		effect_id = effect
+	else
+		effect_id = _get_coefficient_row(cpt.cpc.m[1], String(effect))
+	end
+	return _cluster_pvalues(permutation_stats(cpt, effect_id),
+				cluster_mass(cpt, effect_id), inhibit_warning)
+end
+
+cluster_table(cpt::CPTTest, effect::Union{Integer, Symbol, String}) =
+	_cluster_table(time_series_stats(cpt), cluster_ranges(cpt, effect), cluster_pvalues(cpt, effect))
+
 
 ###
 ### Utilities for regression design tables

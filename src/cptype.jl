@@ -8,18 +8,50 @@ struct CPCollection{M}
 	cc::TClusterCritODef # cluster definition
 
 	m::Vector{M} # fitted models of initial fit
+	ts::TParameterVector # time series statistics of the initial fit
 	S::Vector{TParameterVector} # time series stats for the permutations
 end;
 
 CPCollection{M}(iv::SymbolOString, mass_fnc::Function, cluster_criterium::TClusterCritODef) where {M} =
-	CPCollection(Symbol(iv), mass_fnc, cluster_criterium, M[], TParameterVector[])
+	CPCollection(Symbol(iv), mass_fnc, cluster_criterium, M[], TParameterVector(), TParameterVector[])
 
 npermutations(x::CPCollection) = length(x.S)
-function permutation_stats(x::CPCollection)::Matrix
+
+
+function perm_table(list_para_vector::Vector{TParameterVector})
+	time_points = Int32[]
+	perm = Int32[]
+	parameters = Vector{Float64}[]
+	for (cnt, para_vec) in enumerate(list_para_vector)
+		for tp in para_vec
+			push!(time_points, tp.t)
+			push!(perm, cnt)
+			push!(parameters, [tp.z..., 67, 34])
+		end
+	end
+	matrix = reduce(hcat, parameters)
+    table = (; perm=perm, time = time_points, (Symbol("v", i) => matrix[i, :] for i in 1:size(matrix, 1))...)
+	return (time_points, table)
+end
+
+
+function _permutation_stats(x::CPCollection, cl_ranges::Vector{TClusterRange}, parameter_id::Integer)::Matrix{Float64}
 	if length(x.S) == 0
-		return zeros(eltype(TParameterVector), 0, 0)
+		return zeros(Float64, 0, 0)
 	else
-		return reduce(hcat, x.S)
+		rtn = Vector{Float64}[]
+		for cl in cl_ranges
+			l = length(cl)
+			cl_mass_para = Float64[]
+			for para_vector in x.S
+				# get all parameter values of this cluster of this permutation
+				cl_para = get_parameter(para_vector, cl, parameter_id) # FIXME optimize maybe, create first a structure that easy to search
+				mp = length(cl_para) == l ? x.mass_fnc(cl_para) : NaN # check if parameter for all samples are found
+				push!(cl_mass_para, mp)
+			end
+			push!(rtn, cl_mass_para)
+		end
+		return reduce(hcat, rtn)
 	end
 end
 
@@ -37,69 +69,9 @@ epoch_length(x::ClusterPermutationTest) = epoch_length(x.dat)
 design_table(x::ClusterPermutationTest) = design_table(x.dat)
 StudyDesigns.unit_observation(x::ClusterPermutationTest) = unit_observation(x.dat.design.uo)
 
-npermutations(x::ClusterPermutationTest) = npermutations(x.cpc)
-permutation_stats(x::ClusterPermutationTest) = permutation_stats(x.cpc)
 cluster_criterium(x::ClusterPermutationTest) = x.cpc.cc
 initial_fits(x::ClusterPermutationTest) = x.cpc.m
-cluster_ranges(x::ClusterPermutationTest) = cluster_ranges(time_series_stats(x), x.cpc.cc)
-cluster_ranges(x::ClusterPermutationTest, effect::SymbolOString) =
-	cluster_ranges(time_series_stats(x, effect), x.cpc.cc)
-cluster_mass(x::ClusterPermutationTest) = cluster_mass(x.cpc.mass_fnc, time_series_stats(x), x.cpc.cc)
-cluster_mass(x::ClusterPermutationTest, effect::SymbolOString) =
-	cluster_mass(x.cpc.mass_fnc, time_series_stats(x, effect), x.cpc.cc)
-
-function cluster_pvalues(x::ClusterPermutationTest;
-	inhibit_warning::Bool = false)::Vector{Float64}
-	# Monte Carlo permutation p value
-
-	n = npermutations(x)
-	if n < 5_000
-		if !inhibit_warning
-			@warn "Small number of permutations. Estimate of p is not precise! " *
-				  "Call resample!."
-		end
-		if n < 1_000
-			return []
-		end
-	end
-
-	p = []
-	spl = permutation_stats(x)
-	cl_stats = cluster_mass(x)
-	for (i, stats) in enumerate(cl_stats)
-		n_l = sum(spl[:, i] .> abs(stats))
-		append!(p, 2 * (n_l / n))
-	end
-	return p
-end;
-
-
-cluster_table(x::ClusterPermutationTest) = _cluster_table(x, time_series_stats(x))
-cluster_table(x::ClusterPermutationTest, effect::SymbolOString) =
-				_cluster_table(x, time_series_stats(x, effect))
-
-function _cluster_table(x::ClusterPermutationTest,
-	smpl_stats::Vector{Float64})::Table
-
-	cl_ranges = cluster_ranges(smpl_stats, x.cpc.cc)
-	pvals = cluster_pvalues(x; inhibit_warning = true)
-	if length(pvals) > 0
-		p = pvals
-		sign = [p <= 0.05 ? "*" : "" for p in pvals]
-	else
-		p = repeat(["?"], length(cl_ranges))
-		sign = repeat([""], length(cl_ranges))
-	end
-
-	return Table(; id = 1:length(cl_ranges),
-		from = [c.start for c in cl_ranges],
-		to = [c.stop for c in cl_ranges],
-		size = [c.stop - c.start + 1 for c in cl_ranges],
-		min = [minimum(smpl_stats[c]) for c in cl_ranges],
-		max = [maximum(smpl_stats[c]) for c in cl_ranges],
-		p = p,
-		sign = sign)
-end
+npermutations(x::ClusterPermutationTest) = npermutations(x.cpc)
 
 
 function StatsAPI.summary(x::ClusterPermutationTest)

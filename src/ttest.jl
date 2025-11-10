@@ -87,22 +87,17 @@ function StatsAPI.fit(T::Type{<:CPTTest},
 end
 
 ####
-#### Sample statistics
+#### Time series statistics
 ####
-time_series_stats(::CPTTest, ::SymbolOString) = throw(
-	ArgumentError("Time series statistics with effect not supported for CPTTests."))
-function time_series_stats(cpt::CPTTest)::Vector{Float64}
-	# extract test statistics from initial fit
-	return [x.t for x in cpt.cpc.m]
-end
+time_series_stats(cpt::CPTTest) = get_parameter(cpt.cpc.ts, 1)
 
 ####
 #### Parameter_estimates
 ####
 @inline function parameter_estimates(cpt::CPTTest,
-				design::StudyDesign,
-				cl_ranges::Vector{TClusterRange};
-				store_fits::Bool = false)::TParameterVector
+	design::StudyDesign,
+	cl_ranges::Vector{TClusterRange};
+	store_fits::Bool = false)::TParameterVector
 	# Estimate parameters for a specific cluster (range)
 	epochs, design_tbl = _prepare_data(cpt, cpt.dat.epochs, design) # TODO view?
 	param = TParameterVector()
@@ -111,6 +106,7 @@ end
 			tt = _estimate(cpt, view(epochs, :, t), design_tbl)
 			if store_fits
 				push!(cpt.cpc.m, tt)
+				push!(cpt.cpc.ts, TPStats(t, tt.t))
 			else
 				push!(param, TPStats(t, tt.t))
 			end
@@ -172,3 +168,24 @@ end
 	return dat_a, dat_b
 end
 
+##
+## permutation stats
+##
+permutation_stats(cpt::CPTTest) = _permutation_stats(cpt.cpc, cluster_ranges(cpt), 1)
+
+##
+## Cluster Functions
+##
+cluster_ranges(cpt::CPTTest) = _cluster_ranges(time_series_stats(cpt), cpt.cpc.cc)
+
+function cluster_mass(cpt::CPTTest)
+	ts = time_series_stats(cpt)
+	cl_ranges = _cluster_ranges(ts, cpt.cpc.cc)
+	return _cluster_mass(cpt.cpc.mass_fnc, ts, cl_ranges)
+end
+
+function cluster_pvalues(cpt::CPTTest; inhibit_warning::Bool = false)
+	return _cluster_pvalues(permutation_stats(cpt), cluster_mass(cpt), inhibit_warning)
+end
+
+cluster_table(cpt::CPTTest) = _cluster_table(time_series_stats(cpt),cluster_ranges(cpt), cluster_pvalues(cpt))
