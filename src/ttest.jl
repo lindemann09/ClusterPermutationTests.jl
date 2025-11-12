@@ -87,29 +87,33 @@ function StatsAPI.fit(T::Type{<:CPTTest},
 end
 
 ####
-#### Time series statistics
+#### coefnames
 ####
-time_series_stats(cpt::CPTTest) = get_parameter(cpt.cpc.ts, 1)
+StatsAPI.coefnames(cpt::CPTTest) = [string(cpt.cpc.iv)]
+
 
 ####
 #### Parameter_estimates
 ####
+"""returns vector (time) of vector (parameters)"""
 @inline function parameter_estimates(cpt::CPTTest,
-	design::StudyDesign,
-	cl_ranges::Vector{TClusterRange};
-	store_fits::Bool = false)::TParameterVector
+	design::StudyDesign;
+	fit_cluster_only::Bool = true,
+	store_fits::Bool = false)::TVecTimeXParameter
+
 	# Estimate parameters for a specific cluster (range)
 	epochs, design_tbl = _prepare_data(cpt, cpt.dat.epochs, design) # TODO view?
-	param = TParameterVector()
-	for cr in cl_ranges
-		for t in cr
-			tt = _estimate(cpt, view(epochs, :, t), design_tbl)
-			if store_fits
-				push!(cpt.cpc.m, tt)
-				push!(cpt.cpc.ts, TPStats(t, tt.t))
-			else
-				push!(param, TPStats(t, tt.t))
-			end
+	param = TVecTimeXParameter()
+	if fit_cluster_only
+		time_points = cpt.cpc.tp
+	else
+		time_points = Int32(1):Int32(epoch_length(cpt.dat))
+	end
+	for t in time_points
+		tt = _estimate(cpt, view(epochs, :, t), design_tbl)
+		push!(param, [tt.t])
+		if store_fits
+			push!(cpt.cpc.m, tt)
 		end
 	end
 	return param
@@ -168,24 +172,13 @@ end
 	return dat_a, dat_b
 end
 
-##
-## permutation stats
-##
-permutation_stats(cpt::CPTTest) = _permutation_stats(cpt.cpc, cluster_ranges(cpt), 1)
 
-##
-## Cluster Functions
-##
-cluster_ranges(cpt::CPTTest) = _cluster_ranges(time_series_stats(cpt), cpt.cpc.cc)
-
-function cluster_mass(cpt::CPTTest)
-	ts = time_series_stats(cpt)
-	cl_ranges = _cluster_ranges(ts, cpt.cpc.cc)
-	return _cluster_mass(cpt.cpc.mass_fnc, ts, cl_ranges)
-end
-
-function cluster_pvalues(cpt::CPTTest; inhibit_warning::Bool = false)
-	return _cluster_pvalues(permutation_stats(cpt), cluster_mass(cpt), inhibit_warning)
-end
-
-cluster_table(cpt::CPTTest) = _cluster_table(time_series_stats(cpt),cluster_ranges(cpt), cluster_pvalues(cpt))
+####
+#### T-test have just a single coefficient
+####
+time_series_coefs(cpt::CPTTest) = time_series_coefs(cpt, 1)
+cluster_mass_permutations(cpt::CPTTest) = cluster_mass_permutations(cpt, 1)
+cluster_ranges(cpt::CPTTest) = cluster_ranges(cpt, 1)
+cluster_mass(cpt::CPTTest) = cluster_mass(cpt, 1)
+cluster_pvalues(cpt::CPTTest; inhibit_warning::Bool = false) = cluster_pvalues(cpt, 1; inhibit_warning)
+cluster_table(cpt::CPTTest) = cluster_table(cpt, 1)

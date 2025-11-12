@@ -33,30 +33,32 @@ end
 ####
 #### Parameter estimates
 ####
-
 @inline function parameter_estimates(cpt::CPMixedModel,
-	cl_ranges::Vector{TClusterRange};
-	store_fits::Bool = false)::TParameterVector
+	design::StudyDesign;
+	fit_cluster_only::Bool = true,
+	store_fits::Bool = false)::TVecTimeXParameter
 
-	design = columntable(dat.design)
-	param = TParameterVector()
-	i = nothing # index for coefficient of iv
+	design = columntable(design)
+	param = TVecTimeXParameter()
+	if fit_cluster_only
+		time_points = cpt.cpc.tp
+	else
+		time_points = Int32(1):Int32(epoch_length(cpt.dat))
+	end
+
 	dv_data = getproperty(design, cpt.f.lhs.sym)
 	logger = NullLogger()
 	local md
-	for (t, dv) in enumerate(eachcol(dat.epochs))
-		dv_data[:] = dv
+	for t in time_points
+		dv_data[:] = cpt.dat.epochs[:, t] # update dependent variable FIXME view?
 		with_logger(logger) do  # FIXME improve logging
 			md = fit(LinearMixedModel, cpt.f, design; contrasts = cpt.contrasts,
 				progress = false, REML = true) ## fit model!
 		end # logger
-
+		z = coef(md) ./ stderror(md) # parameter: t-value of effect
+		push!(param, z[2:end])
 		if store_fits
 			push!(cpt.cpc.m, md)
-		else
-			#calc z for effect
-			z = coef(md) ./ stderror(md) # parameter: t-value of effect
-			push!(param, TPStats(t, z))
 		end
 	end
 	return param

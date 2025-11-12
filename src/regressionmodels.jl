@@ -5,7 +5,7 @@ struct CPLinearModel <: CPRegressionModel
 	dat::CPData
 
 	f::FormulaTerm
-	effect::String # name of effect to be tested
+	effect::String # name of effect to be tested FIXME needed?
 	contrasts::Dict{Symbol, AbstractContrasts} # contrasts for LinearModel
 end;
 
@@ -15,7 +15,7 @@ n_threads_default(::CPLinearModel) = Threads.nthreads()
 #### Test info
 ####
 function test_info(x::CPRegressionModel)
-	return "$(typeof(x)) (effect=$(x.effect), $(x.cpc.mass_fnc))\n  $(x.f))"
+	return "$(typeof(x)) ($(x.cpc.mass_fnc))\n  $(x.f)"
 end
 
 ####
@@ -53,19 +53,15 @@ function StatsAPI.fit(::Type{<:CPLinearModel},
 	return rtn
 end
 
+# FIXME: iv is the shuffeld variable, but what if multple effect. shuffeling all variables in the design?
 
 ####
-#### Sample statistics
+#### coefnames
 ####
-function time_series_stats(cpt::CPRegressionModel, effect::SymbolOString)
-	length(cpt.cpc.m) > 0 || return Float64[]
-	# extract test statistics from initial fit
-	i = _get_coefficient_row(cpt.cpc.m[1], String(effect))
-	return time_series_stats(cpt::CPRegressionModel, i)
+function StatsAPI.coefnames(cpt::CPRegressionModel)
+	rtn = coefnames(first(cpt.cpc.m))
+	return rtn[2:end] # remove Intercept
 end
-
-time_series_stats(cpt::CPRegressionModel, parameter_id::Integer) =
-	get_parameter(cpt.cpc.ts, parameter_id)
 
 ####
 #### Parameter estimates
@@ -73,61 +69,30 @@ time_series_stats(cpt::CPRegressionModel, parameter_id::Integer) =
 """estimates for a specific section in the time series (cluster) for a given permutation
 """
 @inline function parameter_estimates(cpt::CPLinearModel,
-	cl_ranges::Vector{TClusterRange};
-	store_fits::Bool = false)::TParameterVector
+	design::StudyDesign;
+	fit_cluster_only::Bool = true,
+	store_fits::Bool = false)::TVecTimeXParameter
 
-	design = columntable(dat.design)
-	param = TParameterVector()
-	i = nothing # index for coefficient of iv
+	design = columntable(design)
+	param = TVecTimeXParameter()
+	if fit_cluster_only
+		time_points = cpt.cpc.tp
+	else
+		time_points = Int32(1):Int32(epoch_length(cpt.dat))
+	end
+
 	dv_data = getproperty(design, cpt.f.lhs.sym)
-	for (t, dv) in enumerate(eachcol(dat.epochs))
-		dv_data[:] = dv
+	for t in time_points
+		dv_data[:] = cpt.dat.epochs[:, t] # update dependent variable FIXME view?
 		md = fit(LinearModel, cpt.f, design; contrasts = cpt.contrasts) ## fit model!
 		z = coef(md) ./ stderror(md) # parameter: z or t-value of effect
+		push!(param, z[2:end])
 		if store_fits
 			push!(cpt.cpc.m, md)
-			push!(cpt.cpc.ts, TPStats(t, z))
-		else
-			#calc z for effect
-			push!(param, TPStats(t, z))
 		end
 	end
 	return param
 end
-
-
-##
-## permutation stats
-##
-permutation_stats(cpt::CPRegressionModel, effect::Union{Integer, Symbol, String}) =
-	_permutation_stats(cpt.cpc, cluster_ranges(cpt), effect)
-
-##
-## Cluster Functions
-##
-cluster_ranges(cpt::CPTTest, effect::Union{Integer, Symbol, String}) =
-		_cluster_ranges(time_series_stats(cpt, effect), cpt.cpc.cc)
-
-function cluster_mass(cpt::CPTTest, effect::Union{Integer, Symbol, String})
-	ts = time_series_stats(cpt, effect)
-	cl_ranges = _cluster_ranges(ts, cpt.cpc.cc)
-	return _cluster_mass(cpt.cpc.mass_fnc, ts, cl_ranges)
-end
-
-function cluster_pvalues(cpt::CPTTest, effect::Union{Integer, Symbol, String};
-		inhibit_warning::Bool = false)
-
-	if effect isa Integer
-		effect_id = effect
-	else
-		effect_id = _get_coefficient_row(cpt.cpc.m[1], String(effect))
-	end
-	return _cluster_pvalues(permutation_stats(cpt, effect_id),
-				cluster_mass(cpt, effect_id), inhibit_warning)
-end
-
-cluster_table(cpt::CPTTest, effect::Union{Integer, Symbol, String}) =
-	_cluster_table(time_series_stats(cpt), cluster_ranges(cpt, effect), cluster_pvalues(cpt, effect))
 
 
 ###
@@ -169,7 +134,7 @@ function _get_coefficient_row(md::StatisticalModel, effect::String)
 
 	# find exact match
 	n = coefnames(md)
-	i = findfirst(x -> x == effect, n)
+	i = findfirst(isequal(effect), n)
 	if isnothing(i)
 		# find binary categorical variable match
 		idx = findall(x -> startswith(x, "$effect: "), n)

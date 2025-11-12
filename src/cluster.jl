@@ -1,26 +1,4 @@
 ###
-### TimePoint Statistics & TParameterVector
-###
-struct TPStats{} # time point statistics
-	t::Int32 # time point
-	z::Vector{Float64} # parameter
-end
-
-TPStats(t::Integer, x::Real) = TPStats(t, [Float64(x)])
-TPStats(t::Integer, x::NTuple{N, <:Real}) where N = TPStats(Int32(t), collect(x))
-TPStats(t::Integer, x::Vector{<:Real}) = TPStats(Int32(t), Float64.(x))
-
-const TParameterVector = Vector{TPStats}
-get_parameter(vs::TParameterVector)::Vector{Vector{Float64}} =
-	[v.z for v in vs]
-get_parameter(vs::TParameterVector, parameter_id::Integer)::Vector{Float64} =
-	[v.z[parameter_id] for v in vs]
-get_parameter(vs::TParameterVector, t::UnitRange)::Vector{Vector{Float64}} =
-	[v.z for v in vs if v.t in t]
-get_parameter(vs::TParameterVector, t::UnitRange, parameter_id::Integer)::Vector{Float64} =
-	[v.z[parameter_id] for v in vs if v.t in t]
-
-###
 ### Cluster definitions and criteriums
 ###
 const TClusterRange = UnitRange{Int32}
@@ -46,10 +24,11 @@ function ClusterDefinition(single_range::UnitRange)
 	return ClusterDefinition([single_range])
 end
 
-function _cluster_ranges(dat::Vector{Float64}, cc::ClusterCriterium)::Vector{TClusterRange}
+function _cluster_ranges(dat::AbstractArray{Float64}, cc::ClusterCriterium)::Vector{TClusterRange}
 	# find clusters in dat according to cc
 	d = cc.use_absolute ? abs.(dat) : dat
-	@unpack threshold, min_size = cc
+	threshold = cc.threshold
+	min_size = cc.min_size
 	# find cluster
 	cluster_size = 0
 	ranges = TClusterRange[]
@@ -78,7 +57,7 @@ end;
 
 cluster_ranges(::Any, cc::ClusterDefinition)::Vector{TClusterRange} = cc.ranges
 
-function _cluster_mass(mass_fnc::Function, dat::Vector{Float64}, cl_ranges::Vector{TClusterRange})
+function _cluster_mass(mass_fnc::Function, dat::AbstractArray{Float64}, cl_ranges::Vector{TClusterRange})
 	# compute cluster mass for all clusters detected in dat
 	return [mass_fnc(dat[cl]) for cl in cl_ranges]
 end;
@@ -109,7 +88,7 @@ function _cluster_pvalues(
 end;
 
 
-function _cluster_table(smpl_stats::Vector{Float64},
+function _cluster_table(smpl_stats::AbstractArray{Float64},
 	cl_ranges::Vector{TClusterRange},
 	pvals::Vector{Float64})::Table
 
@@ -132,9 +111,8 @@ function _cluster_table(smpl_stats::Vector{Float64},
 end
 
 
-
 ## helper function
-function join_ranges(vec::Vector{UnitRange{T}}) where T
+function _join_ranges(vec::Vector{UnitRange{T}}) where T <: Integer
 	rtn::Vector{UnitRange{T}} = []
 	for x in sort(vec)
 		if isempty(rtn) || (rtn[end].stop+1 < x.start)
@@ -145,4 +123,5 @@ function join_ranges(vec::Vector{UnitRange{T}}) where T
 	end
 	return rtn
 end
-join_ranges(vec::Vector{Vector{UnitRange{Int}}}) = join_ranges(vcat(vec...))
+_join_ranges(vec::Vector{Vector{UnitRange{T}}}) where T  =
+		 _join_ranges(vcat(vec...))

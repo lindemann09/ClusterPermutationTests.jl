@@ -10,7 +10,6 @@ using HypothesisTests: HypothesisTests, EqualVarianceTTest, OneSampleTTest,
 import MixedModels: LinearMixedModel, is_randomeffectsterm
 using PrettyTables: ft_printf, pretty_table, tf_unicode_rounded
 using ProgressMeter: Progress, next!
-using UnPack: @unpack
 using Logging: with_logger, NullLogger
 using Random
 using Tables: columntable, getcolumn
@@ -35,19 +34,18 @@ export ClusterPermutationTest,
     cluster_ranges,
     cluster_pvalues,
     cluster_table,
-    time_series_stats,
+    time_series_coefs,
     npermutations,
-    permutation_stats,
-    perm_table, #FIXME TMP
-    get_parameter, #FIXME TMP
+    cluster_mass_permutations,
     reset,
     fit,
+    coefnames,
     initial_fits,
     resample!,
     summary,
     @formula, # reexport
     # plotting
-    plot_time_series_stats!,
+    plot_time_series_coefs!,
     plot_cluster_mass_distribution!
 
 include("StudyDesigns/utilities.jl")
@@ -57,14 +55,14 @@ include("cptype.jl")
 include("sampling.jl")
 
 include("ttest.jl")
-#include("regressionmodels.jl")
-#include("mixedmodels.jl")
+include("regressionmodels.jl")
+include("mixedmodels.jl")
 
 
 
 ## Makie extensions
 _makie_error() = throw(ArgumentError("Have you loaded an appropriate Makie backend?"))
-plot_time_series_stats!(::Any, ::Any; kwargs...) = _makie_error()
+plot_time_series_coefs!(::Any, ::Any; kwargs...) = _makie_error()
 plot_cluster_mass_distribution!(::Any, ::Any; kwargs...) = _makie_error()
 
 end;
