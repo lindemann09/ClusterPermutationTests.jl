@@ -7,7 +7,7 @@ struct CPMixedModel <: CPRegressionModel
 	contrasts::Dict{Symbol, AbstractContrasts} # contrasts for LinearModel
 end;
 
-n_threads_default(::CPMixedModel) = floor(Int64, Threads.nthreads()/4)
+n_threads_default(::CPMixedModel) = 1 #floor(Int64, Threads.nthreads()/4)
 
 function StatsAPI.fit(::Type{<:CPMixedModel},
 	f::FormulaTerm,
