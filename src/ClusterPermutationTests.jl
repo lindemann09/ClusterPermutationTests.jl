@@ -9,7 +9,7 @@ using HypothesisTests: HypothesisTests, EqualVarianceTTest, OneSampleTTest,
                         UnequalVarianceTTest, HypothesisTest
 import MixedModels: LinearMixedModel, is_randomeffectsterm
 using ProgressMeter: Progress, next!
-using Logging: with_logger, NullLogger
+using Logging: with_logger, NullLogger, SimpleLogger
 using Random
 using Tables: columntable, getcolumn
 using TypedTables: Table, columnnames

@@ -4,6 +4,7 @@ struct CPMixedModel <: CPRegressionModel
 
 	f::FormulaTerm
 	contrasts::Dict{Symbol, AbstractContrasts} # contrasts for LinearModel
+	log_file::Union{IOStream, Nothing} # iostream to log fitting
 end;
 
 n_threads_default(::CPMixedModel) = 1 #floor(Int64, Threads.nthreads()/4)
@@ -14,7 +15,8 @@ function StatsAPI.fit(::Type{<:CPMixedModel},
 	dat::CPData,
 	cluster_criterium::TClusterCritODef;
 	mass_fnc::Function = sum,
-	contrasts::Dict{Symbol, <:AbstractContrasts} = Dict{Symbol, AbstractContrasts}())
+	contrasts::Dict{Symbol, <:AbstractContrasts} = Dict{Symbol, AbstractContrasts}(),
+	log_file::Union{IOStream, Nothing} = nothing)
 
 	tbl = _prepare_design_table(f, dat.design, dv_dtype = eltype(dat.epochs))
 	data = CPData(dat.epochs, tbl; unit_obs = unit_observation(dat.design))
@@ -25,7 +27,7 @@ function StatsAPI.fit(::Type{<:CPMixedModel},
 	end
 
 	cpc = CPCollection{LinearMixedModel}(shuffle_ivs, mass_fnc, cluster_criterium)
-	rtn = CPMixedModel(cpc, data, f, contrasts)
+	rtn = CPMixedModel(cpc, data, f, contrasts, log_file)
 	fit_initial_time_series!(rtn)
 	return rtn
 end
@@ -48,7 +50,11 @@ end
 	end
 
 	dv_data = getproperty(design, cpt.f.lhs.sym)
-	logger = NullLogger()
+	if cpt.log_file isa IOStream
+		logger = SimpleLogger(cpt.log_file)
+	else
+		logger = NullLogger()
+	end
 	local md
 	for t in time_points
 		dv_data[:] = cpt.dat.epochs[:, t] # update dependent variable FIXME view?
