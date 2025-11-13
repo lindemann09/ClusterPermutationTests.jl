@@ -47,6 +47,7 @@ function shuffle_variable!(rng::AbstractRNG,
 			end
 		end
 	else
+		is_covariate(perm_design, iv) && throw(ArgumentError("Covariates like '$(iv)' can't be shuffled."))
 		dat = getproperty(perm_design.between, iv)
 		# shuffle between inside cells of synchronized variables (ignore unit of observations)
 		for i in shuffle_group_ids
@@ -56,21 +57,23 @@ function shuffle_variable!(rng::AbstractRNG,
 	return perm_design
 end
 
-shuffle_variable!(perm_design::StudyDesign, iv::Union{Symbol, String}; synchronize::OptMultiSymbolOString = nothing) =
-	shuffle_variable!(Random.GLOBAL_RNG, perm_design, iv; synchronize)
-shuffle_variable!(rng::AbstractRNG, perm_design::StudyDesign, iv::String;
-	synchronize::OptMultiSymbolOString = nothing) = shuffle_variable!(rng, perm_design, Symbol(iv); synchronize)
-
-function shuffle_variable(rng::AbstractRNG, perm_design::StudyDesign, iv::Symbol;
-	synchronize::OptMultiSymbolOString = nothing)
-
-	rtn = copy(perm_design)
-	shuffle_variable!(rng, rtn, iv; synchronize)
-	return rtn
+function shuffle_variable!(rng::AbstractRNG, perm_design::StudyDesign, iv::Vector{Symbol}; kwargs...)
+	for v in iv
+		shuffle_variable!(rng, perm_design, v; kwargs...)
+	end
+	return perm_design
 end
 
-shuffle_variable(perm_design::StudyDesign, iv::Union{Symbol, String}; synchronize::OptMultiSymbolOString = nothing) =
-	shuffle_variable(Random.GLOBAL_RNG, perm_design, iv; synchronize)
-shuffle_variable(rng::AbstractRNG, perm_design::StudyDesign, iv::String;
-	synchronize::OptMultiSymbolOString = nothing) = shuffle_variable(rng, perm_design, Symbol(iv); synchronize)
+shuffle_variable!(rng::AbstractRNG, perm_design::StudyDesign, iv::String; kwargs...) =
+	shuffle_variable!(rng, perm_design, Symbol(iv); kwargs...)
+shuffle_variable!(rng::AbstractRNG, perm_design::StudyDesign, iv::Vector{String}; kwargs...) =
+	shuffle_variable!(rng, perm_design, Symbol.(iv); kwargs...)
+
+shuffle_variable!(perm_design::StudyDesign, iv::Union{Symbol, Vector{Symbol}, String, Vector{String}}; kwargs...) =
+	shuffle_variable!(Random.GLOBAL_RNG, perm_design, iv; kwargs...)
+
+shuffle_variable(rng::AbstractRNG, perm_design::StudyDesign, iv::Union{Symbol, Vector{Symbol}, String, Vector{String}}; kwargs...) =
+	shuffle_variable!(rng, copy(perm_design), iv; kwargs...)
+shuffle_variable(perm_design::StudyDesign, iv::Union{Symbol, Vector{Symbol}, String, Vector{String}}; kwargs...) =
+	shuffle_variable!(Random.GLOBAL_RNG, copy(perm_design), iv; kwargs...)
 
