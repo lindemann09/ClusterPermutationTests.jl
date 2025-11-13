@@ -3,26 +3,26 @@ module CPTestMakieExt
 using Makie
 using ClusterPermutationTests
 
-export 	plot_time_series_coefs!,
-		plot_cluster_mass_distribution!
+export 	plot_time_series_stats!,
+		plot_cluster_mass_stats_distribution!
 
-function ClusterPermutationTests.plot_time_series_coefs!(ax::Axis,
+function ClusterPermutationTests.plot_time_series_stats!(ax::Axis,
 	cpt::ClusterPermutationTest)
-	para = time_series_coefs(cpt)
+	para = time_series_stats(cpt)
 	xs = 1:(length(para))
 	lines!(ax, xs, para, color = :red)
 	return ax
 end
 
-function ClusterPermutationTests.plot_time_series_coefs!(fig::Figure, cpt::ClusterPermutationTest)
-	plot_time_series_coefs!(Axis(fig[1, 1]), cpt)
+function ClusterPermutationTests.plot_time_series_stats!(fig::Figure, cpt::ClusterPermutationTest)
+	plot_time_series_stats!(Axis(fig[1, 1]), cpt)
 	return fig
 end;
 
-function ClusterPermutationTests.plot_cluster_mass_distribution!(fig::Figure, cpt::ClusterPermutationTest;
+function ClusterPermutationTests.plot_cluster_mass_stats_distribution!(fig::Figure, cpt::ClusterPermutationTest;
 	xlabel = "test statistics", bins=100)
-	cs = cluster_mass(cpt)
-	dist = cluster_mass_permutations(cpt)
+	cs = cluster_mass_stats(cpt)
+	dist = cluster_nhd(cpt)
 	for i in 1:size(dist, 2)
 		ax = Axis(fig[i, 1]; xlabel, ylabel = "count")
 		hist!(ax, dist[:, i]; bins)

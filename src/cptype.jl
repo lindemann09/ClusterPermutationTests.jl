@@ -37,7 +37,7 @@ design_table(x::ClusterPermutationTest) = design_table(x.dat)
 StudyDesigns.unit_observation(x::ClusterPermutationTest) = unit_observation(x.dat.design.uo)
 
 cluster_criterium(x::ClusterPermutationTest) = x.cpc.cc
-initial_fits(x::ClusterPermutationTest) = x.cpc.m
+time_series_fits(x::ClusterPermutationTest) = x.cpc.m
 function npermutations(x::ClusterPermutationTest)
 	if length(x.cpc.S) == 0
 		return 0
@@ -45,15 +45,18 @@ function npermutations(x::ClusterPermutationTest)
 		return size(x.cpc.S[1], 2)
 	end
 end
-time_series_coefs(x::ClusterPermutationTest, effect::Union{Integer, Symbol, String}) =
+time_series_stats(x::ClusterPermutationTest, effect::Union{Integer, Symbol, String}) =
 	view(x.cpc.coefs, :, _effect_id(x, effect))
-time_series_coefs(::ClusterPermutationTest) = throw(no_effect_error)
+time_series_stats(::ClusterPermutationTest) = throw(no_effect_error)
+
+ncoefs(x::ClusterPermutationTest) = size(x.cpc.coefs, 2)
 
 ##
 ## permutation stats
 ##
-cluster_mass_permutations(::ClusterPermutationTest) = throw(no_effect_error)
-function cluster_mass_permutations(cpt::ClusterPermutationTest,
+"""Null-hypothesis distributions of the cluster mass statistics"""
+cluster_nhd(::ClusterPermutationTest) = throw(no_effect_error)
+function cluster_nhd(cpt::ClusterPermutationTest,
 	effect::Union{Integer, Symbol, String})::TParameterMatrix # (permutation X cluster)
 
 	if length(cpt.cpc.S) == 0
@@ -78,35 +81,54 @@ end
 
 cluster_ranges(::ClusterPermutationTest) = throw(no_effect_error)
 cluster_ranges(cpt::ClusterPermutationTest, effect::Union{Integer, Symbol, String}) =
-	_cluster_ranges(time_series_coefs(cpt, effect), cpt.cpc.cc) #FIXME effect strings
+	_cluster_ranges(time_series_stats(cpt, effect), cpt.cpc.cc) #FIXME effect strings
 
-cluster_mass(::ClusterPermutationTest) = throw(no_effect_error)
-function cluster_mass(cpt::ClusterPermutationTest, effect::Union{Integer, Symbol, String})
-	ts = time_series_coefs(cpt, effect)
+cluster_mass_stats(::ClusterPermutationTest) = throw(no_effect_error)
+function cluster_mass_stats(cpt::ClusterPermutationTest, effect::Union{Integer, Symbol, String})
+	ts = time_series_stats(cpt, effect)
 	cl_ranges = _cluster_ranges(ts, cpt.cpc.cc)
-	return _cluster_mass(cpt.cpc.mass_fnc, ts, cl_ranges)
+	return _cluster_mass_stats(cpt.cpc.mass_fnc, ts, cl_ranges)
 end
 
 cluster_pvalues(::ClusterPermutationTest; kwargs...) = throw(no_effect_error)
 function cluster_pvalues(cpt::ClusterPermutationTest, effect::Union{Integer, Symbol, String};
 	inhibit_warning::Bool = false)
 	i = _effect_id(cpt, effect)
-	return _cluster_pvalues(cluster_mass_permutations(cpt, i), cluster_mass(cpt, i), inhibit_warning)
+	return _cluster_pvalues(cluster_nhd(cpt, i), cluster_mass_stats(cpt, i), inhibit_warning)
 end
 
-cluster_table(::ClusterPermutationTest) = throw(no_effect_error)
-function cluster_table(cpt::ClusterPermutationTest, effect::Union{Integer, Symbol, String})
+function cluster_table(cpt::ClusterPermutationTest, effect::Union{Integer, Symbol, String};
+	inhibit_warning::Bool = false)::CoefTable
 	i = _effect_id(cpt, effect)
-	_cluster_table(time_series_coefs(cpt, i), cluster_ranges(cpt, i), cluster_pvalues(cpt, i))
+	coef_name = coefnames(cpt)[i]
+	ts = time_series_stats(cpt, i)
+	cl_ranges = _cluster_ranges(ts, cpt.cpc.cc)
+	cl_mass_stats = _cluster_mass_stats(cpt.cpc.mass_fnc, ts, cl_ranges)
+	p_vals = _cluster_pvalues(cluster_nhd(cpt, i), cl_mass_stats, inhibit_warning)
+	_cluster_table(i, coef_name, cl_ranges, cl_mass_stats, p_vals)
 end
+
+function cluster_table(cpt::ClusterPermutationTest)::CoefTable
+	rtn = cluster_table(cpt, 1)
+	# add all other effects
+	for eid in 2:ncoefs(cpt)
+		tmp = cluster_table(cpt, eid; inhibit_warning = true)
+		for (x, y) in zip(rtn.cols, tmp.cols)
+       		append!(x, y)
+       	end
+		append!(rtn.rownms, tmp.rownms)
+	end
+	return rtn
+end
+
 
 function _effect_id(cpt::ClusterPermutationTest, effect::Union{Integer, Symbol, String})
 	if effect isa Integer
-		(effect > size(cpt.cpc.coefs, 2) || effect < 1) &&
+		(effect > ncoefs(cpt) || effect < 1) &&
 			throw(ArgumentError("Effect index $(effect) out of bounds."))
 		return effect
 	else
-		names =  coefnames(cpt)
+		names = coefnames(cpt)
 		rtn = findfirst(isequal(String(effect)), names)
 		rtn === nothing &&
 			throw(ArgumentError("Effect '$(effect)' not found in model coefficients. Used names: '$(names)'."))

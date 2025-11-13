@@ -18,7 +18,7 @@ FIXME
 	that is, the design might be permuted and/or epochs might be the data of merely a particular cluster.
 	list of test_statistics has to be returned as TParameterVector
 	if store_fits is true, the function has to store the fitted models in cpt.cpc.m
-3. time_series_coefs(cpt::ClusterPermutationTest)::TParameterVector
+3. time_series_stats(cpt::ClusterPermutationTest)::TParameterVector
 	function to extract the test statistics from the initial fit stored in cpt.cpc.m
 4. StatsAPI.fit(::Type{}, ...)
 	the function has to create an instance of CP<Model>, call fit_initial_time_series!(..) on it
@@ -39,7 +39,7 @@ function fit_initial_time_series!(cpt::ClusterPermutationTest)
 	cpt.cpc.coefs = stack(c, dims=1) # time X effects
 
 	# write new time points
-	all_cl_ranges = [cluster_ranges(cpt, i) for i in 1:size(cpt.cpc.coefs, 2)]
+	all_cl_ranges = [cluster_ranges(cpt, i) for i in 1:ncoefs(cpt)]
 	cpt.cpc.tp = collect(Iterators.flatten(_join_ranges(all_cl_ranges)))
 	return nothing
 end
@@ -85,7 +85,7 @@ function resample!(rng::AbstractRNG,
 	end
 
 	# make matrices of each effect and store in cpt.cpc.S
-	n_effects = size(cpt.cpc.coefs, 2)
+	n_effects = ncoefs(cpt)
 	# for each effect one vector (permutation) of vector (time) of floats)
 	effect_array = [TParameterVector[] for _ in 1:n_effects]
 	for thread_result in results

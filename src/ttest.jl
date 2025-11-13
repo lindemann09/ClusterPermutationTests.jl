@@ -176,9 +176,9 @@ end
 ####
 #### T-test have just a single coefficient
 ####
-time_series_coefs(cpt::CPTTest) = time_series_coefs(cpt, 1)
-cluster_mass_permutations(cpt::CPTTest) = cluster_mass_permutations(cpt, 1)
+time_series_stats(cpt::CPTTest) = time_series_stats(cpt, 1)
+cluster_nhd(cpt::CPTTest) = cluster_nhd(cpt, 1)
 cluster_ranges(cpt::CPTTest) = cluster_ranges(cpt, 1)
-cluster_mass(cpt::CPTTest) = cluster_mass(cpt, 1)
+cluster_mass_stats(cpt::CPTTest) = cluster_mass_stats(cpt, 1)
 cluster_pvalues(cpt::CPTTest; inhibit_warning::Bool = false) = cluster_pvalues(cpt, 1; inhibit_warning)
-cluster_table(cpt::CPTTest) = cluster_table(cpt, 1)
+#cluster_table(cpt::CPTTest) = cluster_table(cpt, 1)

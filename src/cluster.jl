@@ -57,18 +57,19 @@ end;
 
 cluster_ranges(::Any, cc::ClusterDefinition)::Vector{TClusterRange} = cc.ranges
 
-function _cluster_mass(mass_fnc::Function, dat::AbstractArray{Float64}, cl_ranges::Vector{TClusterRange})
+function _cluster_mass_stats(mass_fnc::Function, dat::AbstractArray{Float64}, cl_ranges::Vector{TClusterRange})
 	# compute cluster mass for all clusters detected in dat
 	return [mass_fnc(dat[cl]) for cl in cl_ranges]
 end;
 
 function _cluster_pvalues(
-	perm_stats::Matrix{Float64},
-	cluster_mass::Vector{Float64},
-	inhibit_warning::Bool)::Vector{Float64}
+	cl_nhd::Matrix{Float64},
+	cl_mass_stats::Vector{Float64},
+	inhibit_warning::Bool;
+	one_tail::Bool = false)::Vector{Float64}
 	# Monte Carlo permutation p value
 
-	n = size(perm_stats, 1)
+	n = size(cl_nhd, 1)
 	if n < 5_000
 		if !inhibit_warning
 			@warn "Small number of permutations. Estimate of p is not precise! " *
@@ -79,35 +80,46 @@ function _cluster_pvalues(
 		end
 	end
 
-	p = []
-	for (i, stats) in enumerate(cluster_mass)
-		n_l = sum(perm_stats[:, i] .> abs(stats))
-		append!(p, 2 * (n_l / n))
+	rtn = []
+	for (nhd, cms) in zip(eachcol(cl_nhd), cl_mass_stats)
+		p = 1 - quantilerank(abs.(nhd), abs(cms); method = :exc)
+		if one_tail
+			p = p / 2
+		end
+		append!(rtn, p)
 	end
-	return p
+	return rtn
 end;
 
 
-function _cluster_table(smpl_stats::AbstractArray{Float64},
+
+function _cluster_table(coef_id::Integer,
+	coefname::String,
 	cl_ranges::Vector{TClusterRange},
-	pvals::Vector{Float64})::Table
+	cms::Vector{Float64},
+	pvals::Vector{Float64};
+	sign_level::Real = 0.05)::CoefTable
 
 	if length(pvals) > 0
 		p = pvals
-		sign = [p <= 0.05 ? "*" : "" for p in pvals]
+		sign = [p <= sign_level ? "*" : "" for p in pvals]
 	else
-		p = repeat(["?"], length(cl_ranges))
+		p = repeat([NaN], length(cl_ranges))
 		sign = repeat([""], length(cl_ranges))
 	end
+	cid = collect(1:length(cl_ranges))
+	#names = repeat([coefname], length(cl_ranges))
+	from = [c.start for c in cl_ranges]
+	to = [c.stop for c in cl_ranges]
+	size = [c.stop - c.start + 1 for c in cl_ranges]
+	colnms = ["cluster", "from", "to", "size", "mass stats", "Pr(>|t|)", "sign"]
+	cols = [cid, from, to, size, cms, p, sign]
+	rownms = [string(coef_id) * "."*string(i) for i in cid]
+	rownms[1] *= " - " * coefname
+	pvalcol = 6
+	teststatcol = 5
 
-	return Table(; id = 1:length(cl_ranges),
-		from = [c.start for c in cl_ranges],
-		to = [c.stop for c in cl_ranges],
-		size = [c.stop - c.start + 1 for c in cl_ranges],
-		min = [minimum(smpl_stats[c]) for c in cl_ranges],
-		max = [maximum(smpl_stats[c]) for c in cl_ranges],
-		p = p,
-		sign = sign)
+	return CoefTable(cols, colnms, rownms, pvalcol, teststatcol)
 end
 
 
@@ -123,5 +135,5 @@ function _join_ranges(vec::Vector{UnitRange{T}}) where T <: Integer
 	end
 	return rtn
 end
-_join_ranges(vec::Vector{Vector{UnitRange{T}}}) where T  =
-		 _join_ranges(vcat(vec...))
+_join_ranges(vec::Vector{Vector{UnitRange{T}}}) where T =
+	_join_ranges(vcat(vec...))
