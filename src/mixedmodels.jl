@@ -34,7 +34,7 @@ end
 #### Parameter estimates
 ####
 @inline function parameter_estimates(cpt::CPMixedModel,
-	design::StudyDesign;
+	design::AbstractStudyDesign;
 	fit_cluster_only::Bool = true,
 	store_fits::Bool = false)::TVecTimeXParameter
 

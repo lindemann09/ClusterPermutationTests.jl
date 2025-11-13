@@ -1,5 +1,5 @@
 function shuffle_variable!(rng::AbstractRNG,
-	perm_design::StudyDesign,
+	perm_design::AbstractStudyDesign,
 	iv::Symbol;
 	synchronize::OptMultiSymbolOString = nothing)
 
@@ -57,23 +57,23 @@ function shuffle_variable!(rng::AbstractRNG,
 	return perm_design
 end
 
-function shuffle_variable!(rng::AbstractRNG, perm_design::StudyDesign, iv::Vector{Symbol}; kwargs...)
+function shuffle_variable!(rng::AbstractRNG, perm_design::AbstractStudyDesign, iv::Vector{Symbol}; kwargs...)
 	for v in iv
 		shuffle_variable!(rng, perm_design, v; kwargs...)
 	end
 	return perm_design
 end
 
-shuffle_variable!(rng::AbstractRNG, perm_design::StudyDesign, iv::String; kwargs...) =
+shuffle_variable!(rng::AbstractRNG, perm_design::AbstractStudyDesign, iv::String; kwargs...) =
 	shuffle_variable!(rng, perm_design, Symbol(iv); kwargs...)
-shuffle_variable!(rng::AbstractRNG, perm_design::StudyDesign, iv::Vector{String}; kwargs...) =
+shuffle_variable!(rng::AbstractRNG, perm_design::AbstractStudyDesign, iv::Vector{String}; kwargs...) =
 	shuffle_variable!(rng, perm_design, Symbol.(iv); kwargs...)
 
-shuffle_variable!(perm_design::StudyDesign, iv::Union{Symbol, Vector{Symbol}, String, Vector{String}}; kwargs...) =
+shuffle_variable!(perm_design::AbstractStudyDesign, iv::Union{Symbol, Vector{Symbol}, String, Vector{String}}; kwargs...) =
 	shuffle_variable!(Random.GLOBAL_RNG, perm_design, iv; kwargs...)
 
-shuffle_variable(rng::AbstractRNG, perm_design::StudyDesign, iv::Union{Symbol, Vector{Symbol}, String, Vector{String}}; kwargs...) =
+shuffle_variable(rng::AbstractRNG, perm_design::AbstractStudyDesign, iv::Union{Symbol, Vector{Symbol}, String, Vector{String}}; kwargs...) =
 	shuffle_variable!(rng, copy(perm_design), iv; kwargs...)
-shuffle_variable(perm_design::StudyDesign, iv::Union{Symbol, Vector{Symbol}, String, Vector{String}}; kwargs...) =
+shuffle_variable(perm_design::AbstractStudyDesign, iv::Union{Symbol, Vector{Symbol}, String, Vector{String}}; kwargs...) =
 	shuffle_variable!(Random.GLOBAL_RNG, copy(perm_design), iv; kwargs...)
 

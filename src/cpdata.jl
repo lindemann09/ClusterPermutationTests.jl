@@ -5,9 +5,9 @@ Data for a cluster permutation analysis
 """
 struct CPData{T <: Real}
 	epochs::Matrix{T}
-	design::StudyDesign
+	design::AbstractStudyDesign
 
-	function CPData(epochs::Matrix{T}, design::StudyDesign) where {T <: Real}
+	function CPData(epochs::Matrix{T}, design::AbstractStudyDesign) where {T <: Real}
 		size(epochs, 1) == length(design) || throw(
 			DimensionMismatch(
 				"Matrix and design table must have the same number of rows!"),
@@ -32,7 +32,7 @@ function CPData(epochs::AbstractMatrix{<:Real},
 	vars = keys(kwargs)
 	if length(vars) == 0
 		# take all, except unit_obs
-		return CPData(epochs, StudyDesign(design; unit_obs))
+		return CPData(epochs, study_design(design; unit_obs))
 	else
 		if !isnothing(unit_obs)
 			unit_obs = Symbol(unit_obs)
@@ -41,7 +41,7 @@ function CPData(epochs::AbstractMatrix{<:Real},
 			end
 		end
 		tbl = select_col(design, vars)
-		perm_design = StudyDesign(tbl; unit_obs) # select variables
+		perm_design = study_design(tbl; unit_obs) # select variables
 		return select_epochs(CPData(epochs, perm_design); kwargs...)
 	end
 end

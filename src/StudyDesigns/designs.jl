@@ -12,9 +12,12 @@ end
 unit_observation(uo::UnitObs) = uo.name
 unit_observation(::NoUnitObs) = nothing
 
-### StudyDesign
+### study_design
 
-function StudyDesign(
+""" The returned AbstractStudyDesign object implements the Tables.jl (https://github.com/JuliaData/Tables.jl/) interface, and can be converted e.g. to a DataFrame via using
+  DataFrames; DataFrame(...)."""
+
+function study_design(
 	design::Table;
 	unit_obs::OptSymbolOString = nothing,
 	covariates::OptMultiSymbolOString = nothing)
@@ -54,7 +57,7 @@ function StudyDesign(
 	return make_design(design, unit_obs; between_names, within_names, covariate_names)
 end
 
-StudyDesign(design::Any; kwargs...) = StudyDesign(ensure_table(design); kwargs...)
+study_design(design::Any; kwargs...) = study_design(ensure_table(design); kwargs...)
 
 # Helper function to create a `StudyDesign` object from a given experimental design `Table`, specifying which variables are between-subject and which are within-subject.
 # converts design variable to categorical
@@ -114,14 +117,14 @@ function make_design(design::Table,	unit_obs::Nothing;
 	return BetweenDesign(between, co_var_tbl, NoUnitObs(i))
 end
 
-unit_observation(d::StudyDesign) = unit_observation(d.uo)
+unit_observation(d::AbstractStudyDesign) = unit_observation(d.uo)
 names_between(d::BetweenDesign) = collect(columnnames(d.between))
 names_between(d::MixedDesign) = setdiff(columnnames(d.between), [unit_observation(d)])
 names_between(::WithinDesign) = Symbol[]
 names_within(d::Union{WithinDesign, MixedDesign}) = collect(columnnames(d.within))
 names_within(::BetweenDesign) = Symbol[]
-names_covariates(d::StudyDesign) = !isempty(d.covariates) ? collect(columnnames(d.covariates)) : Symbol[]
-function Base.names(d::StudyDesign)
+names_covariates(d::AbstractStudyDesign) = !isempty(d.covariates) ? collect(columnnames(d.covariates)) : Symbol[]
+function Base.names(d::AbstractStudyDesign)
 	uo = unit_observation(d)
 	rtn = vcat(names_between(d), names_within(d), names_covariates(d))
 	if isnothing(uo)
@@ -131,18 +134,18 @@ function Base.names(d::StudyDesign)
 	end
 end
 
-Base.length(x::StudyDesign) = length(x.uo.i)
+Base.length(x::AbstractStudyDesign) = length(x.uo.i)
 Base.copy(x::BetweenDesign) = BetweenDesign(copy(x.between), x.covariates, x.uo) # does not make a copy of covariates and uo, since they will no be modified
 Base.copy(x::WithinDesign) = WithinDesign(copy(x.within), x.covariates, x.uo)
 Base.copy(x::MixedDesign) = MixedDesign(copy(x.between), copy(x.within), x.covariates, x.uo)
 
-function StatsAPI.nobs(x::StudyDesign)
+function StatsAPI.nobs(x::AbstractStudyDesign)
 	ids, combis = cell_indices(x)
 	n = (; nobs = [sum(i) for i in ids])
 	return Table(combis, n)
 end
 
-function Base.show(io::IO, mime::MIME"text/plain", x::StudyDesign)
+function Base.show(io::IO, mime::MIME"text/plain", x::AbstractStudyDesign)
 	println(io, "$(typeof(x)) with $(nrow(x)) rows")
 	tmp = unit_observation(x)
 	!isnothing(tmp) && println(io, "  unit obs: $(tmp)")
@@ -155,18 +158,18 @@ function Base.show(io::IO, mime::MIME"text/plain", x::StudyDesign)
 	return nothing
 end
 
-is_covariate(d::StudyDesign, var::Symbol) = var in names_covariates(d)
+is_covariate(d::AbstractStudyDesign, var::Symbol) = var in names_covariates(d)
 is_within(::BetweenDesign, var::Symbol) = false
 is_between(::WithinDesign, var::Symbol) = false
 is_within(d::Union{WithinDesign, MixedDesign}, var::Symbol) = var in names_within(d)
 is_between(d::Union{BetweenDesign, MixedDesign}, var::Symbol) = var in names_between(d)
-has_variable(d::StudyDesign, var::Symbol) =
+has_variable(d::AbstractStudyDesign, var::Symbol) =
 	is_between(d, var) || is_within(d, var) || is_covariate(d, var) || var == unit_observation(d)
 
 
 # utilities / helper
 
-function cell_indices(x::StudyDesign; variables::OptMultiSymbolOString = nothing)
+function cell_indices(x::AbstractStudyDesign; variables::OptMultiSymbolOString = nothing)
 	d = Table(x)
 	if isnothing(variables)
 		return cell_indices(d, names(x))

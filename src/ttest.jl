@@ -97,7 +97,7 @@ StatsAPI.coefnames(cpt::CPTTest) = [string(cpt.cpc.iv)]
 ####
 """returns vector (time) of vector (parameters)"""
 @inline function parameter_estimates(cpt::CPTTest,
-	design::StudyDesign;
+	design::AbstractStudyDesign;
 	fit_cluster_only::Bool = true,
 	store_fits::Bool = false)::TVecTimeXParameter
 
@@ -124,7 +124,7 @@ end
 ####
 @inline function _prepare_data(cpt::CPPairedSampleTTest,
 	epochs::Matrix{<:Real},
-	permutation::StudyDesign)::Tuple{Matrix{eltype(epochs)}, Table}
+	permutation::AbstractStudyDesign)::Tuple{Matrix{eltype(epochs)}, Table}
 
 	iv = getcolumn(permutation, cpt.cpc.iv)
 	tbl = Table((; cpt.cpc.iv => iv))
@@ -143,7 +143,7 @@ end
 
 @inline function _prepare_data(cpt::CPTwoSampleTTest,
 	epochs::Matrix{<:Real},
-	permutation::StudyDesign)::Tuple{Matrix{eltype(epochs)}, Table}
+	permutation::AbstractStudyDesign)::Tuple{Matrix{eltype(epochs)}, Table}
 
 	return epochs, Table((; cpt.cpc.iv => getproperty(permutation, cpt.cpc.iv)))
 end

@@ -69,7 +69,7 @@ end
 """estimates for a specific section in the time series (cluster) for a given permutation
 """
 @inline function parameter_estimates(cpt::CPLinearModel,
-	design::StudyDesign;
+	design::AbstractStudyDesign;
 	fit_cluster_only::Bool = true,
 	store_fits::Bool = false)::TVecTimeXParameter
 
@@ -100,7 +100,7 @@ end
 ###
 
 """select columns from formula and add empty column for dependent variable"""
-function _prepare_design_table(f::FormulaTerm, design::StudyDesign;
+function _prepare_design_table(f::FormulaTerm, design::AbstractStudyDesign;
 	dv_dtype::Type = Float64)::Table
 	# get all predictors
 	pred = Symbol[]

@@ -8,8 +8,9 @@ using Tables: getcolumn, columnnames
 using TypedTables: Table
 using Random: Random, AbstractRNG, shuffle
 
-export StudyDesign, BetweenDesign, WithinDesign, MixedDesign,
+export AbstractStudyDesign, BetweenDesign, WithinDesign, MixedDesign,
     UnitObs, NoUnitObs,
+	study_design,
     names,
     names_within,
     names_between,
@@ -44,25 +45,25 @@ struct NoUnitObs
 end
 
 ###
-### StudyDesign
+### Study Design
 ###
 
-#abstract type StudyDesign <: Tables.AbstractColumns end
-abstract type StudyDesign end
+#abstract type AbstractStudyDesign <: Tables.AbstractColumns end
+abstract type AbstractStudyDesign end
 
-struct BetweenDesign{U <: Union{UnitObs, NoUnitObs}} <: StudyDesign
+struct BetweenDesign{U <: Union{UnitObs, NoUnitObs}} <: AbstractStudyDesign
 	between::Table # unique combinations of between variables
 	covariates::Table # covariates (never used for permutations)
 	uo::U
 end
 
-struct WithinDesign <: StudyDesign
+struct WithinDesign <: AbstractStudyDesign
 	within::Table # unique combinations of within variables
 	covariates::Table # covariates (never used for permutations)
 	uo::UnitObs
 end
 
-struct MixedDesign <: StudyDesign
+struct MixedDesign <: AbstractStudyDesign
 	between::Table # unique combinations of between variables
 	within::Table # unique combinations of within variables
 	covariates::Table # covariates (never used for permutations)

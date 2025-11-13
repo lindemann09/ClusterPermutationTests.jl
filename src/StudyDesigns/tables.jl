@@ -1,6 +1,6 @@
 # required Tables.AbstractColumns object methods
 # ## Tables interface
-function Tables.getcolumn(d::StudyDesign, var::Symbol) # get a single variable
+function Tables.getcolumn(d::AbstractStudyDesign, var::Symbol) # get a single variable
 	if is_within(d, var)
 		return getproperty(d.within, var)
 	elseif is_between(d, var)
@@ -13,9 +13,9 @@ function Tables.getcolumn(d::StudyDesign, var::Symbol) # get a single variable
 	end
 end
 
-Tables.istable(::Type{<:StudyDesign}) = true
-Tables.columnaccess(::Type{<:StudyDesign}) = true
-function Tables.columns(d::StudyDesign)::NamedTuple
+Tables.istable(::Type{<:AbstractStudyDesign}) = true
+Tables.columnaccess(::Type{<:AbstractStudyDesign}) = true
+function Tables.columns(d::AbstractStudyDesign)::NamedTuple
 	cov = isempty(d.covariates) ? (;) : Tables.columns(d.covariates)
 	if d isa BetweenDesign
 		return merge(_expand_between(d), cov)
@@ -26,15 +26,15 @@ function Tables.columns(d::StudyDesign)::NamedTuple
 		return merge((; d.uo.name => d.uo.values), Tables.columns(d.within), cov)
 	end
 end
-Tables.getcolumn(d::StudyDesign, ::Type{T}, col::Int, var::Symbol) where {T} = getcolumn(d, var)
-Tables.getcolumn(d::StudyDesign, i::Int) = getcolumn(d, names(d)[i])
-Tables.columnnames(d::StudyDesign) = names(d)
+Tables.getcolumn(d::AbstractStudyDesign, ::Type{T}, col::Int, var::Symbol) where {T} = getcolumn(d, var)
+Tables.getcolumn(d::AbstractStudyDesign, i::Int) = getcolumn(d, names(d)[i])
+Tables.columnnames(d::AbstractStudyDesign) = names(d)
 
-DataAPI.nrow(d::StudyDesign) = length(d.uo.i)
-DataAPI.ncol(d::StudyDesign) = length(names(d))
+DataAPI.nrow(d::AbstractStudyDesign) = length(d.uo.i)
+DataAPI.ncol(d::AbstractStudyDesign) = length(names(d))
 
 
-@inline function _expand_between(d::StudyDesign)::NamedTuple
+@inline function _expand_between(d::AbstractStudyDesign)::NamedTuple
 	if d isa WithinDesign
 		return (;)
 	else
