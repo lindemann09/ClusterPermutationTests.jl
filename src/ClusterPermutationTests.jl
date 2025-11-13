@@ -1,8 +1,8 @@
 module ClusterPermutationTests
 
 using Reexport: @reexport
-using StatsAPI: StatsAPI, fit, coef
-using StatsBase: stderror, CoefTable, quantilerank
+import StatsAPI: StatsAPI, fit
+using StatsBase: coef, stderror, CoefTable, quantilerank
 using StatsModels
 import GLM: lm, LinearModel
 using HypothesisTests: HypothesisTests, EqualVarianceTTest, OneSampleTTest,
@@ -45,7 +45,7 @@ export ClusterPermutationTest,
     @formula, # reexport
     # plotting
     plot_time_series_stats!,
-    plot_cluster_null_hypothesis_dist!
+    plot_cluster_nhd!
 
 include("StudyDesigns/utilities.jl")
 include("cluster.jl")
@@ -62,6 +62,6 @@ include("mixedmodels.jl")
 ## Makie extensions
 _makie_error() = throw(ArgumentError("Have you loaded an appropriate Makie backend?"))
 plot_time_series_stats!(::Any, ::Any; kwargs...) = _makie_error()
-plot_cluster_null_hypothesis_dist!(::Any, ::Any; kwargs...) = _makie_error()
+plot_cluster_nhd!(::Any, ::Any; kwargs...) = _makie_error()
 
 end;

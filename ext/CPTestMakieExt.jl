@@ -4,7 +4,7 @@ using Makie
 using ClusterPermutationTests
 
 export 	plot_time_series_stats!,
-		plot_cluster_null_hypothesis_dist!
+		plot_cluster_nhd!
 
 function ClusterPermutationTests.plot_time_series_stats!(ax::Axis,
 	cpt::ClusterPermutationTest)
@@ -19,7 +19,7 @@ function ClusterPermutationTests.plot_time_series_stats!(fig::Figure, cpt::Clust
 	return fig
 end;
 
-function ClusterPermutationTests.plot_cluster_null_hypothesis_dist!(fig::Figure, cpt::ClusterPermutationTest;
+function ClusterPermutationTests.plot_cluster_nhd!(fig::Figure, cpt::ClusterPermutationTest;
 	xlabel = "test statistics", bins=100)
 	cs = cluster_mass_stats(cpt)
 	dist = cluster_nhd(cpt)
