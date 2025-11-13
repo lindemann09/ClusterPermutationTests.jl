@@ -45,7 +45,7 @@ export ClusterPermutationTest,
     @formula, # reexport
     # plotting
     plot_time_series_stats!,
-    plot_cluster_mass_stats_distribution!
+    plot_cluster_null_hypothesis_dist!
 
 include("StudyDesigns/utilities.jl")
 include("cluster.jl")
@@ -62,6 +62,6 @@ include("mixedmodels.jl")
 ## Makie extensions
 _makie_error() = throw(ArgumentError("Have you loaded an appropriate Makie backend?"))
 plot_time_series_stats!(::Any, ::Any; kwargs...) = _makie_error()
-plot_cluster_mass_stats_distribution!(::Any, ::Any; kwargs...) = _makie_error()
+plot_cluster_null_hypothesis_dist!(::Any, ::Any; kwargs...) = _makie_error()
 
 end;
