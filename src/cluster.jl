@@ -98,6 +98,7 @@ function _cluster_table(coef_id::Integer,
 	cl_ranges::Vector{TClusterRange},
 	cms::Vector{Float64},
 	pvals::Vector{Float64};
+	add_effect_names::Bool = false,
 	sign_level::Real = 0.05)::CoefTable
 
 	if length(pvals) > 0
@@ -112,10 +113,12 @@ function _cluster_table(coef_id::Integer,
 	from = [c.start for c in cl_ranges]
 	to = [c.stop for c in cl_ranges]
 	size = [c.stop - c.start + 1 for c in cl_ranges]
-	colnms = ["cluster", "from", "to", "size", "mass stats", "Pr(>|t|)", "sign"]
+	colnms = ["cluster", "from", "to", "size", "mass stats", "Pr(>|z|)", "sign"]
 	cols = [cid, from, to, size, cms, p, sign]
 	rownms = [string(coef_id) * "."*string(i) for i in cid]
-	rownms[1] *= " - " * coefname
+	if add_effect_names
+		rownms[1] *= " - " * coefname
+	end
 	pvalcol = 6
 	teststatcol = 5
 

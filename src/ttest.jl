@@ -31,7 +31,7 @@ end
 ####
 #### Fit TTests
 ####
-function StatsAPI.fit(T::Type{<:CPTTest}, # TODO: two value comparison only, needs to be more general
+function StatsAPI.fit(T::Type{<:CPTTest},
 	iv::SymbolOString,
 	dat::CPData,
 	cluster_criterium::TClusterCritODef;
@@ -66,7 +66,7 @@ function StatsAPI.fit(T::Type{<:CPTTest}, # TODO: two value comparison only, nee
 	else
 		throw(ArgumentError("Test $(T) not supported for t.test."))
 	end
-	cpc = CPCollection{M}(iv, mass_fnc, cluster_criterium)
+	cpc = CPCollection{M}([iv], mass_fnc, cluster_criterium)
 
 	rtn = T(cpc, dat, (compare[1], compare[2]))
 
@@ -89,7 +89,7 @@ end
 ####
 #### coefnames
 ####
-StatsAPI.coefnames(cpt::CPTTest) = [string(cpt.cpc.iv)]
+StatsAPI.coefnames(::CPTTest) = ["contrast"]
 
 
 ####
@@ -102,7 +102,7 @@ StatsAPI.coefnames(cpt::CPTTest) = [string(cpt.cpc.iv)]
 	store_fits::Bool = false)::TVecTimeXParameter
 
 	# Estimate parameters for a specific cluster (range)
-	epochs, design_tbl = _prepare_data(cpt, cpt.dat.epochs, design) # TODO view?
+	epochs, design_tbl = _prepare_data(cpt, cpt.dat.epochs, design)
 	param = TVecTimeXParameter()
 	if fit_cluster_only
 		time_points = cpt.cpc.tp
@@ -126,8 +126,9 @@ end
 	epochs::Matrix{<:Real},
 	permutation::AbstractStudyDesign)::Tuple{Matrix{eltype(epochs)}, Table}
 
-	iv = getcolumn(permutation, cpt.cpc.iv)
-	tbl = Table((; cpt.cpc.iv => iv))
+	shuffle_iv =first(cpt.cpc.shuffle_ivs)
+	iv = getcolumn(permutation, shuffle_iv)
+	tbl = Table((; shuffle_iv => iv))
 	a = @view epochs[iv .== cpt.compare[1], :]
 	b = @view epochs[iv .== cpt.compare[2], :]
 	return b - a, tbl # equal size required
@@ -145,7 +146,7 @@ end
 	epochs::Matrix{<:Real},
 	permutation::AbstractStudyDesign)::Tuple{Matrix{eltype(epochs)}, Table}
 
-	return epochs, Table((; cpt.cpc.iv => getproperty(permutation, cpt.cpc.iv)))
+	return epochs, Table((; cpt.cpc.shuffle_iv => getproperty(permutation, cpt.cpc.shuffle_iv)))
 end
 
 @inline function _estimate(cpt::CPEqualVarianceTTest,
@@ -166,7 +167,7 @@ end
 
 @inline function _ttest_get_data(cpt::CPTTest, values::SubArray{<:Real}, permutation::Table)
 	# perform sequential ttests -> parameter
-	iv = getproperty(permutation, cpt.cpc.iv)
+	iv = getproperty(permutation, cpt.cpc.shuffle_iv)
 	dat_a = @view values[iv .== cpt.compare[1]]
 	dat_b = @view values[iv .== cpt.compare[2]]
 	return dat_a, dat_b

@@ -5,7 +5,6 @@ struct CPLinearModel <: CPRegressionModel
 	dat::CPData
 
 	f::FormulaTerm
-	effect::String # name of effect to be tested FIXME needed?
 	contrasts::Dict{Symbol, AbstractContrasts} # contrasts for LinearModel
 end;
 
@@ -23,37 +22,34 @@ end
 ####
 function StatsAPI.fit(T::Type{<:CPRegressionModel},
 	f::FormulaTerm, dat::CPData, cluster_criterium::TClusterCritODef; kwargs...)
+	# default shuffle variables: all categorical predictors except covariates and random effects
 
-	# use first rhs variable from formula as effect
-	if f.rhs isa Term
-		effect = f.rhs
-	else
-		effect = first(f.rhs)
-	end
-	fit(T, f, effect.sym, dat, cluster_criterium; kwargs...)
+	shuffle_ivs = _all_predictors(f; skip_randeff = true)
+	shuffle_ivs = filter(x->!is_covariate(dat.design, x), shuffle_ivs) # no covariates (only categorical)
+	fit(T, f, shuffle_ivs, dat, cluster_criterium; kwargs...)
 end
 
 function StatsAPI.fit(::Type{<:CPLinearModel},
 	f::FormulaTerm,
-	effect::SymbolOString,
+	shuffle_ivs::Union{Vector{Symbol}, Symbol, Vector{String}, String},
 	dat::CPData,
 	cluster_criterium::TClusterCritODef;
 	mass_fnc::Function = sum,
 	contrasts::Dict{Symbol, <:AbstractContrasts} = Dict{Symbol, AbstractContrasts}())
 
-	effect = String(effect)
-	iv = first(split(effect, ": "))
 	tbl = _prepare_design_table(f, dat.design, dv_dtype = eltype(dat.epochs))
-	cpc = CPCollection{StatsModels.TableRegressionModel}(iv, mass_fnc, cluster_criterium)
-	rtn = CPLinearModel(cpc,
-		CPData(dat.epochs, tbl; unit_obs = unit_observation(dat.design)),
-		f, effect, contrasts)
+	data = CPData(dat.epochs, tbl; unit_obs = unit_observation(dat.design))
+
+	shuffle_ivs = StudyDesigns.to_symbol_vector(shuffle_ivs)
+	for v in shuffle_ivs
+		has_variable(data.design, v) || throw(ArgumentError("Variable '$(v)' not found in formula or design table!"))
+	end
+
+	cpc = CPCollection{StatsModels.TableRegressionModel}(shuffle_ivs, mass_fnc, cluster_criterium)
+	rtn = CPLinearModel(cpc, data, f, contrasts)
 	fit_initial_time_series!(rtn)
-	_check_effects(rtn.cpc.m[1], effect)
 	return rtn
 end
-
-# FIXME: iv is the shuffeld variable, but what if multple effect. shuffeling all variables in the design?
 
 ####
 #### coefnames
@@ -103,9 +99,7 @@ end
 function _prepare_design_table(f::FormulaTerm, design::AbstractStudyDesign;
 	dv_dtype::Type = Float64)::Table
 	# get all predictors
-	pred = Symbol[]
-	_add_all_vars!(pred, f.rhs)
-
+	pred = _all_predictors(f)
 	for v in pred
 		has_variable(design, v) || throw(ArgumentError("Variable '$(v)' not found in design table!"))
 	end
@@ -116,48 +110,23 @@ function _prepare_design_table(f::FormulaTerm, design::AbstractStudyDesign;
 	return Table(perm_design, (; dv_name => dv)) # add dependent variable column
 end
 
-function _check_effects(model::RegressionModel, effect::String)
-	n = coefnames(model)
-	try
-		i = _get_coefficient_row(model, effect)
-		if i == 0
-			@warn("Effect '$effect' not found in model. Effects: '$(n)'.")
-		end
-	catch e
-		@warn("Effect '$effect' unclear. Effects: '$(n)'.") # found multiple effects
-	end
+function _all_predictors(f::FormulaTerm; skip_randeff::Bool = false)::Vector{Symbol}
+	pred = Symbol[]
+	_add_all_vars!(pred, f.rhs, skip_randeff)
 end
 
-function _get_coefficient_row(md::StatisticalModel, effect::String)
-	# get row id of a specific effect in the coefficient vector/coeftable
-	# for binary  categorial variables is the variable names is sufficient and level (..: level) is not required
-
-	# find exact match
-	n = coefnames(md)
-	i = findfirst(isequal(effect), n)
-	if isnothing(i)
-		# find binary categorical variable match
-		idx = findall(x -> startswith(x, "$effect: "), n)
-		if length(idx) == 1
-			i = idx[1] # only two levels
-		elseif length(idx) > 1
-			throw(ArgumentError("Effect '$effect' unclear. Available effects: '$(n)'."))
-		else
-			return 0
-		end
-	end
-	i > 0 || throw(ArgumentError("Can not find effect '$effect'."))
-	return i
-end
-
-function _add_all_vars!(vec::Vector{Symbol}, x::Tuple)
+function _add_all_vars!(vec::Vector{Symbol}, x::Tuple, skip_randeff)
 	for t in x
-		_add_all_vars!(vec, t)
+		_add_all_vars!(vec, t, skip_randeff)
 	end
 	return vec
 end
 
-_add_all_vars!(vec::Vector{Symbol}, ::ConstantTerm) = vec # do nothing
-_add_all_vars!(vec::Vector{Symbol}, t::Term) = t.sym in vec ? vec : push!(vec, t.sym)
-_add_all_vars!(vec::Vector{Symbol}, x::InteractionTerm) = _add_all_vars!(vec, x.terms)
-_add_all_vars!(vec::Vector{Symbol}, x::FunctionTerm) = _add_all_vars!(vec, Tuple(x.args))
+_add_all_vars!(vec::Vector{Symbol}, ::ConstantTerm, ::Bool) = vec # do nothing
+_add_all_vars!(vec::Vector{Symbol}, t::Term, ::Bool) = t.sym in vec ? vec : push!(vec, t.sym)
+_add_all_vars!(vec::Vector{Symbol}, x::InteractionTerm, sr::Bool) = _add_all_vars!(vec, x.terms, sr)
+function _add_all_vars!(vec::Vector{Symbol}, x::FunctionTerm, skip_randeff::Bool)
+	if !skip_randeff || !is_randomeffectsterm(x)
+		_add_all_vars!(vec, Tuple(x.args), skip_randeff)
+	end
+end

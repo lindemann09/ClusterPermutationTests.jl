@@ -7,7 +7,7 @@ const TVecTimeXParameter = Vector{TParameterVector}
 const no_effect_error = ArgumentError("Please specify an effect.")
 
 mutable struct CPCollection{M}
-	iv::Symbol # name of the to be shuffled independent variable
+	shuffle_ivs::Vector{Symbol} # name of the to be shuffled independent variable
 	mass_fnc::Function # cluster mass function
 	cc::TClusterCritODef # cluster definition
 
@@ -18,8 +18,8 @@ mutable struct CPCollection{M}
 	S::Vector{TParameterMatrix} # one matrix per effect, (time X permutation)
 end;
 
-CPCollection{M}(iv::SymbolOString, mass_fnc::Function, cluster_criterium::TClusterCritODef) where {M} =
-	CPCollection(Symbol(iv), mass_fnc, cluster_criterium,
+CPCollection{M}(shuffle_ivs::Vector{Symbol}, mass_fnc::Function, cluster_criterium::TClusterCritODef) where {M} =
+	CPCollection{M}(shuffle_ivs, mass_fnc, cluster_criterium,
 		M[], zeros(Float64, 0, 0), Int32[], TParameterMatrix[])
 
 ###
@@ -38,6 +38,11 @@ StudyDesigns.unit_observation(x::ClusterPermutationTest) = unit_observation(x.da
 
 cluster_criterium(x::ClusterPermutationTest) = x.cpc.cc
 time_series_fits(x::ClusterPermutationTest) = x.cpc.m
+
+time_series_stats(x::ClusterPermutationTest, effect::Union{Integer, Symbol, String}) =
+	view(x.cpc.coefs, :, _effect_id(x, effect))
+time_series_stats(::ClusterPermutationTest) = throw(no_effect_error)
+
 function npermutations(x::ClusterPermutationTest)
 	if length(x.cpc.S) == 0
 		return 0
@@ -45,10 +50,6 @@ function npermutations(x::ClusterPermutationTest)
 		return size(x.cpc.S[1], 2)
 	end
 end
-time_series_stats(x::ClusterPermutationTest, effect::Union{Integer, Symbol, String}) =
-	view(x.cpc.coefs, :, _effect_id(x, effect))
-time_series_stats(::ClusterPermutationTest) = throw(no_effect_error)
-
 ncoefs(x::ClusterPermutationTest) = size(x.cpc.coefs, 2)
 
 ##
@@ -81,7 +82,7 @@ end
 
 cluster_ranges(::ClusterPermutationTest) = throw(no_effect_error)
 cluster_ranges(cpt::ClusterPermutationTest, effect::Union{Integer, Symbol, String}) =
-	_cluster_ranges(time_series_stats(cpt, effect), cpt.cpc.cc) #FIXME effect strings
+	_cluster_ranges(time_series_stats(cpt, effect), cpt.cpc.cc)
 
 cluster_mass_stats(::ClusterPermutationTest) = throw(no_effect_error)
 function cluster_mass_stats(cpt::ClusterPermutationTest, effect::Union{Integer, Symbol, String})
@@ -98,21 +99,24 @@ function cluster_pvalues(cpt::ClusterPermutationTest, effect::Union{Integer, Sym
 end
 
 function cluster_table(cpt::ClusterPermutationTest, effect::Union{Integer, Symbol, String};
-	inhibit_warning::Bool = false)::CoefTable
+	inhibit_warning::Bool = false,
+	add_effect_names::Bool = false)::CoefTable
+
 	i = _effect_id(cpt, effect)
 	coef_name = coefnames(cpt)[i]
 	ts = time_series_stats(cpt, i)
 	cl_ranges = _cluster_ranges(ts, cpt.cpc.cc)
 	cl_mass_stats = _cluster_mass_stats(cpt.cpc.mass_fnc, ts, cl_ranges)
 	p_vals = _cluster_pvalues(cluster_nhd(cpt, i), cl_mass_stats, inhibit_warning)
-	_cluster_table(i, coef_name, cl_ranges, cl_mass_stats, p_vals)
+	_cluster_table(i, coef_name, cl_ranges, cl_mass_stats, p_vals; add_effect_names)
 end
 
 function cluster_table(cpt::ClusterPermutationTest)::CoefTable
-	rtn = cluster_table(cpt, 1)
+	add_effect_names = ncoefs(cpt) > 1
+	rtn = cluster_table(cpt, 1; add_effect_names)
 	# add all other effects
 	for eid in 2:ncoefs(cpt)
-		tmp = cluster_table(cpt, eid; inhibit_warning = true)
+		tmp = cluster_table(cpt, eid; add_effect_names, inhibit_warning = true)
 		for (x, y) in zip(rtn.cols, tmp.cols)
        		append!(x, y)
        	end
@@ -136,26 +140,14 @@ function _effect_id(cpt::ClusterPermutationTest, effect::Union{Integer, Symbol, 
 	end
 end
 
-StatsAPI.summary(x::ClusterPermutationTest) = summary(x, 1)
-function StatsAPI.summary(x::ClusterPermutationTest, effect::Union{Integer, Symbol, String})
-	println("$(test_info(x))")
-	println("  data: $(nepochs(x)) x $(epoch_length(x))")
-	eid = _effect_id(x, effect)
-	println("  Effect '$(coefnames(x)[eid])'")
-	pt = pretty_table(String, cluster_table(x, eid);
-		show_subheader = false,
-		formatters = (ft_printf("%0.2f", [5, 6]),
-			ft_printf("%0.3f", [7])),
-		vlines = :none,
-		tf = tf_unicode_rounded)
-	print(pt)
-	return println("n permutations: $(npermutations(x))")
+function StatsAPI.summary(x::ClusterPermutationTest)
+	print(_info(x))
+	println(cluster_table(x))
+	return println("  n permutations: $(npermutations(x))")
 end;
 
 function Base.show(io::IO, mime::MIME"text/plain", x::ClusterPermutationTest)
-	println(io, "$(test_info(x))")
-	println(io, "  data: $(nepochs(x)) x $(epoch_length(x))")
-	clr = TClusterRange[]
+	println(io, _info(x))
 	cc = cluster_criterium(x)
 	if cc isa ClusterDefinition
 		println(io, "  cluster definition: ranges=$(cc.ranges)")
@@ -165,3 +157,12 @@ function Base.show(io::IO, mime::MIME"text/plain", x::ClusterPermutationTest)
 	end
 	return println(io, "  $(npermutations(x)) permutations")
 end;
+
+function _info(x::ClusterPermutationTest)::String
+	rtn =  "$(test_info(x))\n"
+	rtn *= "  data: $(nepochs(x)) x $(epoch_length(x))\n"
+	ivs = join(string.(x.cpc.shuffle_ivs), ", ")
+	rtn *= "  shuffled ivs: $(ivs)\n"
+	n = join(coefnames(x), "\n           ")
+	return rtn * "  effects: $n\n"
+end

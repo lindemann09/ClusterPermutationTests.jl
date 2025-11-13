@@ -8,7 +8,6 @@ import GLM: lm, LinearModel
 using HypothesisTests: HypothesisTests, EqualVarianceTTest, OneSampleTTest,
                         UnequalVarianceTTest, HypothesisTest
 import MixedModels: LinearMixedModel, is_randomeffectsterm
-using PrettyTables: ft_printf, pretty_table, tf_unicode_rounded
 using ProgressMeter: Progress, next!
 using Logging: with_logger, NullLogger
 using Random

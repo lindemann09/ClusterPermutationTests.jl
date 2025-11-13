@@ -3,8 +3,7 @@ module defines fit_initial_time_series!() and resample!() for all ClusterPermuta
 
 A specific test has to define
 
-FIXME
-
+TODO
 1. CP<Model> <: ClusterPermutationTest; a struct with the following fields:
 	* cpc::CPCollection
 	* dat::CPData
@@ -67,7 +66,7 @@ function resample!(rng::AbstractRNG,
 	n_samples = length(cpt.cpc.tp)
 	print("number of samples to be tested: $n_samples")
 	if progressmeter
-		prog = Progress(n_permutations, 0.25, "resampling") # FIXME: adjust update rate
+		prog = Progress(n_permutations, 0.25, "resampling")
 	else
 		prog = nothing
 	end
@@ -119,7 +118,7 @@ function _do_resampling(rng::AbstractRNG,
 	# prepare vector of effect matrix
 	permutations = TVecTimeXParameter[]
 	for _ in 1:n_permutations
-		shuffle_variable!(rng, design, cpt.cpc.iv) # shuffle design
+		shuffle_variable!(rng, design, cpt.cpc.shuffle_ivs) # shuffle design
 		params = parameter_estimates(cpt, design;
 			fit_cluster_only = true, store_fits = false) # get parameter estimates for this cluster (time x effect)
 		push!(permutations, params)

@@ -3,7 +3,6 @@ struct CPMixedModel <: CPRegressionModel
 	dat::CPData
 
 	f::FormulaTerm
-	effect::String # name of effect to be tested
 	contrasts::Dict{Symbol, AbstractContrasts} # contrasts for LinearModel
 end;
 
@@ -11,21 +10,23 @@ n_threads_default(::CPMixedModel) = 1 #floor(Int64, Threads.nthreads()/4)
 
 function StatsAPI.fit(::Type{<:CPMixedModel},
 	f::FormulaTerm,
-	effect::SymbolOString,
+	shuffle_ivs::Union{Vector{Symbol}, Symbol, Vector{String}, String},
 	dat::CPData,
 	cluster_criterium::TClusterCritODef;
 	mass_fnc::Function = sum,
 	contrasts::Dict{Symbol, <:AbstractContrasts} = Dict{Symbol, AbstractContrasts}())
 
-	effect = String(effect)
-	iv = first(split(effect, ": "))
 	tbl = _prepare_design_table(f, dat.design, dv_dtype = eltype(dat.epochs))
-	cpc = CPCollection{LinearMixedModel}(iv, mass_fnc, cluster_criterium)
-	rtn = CPMixedModel(cpc,
-		CPData(dat.epochs, tbl; unit_obs = unit_observation(dat.design)),
-		f, effect, contrasts)
+	data = CPData(dat.epochs, tbl; unit_obs = unit_observation(dat.design))
+
+	shuffle_ivs = StudyDesigns.to_symbol_vector(shuffle_ivs)
+	for v in shuffle_ivs
+		has_variable(data.design, v) || throw(ArgumentError("Variable '$(v)' not found in formula or design table!"))
+	end
+
+	cpc = CPCollection{LinearMixedModel}(shuffle_ivs, mass_fnc, cluster_criterium)
+	rtn = CPMixedModel(cpc, data, f, contrasts)
 	fit_initial_time_series!(rtn)
-	_check_effects(rtn.cpc.m[1], effect)
 	return rtn
 end
 
@@ -51,7 +52,7 @@ end
 	local md
 	for t in time_points
 		dv_data[:] = cpt.dat.epochs[:, t] # update dependent variable FIXME view?
-		with_logger(logger) do  # FIXME improve logging
+		with_logger(logger) do   # TODO improve logging
 			md = fit(LinearMixedModel, cpt.f, design; contrasts = cpt.contrasts,
 				progress = false, REML = true) ## fit model!
 		end # logger
