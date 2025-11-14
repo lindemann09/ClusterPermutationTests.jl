@@ -18,7 +18,7 @@ function StatsAPI.fit(::Type{<:CPMixedModel},
 	contrasts::Dict{Symbol, <:AbstractContrasts} = Dict{Symbol, AbstractContrasts}(),
 	log_file::Union{IOStream, Nothing} = nothing)
 
-	tbl = _prepare_design_table(f, dat.design, dv_dtype = eltype(dat.epochs))
+	tbl = _prepare_design_table(f, dat.design; dv_dtype = eltype(dat.epochs))
 	data = CPData(dat.epochs, tbl; unit_obs = unit_observation(dat.design))
 
 	shuffle_ivs = StudyDesigns.to_symbol_vector(shuffle_ivs)
@@ -43,18 +43,17 @@ end
 
 	design = columntable(design)
 	param = T2DParamVector()
-	dv_data = getproperty(design, cpt.f.lhs.sym)
 	if cpt.log_file isa IOStream
 		logger = SimpleLogger(cpt.log_file)
 	else
 		logger = NullLogger()
 	end
 	local md
+
+	md = LinearMixedModel(cpt.f, design; contrasts = cpt.contrasts)
 	for t in time_points
-		dv_data[:] = cpt.dat.epochs[:, t] # update dependent variable FIXME view?
 		with_logger(logger) do   # TODO improve logging
-			md = fit(LinearMixedModel, cpt.f, design; contrasts = cpt.contrasts,
-				progress = false, REML = true) ## fit model!
+			md = refit!(md, view(cpt.dat.epochs, :, t); progress = false, REML = true)
 		end # logger
 		z = coef(md) ./ stderror(md) # parameter: t-value of effect
 		push!(param, z[2:end])

@@ -41,7 +41,7 @@ function StatsAPI.fit(::Type{<:CPLinearModel},
 	mass_fnc::Function = sum,
 	contrasts::Dict{Symbol, <:AbstractContrasts} = Dict{Symbol, AbstractContrasts}())
 
-	tbl = _prepare_design_table(f, dat.design, dv_dtype = eltype(dat.epochs))
+	tbl = _prepare_design_table(f, dat.design; dv_dtype = eltype(dat.epochs))
 	data = CPData(dat.epochs, tbl; unit_obs = unit_observation(dat.design))
 
 	shuffle_ivs = StudyDesigns.to_symbol_vector(shuffle_ivs)
@@ -93,17 +93,19 @@ end
 ### Utilities for regression design tables
 ###
 
-"""select columns from formula and add empty column for dependent variable"""
+"""select columns from formula and add (optionally) empty column for dependent variable"""
 function _prepare_design_table(f::FormulaTerm, design::AbstractStudyDesign;
 	dv_dtype::Type = Float64)::Table
 
 	pred = StatsModels.termvars(f.rhs) # get all predictor variables
-	dv_name = f.lhs.sym
 	for v in pred
 		has_variable(design, v) || throw(ArgumentError("Variable '$(v)' not found in design table!"))
 	end
 
 	perm_design = select_col(columntable(design), pred)  # select required variables
-	dv = Vector{dv_dtype}(undef, length(design))
+
+	# add_dv_column
+	dv_name = f.lhs.sym
+	dv = zeros(dv_dtype, length(design))
 	return Table(perm_design, (; dv_name => dv)) # add dependent variable column
 end

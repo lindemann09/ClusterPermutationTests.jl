@@ -7,7 +7,7 @@ using StatsModels
 import GLM: lm, LinearModel
 using HypothesisTests: HypothesisTests, EqualVarianceTTest, OneSampleTTest,
                         UnequalVarianceTTest, HypothesisTest
-import MixedModels: LinearMixedModel, is_randomeffectsterm
+import MixedModels: LinearMixedModel, is_randomeffectsterm, refit!
 using ProgressMeter: Progress, next!, finish!
 using Logging: with_logger, NullLogger, SimpleLogger
 using Random
