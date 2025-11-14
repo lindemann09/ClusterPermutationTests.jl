@@ -14,7 +14,7 @@ mutable struct CPCollection{M}
 	m::Vector{M} # fitted models of initial fit
 	coefs::TParameterMatrix # (time X effect) time series statistics of the initial fit
 
-	tp::Vector{Int32}# time points involved in all clusters
+	tp::Vector{Int32} # time points involved in all clusters
 	S::Vector{TParameterMatrix} # one matrix per effect, (time X permutation)
 end;
 

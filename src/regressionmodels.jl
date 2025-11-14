@@ -24,8 +24,12 @@ function StatsAPI.fit(T::Type{<:CPRegressionModel},
 	f::FormulaTerm, dat::CPData, cluster_criterium::TClusterCritODef; kwargs...)
 	# default shuffle variables: all categorical predictors except covariates and random effects
 
-	shuffle_ivs = _all_predictors(f; skip_randeff = true)
-	shuffle_ivs = filter(x->!is_covariate(dat.design, x), shuffle_ivs) # no covariates (only categorical)
+	# shuffle_ivs: no covariates and no random effects (only categorical predictors)
+	pred = StatsModels.termvars(f.rhs) # get all predictor variables
+	i = findall(is_randomeffectsterm.(f.rhs))
+	random_effects = isempty(i) ? Symbol[] : [x.args[2].sym for x in f.rhs[i]]
+	shuffle_ivs = filter(x -> !is_covariate(dat.design, x) && x ∉ random_effects, pred)
+
 	fit(T, f, shuffle_ivs, dat, cluster_criterium; kwargs...)
 end
 
@@ -98,35 +102,14 @@ end
 """select columns from formula and add empty column for dependent variable"""
 function _prepare_design_table(f::FormulaTerm, design::AbstractStudyDesign;
 	dv_dtype::Type = Float64)::Table
-	# get all predictors
-	pred = _all_predictors(f)
+
+	pred = StatsModels.termvars(f.rhs) # get all predictor variables
+	dv_name = f.lhs.sym
 	for v in pred
 		has_variable(design, v) || throw(ArgumentError("Variable '$(v)' not found in design table!"))
 	end
 
 	perm_design = select_col(columntable(design), pred)  # select required variables
 	dv = Vector{dv_dtype}(undef, length(design))
-	dv_name = Symbol(f.lhs.sym)
 	return Table(perm_design, (; dv_name => dv)) # add dependent variable column
-end
-
-function _all_predictors(f::FormulaTerm; skip_randeff::Bool = false)::Vector{Symbol}
-	pred = Symbol[]
-	_add_all_vars!(pred, f.rhs, skip_randeff)
-end
-
-function _add_all_vars!(vec::Vector{Symbol}, x::Tuple, skip_randeff)
-	for t in x
-		_add_all_vars!(vec, t, skip_randeff)
-	end
-	return vec
-end
-
-_add_all_vars!(vec::Vector{Symbol}, ::ConstantTerm, ::Bool) = vec # do nothing
-_add_all_vars!(vec::Vector{Symbol}, t::Term, ::Bool) = t.sym in vec ? vec : push!(vec, t.sym)
-_add_all_vars!(vec::Vector{Symbol}, x::InteractionTerm, sr::Bool) = _add_all_vars!(vec, x.terms, sr)
-function _add_all_vars!(vec::Vector{Symbol}, x::FunctionTerm, skip_randeff::Bool)
-	if !skip_randeff || !is_randomeffectsterm(x)
-		_add_all_vars!(vec, Tuple(x.args), skip_randeff)
-	end
 end

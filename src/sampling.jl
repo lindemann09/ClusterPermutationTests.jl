@@ -43,6 +43,23 @@ function fit_initial_time_series!(cpt::ClusterPermutationTest)
 	return nothing
 end
 
+#= 	FIXME MAYBE NOT MUTABLE AFTER ALL?
+	# write existing fits into model fit vector cpt.cpc.m
+	empty!(cpt.cpc.m) # should be empty already
+	c = parameter_estimates(cpt, cpt.dat.design;
+		fit_cluster_only = false, store_fits = true)
+
+	# store coefs as matrix
+	coefs = stack(c, dims = 1) # time X effects
+
+	# write new time points
+	all_cl_ranges = [cluster_ranges(cpt, i) for i in 1:ncoefs(cpt)]
+	tp = collect(Iterators.flatten(_join_ranges(all_cl_ranges)))
+
+	return CPCollection(cpt.cpc.shuffle_ivs, cpt.cpc.mass_fnc, cpt.cpc.cc,
+		cpt.cpc.m, coefs, tp, TParameterMatrix[])
+=#
+
 ###
 ### Resampling
 ###
