@@ -97,20 +97,18 @@ StatsAPI.coefnames(::CPTTest) = ["contrast"]
 ####
 """returns vector (time) of vector (parameters)"""
 @inline function parameter_estimates(cpt::CPTTest,
-	design::AbstractStudyDesign;
-	fit_cluster_only::Bool = true,
+	design::AbstractStudyDesign,
+	time_points::Vector{Int32};
 	store_fits::Bool = false)::TVecTimeXParameter
 
 	# Estimate parameters for a specific cluster (range)
-	epochs, design_tbl = _prepare_data(cpt, cpt.dat.epochs, design)
+	T = typeof(cpt)
+	epochs, design_tbl = _prepare_data(T, cpt.dat.epochs, design,
+			first(cpt.cpc.shuffle_ivs), cpt.compare)
+	iv = first(cpt.cpc.shuffle_ivs)
 	param = TVecTimeXParameter()
-	if fit_cluster_only
-		time_points = cpt.cpc.tp
-	else
-		time_points = Int32(1):Int32(epoch_length(cpt.dat))
-	end
 	for t in time_points
-		tt = _estimate(cpt, view(epochs, :, t), design_tbl)
+		tt = _estimate(T, view(epochs, :, t), design_tbl, iv, cpt.compare)
 		push!(param, [tt.t])
 		if store_fits
 			push!(cpt.cpc.m, tt)
@@ -122,19 +120,20 @@ end
 ####
 #### CPPairedSampleTTest
 ####
-@inline function _prepare_data(cpt::CPPairedSampleTTest,
+@inline function _prepare_data(::Type{CPPairedSampleTTest},
 	epochs::Matrix{<:Real},
-	permutation::AbstractStudyDesign)::Tuple{Matrix{eltype(epochs)}, Table}
+	permutation::AbstractStudyDesign,
+	iv::Symbol,
+	compare::Tuple)::Tuple{Matrix{eltype(epochs)}, Table}
 
-	shuffle_iv =first(cpt.cpc.shuffle_ivs)
-	iv = getcolumn(permutation, shuffle_iv)
-	tbl = Table((; shuffle_iv => iv))
-	a = @view epochs[iv .== cpt.compare[1], :]
-	b = @view epochs[iv .== cpt.compare[2], :]
+	iv_dat = getcolumn(permutation, iv)
+	tbl = Table((; iv => iv_dat))
+	a = @view epochs[iv_dat .== compare[1], :]
+	b = @view epochs[iv_dat .== compare[2], :]
 	return b - a, tbl # equal size required
 end
 
-@inline function _estimate(::CPPairedSampleTTest, values::SubArray{<:Real}, ::Table)
+@inline function _estimate(::Type{CPPairedSampleTTest}, values::SubArray{<:Real}, ::Table, ::Symbol, ::Tuple)
 	return OneSampleTTest(values)
 end
 
@@ -142,35 +141,37 @@ end
 #### CPTwoSampleTTest
 ####
 
-@inline function _prepare_data(cpt::CPTwoSampleTTest,
+@inline function _prepare_data(::Type{<:CPTwoSampleTTest},
 	epochs::Matrix{<:Real},
-	permutation::AbstractStudyDesign)::Tuple{Matrix{eltype(epochs)}, Table}
+	permutation::AbstractStudyDesign,
+	iv::Symbol,
+	::Tuple)::Tuple{Matrix{eltype(epochs)}, Table}
 
-	return epochs, Table((; cpt.cpc.shuffle_iv => getproperty(permutation, cpt.cpc.shuffle_iv)))
+	return epochs, Table((; iv => getproperty(permutation, iv)))
 end
 
-@inline function _estimate(cpt::CPEqualVarianceTTest,
+@inline function _estimate(::Type{CPEqualVarianceTTest},
 	values::SubArray{<:Real},
-	permutation::Table)
+	permutation::Table,
+	iv::Symbol,
+	compare::Tuple)
 
-	(dat_a, dat_b) = _ttest_get_data(cpt, values, permutation)
+	iv_dat = getproperty(permutation, iv)
+	dat_a = @view values[iv_dat .== compare[1]]
+	dat_b = @view values[iv_dat .== compare[2]]
 	return EqualVarianceTTest(dat_a, dat_b)
 end
 
-@inline function _estimate(cpt::CPUnequalVarianceTTest,
+@inline function _estimate(::Type{CPUnequalVarianceTTest},
 	values::SubArray{<:Real},
-	permutation::Table)
+	permutation::Table,
+	iv::Symbol,
+	compare::Tuple)
 
-	(dat_a, dat_b) = _ttest_get_data(cpt, values, permutation)
+	iv_dat = getproperty(permutation, iv)
+	dat_a = @view values[iv_dat .== compare[1]]
+	dat_b = @view values[iv_dat .== compare[2]]
 	return UnequalVarianceTTest(dat_a, dat_b)
-end
-
-@inline function _ttest_get_data(cpt::CPTTest, values::SubArray{<:Real}, permutation::Table)
-	# perform sequential ttests -> parameter
-	iv = getproperty(permutation, cpt.cpc.shuffle_iv)
-	dat_a = @view values[iv .== cpt.compare[1]]
-	dat_b = @view values[iv .== cpt.compare[2]]
-	return dat_a, dat_b
 end
 
 

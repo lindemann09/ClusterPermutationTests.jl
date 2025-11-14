@@ -8,7 +8,7 @@ import GLM: lm, LinearModel
 using HypothesisTests: HypothesisTests, EqualVarianceTTest, OneSampleTTest,
                         UnequalVarianceTTest, HypothesisTest
 import MixedModels: LinearMixedModel, is_randomeffectsterm
-using ProgressMeter: Progress, next!
+using ProgressMeter: Progress, next!, finish!
 using Logging: with_logger, NullLogger, SimpleLogger
 using Random
 using Tables: columntable, getcolumn

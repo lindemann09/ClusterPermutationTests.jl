@@ -37,18 +37,12 @@ end
 #### Parameter estimates
 ####
 @inline function parameter_estimates(cpt::CPMixedModel,
-	design::AbstractStudyDesign;
-	fit_cluster_only::Bool = true,
+	design::AbstractStudyDesign,
+	time_points::Vector{Int32};
 	store_fits::Bool = false)::TVecTimeXParameter
 
 	design = columntable(design)
 	param = TVecTimeXParameter()
-	if fit_cluster_only
-		time_points = cpt.cpc.tp
-	else
-		time_points = Int32(1):Int32(epoch_length(cpt.dat))
-	end
-
 	dv_data = getproperty(design, cpt.f.lhs.sym)
 	if cpt.log_file isa IOStream
 		logger = SimpleLogger(cpt.log_file)

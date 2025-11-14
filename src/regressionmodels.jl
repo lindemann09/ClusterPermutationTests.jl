@@ -69,18 +69,12 @@ end
 """estimates for a specific section in the time series (cluster) for a given permutation
 """
 @inline function parameter_estimates(cpt::CPLinearModel,
-	design::AbstractStudyDesign;
-	fit_cluster_only::Bool = true,
+	design::AbstractStudyDesign,
+	time_points::Vector{Int32};
 	store_fits::Bool = false)::TVecTimeXParameter
 
 	design = columntable(design)
 	param = TVecTimeXParameter()
-	if fit_cluster_only
-		time_points = cpt.cpc.tp
-	else
-		time_points = Int32(1):Int32(epoch_length(cpt.dat))
-	end
-
 	dv_data = getproperty(design, cpt.f.lhs.sym)
 	for t in time_points
 		dv_data[:] = cpt.dat.epochs[:, t] # update dependent variable FIXME view?

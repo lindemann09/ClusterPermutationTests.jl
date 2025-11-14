@@ -33,32 +33,16 @@ function fit_initial_time_series!(cpt::ClusterPermutationTest)
 
 	# replace existing fits (m) and coefs
 	empty!(cpt.cpc.m)
-	c = parameter_estimates(cpt, cpt.dat.design;
-						fit_cluster_only = false, store_fits = true)
-	cpt.cpc.coefs = stack(c, dims=1) # time X effects
+	atp = collect(Int32(1):Int32(epoch_length(cpt.dat))) # all time points
+	c = parameter_estimates(cpt, cpt.dat.design, atp; store_fits = true)
+	cpt.cpc.coefs = stack(c, dims = 1) # time X effects
 
 	# write new time points
-	all_cl_ranges = [cluster_ranges(cpt, i) for i in 1:ncoefs(cpt)]
-	cpt.cpc.tp = collect(Iterators.flatten(_join_ranges(all_cl_ranges)))
+	cpt.cpc.cl = [_cluster_ranges(d, cpt.cpc.cc) for d in eachcol(cpt.cpc.coefs)]
 	return nothing
-end
+end#= 	FIXME MAYBE NOT MUTABLE AFTER ALL? =#
 
-#= 	FIXME MAYBE NOT MUTABLE AFTER ALL?
-	# write existing fits into model fit vector cpt.cpc.m
-	empty!(cpt.cpc.m) # should be empty already
-	c = parameter_estimates(cpt, cpt.dat.design;
-		fit_cluster_only = false, store_fits = true)
 
-	# store coefs as matrix
-	coefs = stack(c, dims = 1) # time X effects
-
-	# write new time points
-	all_cl_ranges = [cluster_ranges(cpt, i) for i in 1:ncoefs(cpt)]
-	tp = collect(Iterators.flatten(_join_ranges(all_cl_ranges)))
-
-	return CPCollection(cpt.cpc.shuffle_ivs, cpt.cpc.mass_fnc, cpt.cpc.cc,
-		cpt.cpc.m, coefs, tp, TParameterMatrix[])
-=#
 
 ###
 ### Resampling
@@ -80,8 +64,9 @@ function resample!(rng::AbstractRNG,
 		n_threads = 1
 	end
 
-	n_samples = length(cpt.cpc.tp)
+	n_samples = length(_joined_ranges(cpt.cpc.cl))
 	print("number of samples to be tested: $n_samples")
+
 	if progressmeter
 		prog = Progress(n_permutations, 0.25, "resampling")
 	else
@@ -93,12 +78,13 @@ function resample!(rng::AbstractRNG,
 		npt = convert(Int64, ceil(n_permutations/n_threads)) # n permutations per thread
 		results = Vector{Vector{TVecTimeXParameter}}(undef, n_threads) # permutations per threads
 		Threads.@threads for n in 1:n_threads
-			results[n] = _do_resampling(rng, cpt; n_permutations = npt, progressmeter = prog)
+			results[n] = _do_resampling(rng, cpt,  npt,  prog)
 		end
 	else
 		println("")
-		results = [_do_resampling(rng, cpt; n_permutations, progressmeter = prog)]
+		results = [_do_resampling(rng, cpt, n_permutations, prog)]
 	end
+	isnothing(prog) || finish!(prog)
 
 	# make matrices of each effect and store in cpt.cpc.S
 	n_effects = ncoefs(cpt)
@@ -114,7 +100,7 @@ function resample!(rng::AbstractRNG,
 	end
 
 	for (cnt, effects) in enumerate(effect_array)
-		mtx = stack(effects, dims=2) # make matrix (time X permutation))
+		mtx = stack(effects, dims = 2) # make matrix (time X permutation))
 		if length(cpt.cpc.S) < cnt
 			push!(cpt.cpc.S, mtx)
 		else
@@ -127,17 +113,17 @@ end;
 
 """returns vector (sample) of vector (time) of vector (effect)"""
 function _do_resampling(rng::AbstractRNG,
-	cpt::ClusterPermutationTest;
+	cpt::ClusterPermutationTest,
 	n_permutations::Integer,
 	progressmeter::Union{Nothing, Progress})::Vector{TVecTimeXParameter}
 
 	design = copy(cpt.dat.design) # shuffle always copy of design
 	# prepare vector of effect matrix
 	permutations = TVecTimeXParameter[]
+	time_points = _joined_ranges(cpt.cpc.cl)
 	for _ in 1:n_permutations
 		shuffle_variable!(rng, design, cpt.cpc.shuffle_ivs) # shuffle design
-		params = parameter_estimates(cpt, design;
-			fit_cluster_only = true, store_fits = false) # get parameter estimates for this cluster (time x effect)
+		params = parameter_estimates(cpt, design, time_points; store_fits = false) # get parameter estimates for this cluster (time x effect)
 		push!(permutations, params)
 		isnothing(progressmeter) || next!(progressmeter)
 	end

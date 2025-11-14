@@ -125,10 +125,8 @@ function _cluster_table(coef_id::Integer,
 	return CoefTable(cols, colnms, rownms, pvalcol, teststatcol)
 end
 
-
-## helper function
-function _join_ranges(vec::Vector{UnitRange{T}}) where T <: Integer
-	rtn::Vector{UnitRange{T}} = []
+function _joined_ranges(vec::Vector{TClusterRange})
+	rtn::Vector{TClusterRange} = []
 	for x in sort(vec)
 		if isempty(rtn) || (rtn[end].stop+1 < x.start)
 			push!(rtn, x)
@@ -136,7 +134,6 @@ function _join_ranges(vec::Vector{UnitRange{T}}) where T <: Integer
 			rtn[end] = rtn[end].start:maximum((x.stop, rtn[end].stop))
 		end
 	end
-	return rtn
+	return collect(Iterators.flatten(rtn))
 end
-_join_ranges(vec::Vector{Vector{UnitRange{T}}}) where T =
-	_join_ranges(vcat(vec...))
+_joined_ranges(vec::Vector{Vector{TClusterRange}}) = _joined_ranges(vcat(vec...))
