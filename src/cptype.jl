@@ -3,7 +3,7 @@
 ###
 const TParameterVector = Vector{Float64}
 const TParameterMatrix = Matrix{Float64}
-const TVecTimeXParameter = Vector{TParameterVector}
+const T2DParamVector = Vector{TParameterVector}
 const no_effect_error = ArgumentError("Please specify an effect.")
 
 mutable struct CPCollection{M}
@@ -14,10 +14,11 @@ mutable struct CPCollection{M}
 	m::Vector{M} # fitted models of initial fit
 	coefs::TParameterMatrix # (time X effect) time series statistics of the initial fit
 
-	cl::Vector{Vector{TClusterRange}} # cluster ranges for all effects
+	cl::Vector{Vector{TClusterRange}} # cluster ranges for all effects (effectXcluster)
 
-	S::Vector{TParameterMatrix} # one matrix per effect, (time X permutation)
+	S::Vector{TParameterMatrix} # one matrix per effect, (permutation X cluster)
 end;
+#= 	FIXME MAYBE NOT MUTABLE AFTER ALL? =#
 
 CPCollection{M}(shuffle_ivs::Vector{Symbol}, mass_fnc::Function, cluster_criterium::TClusterCritODef) where {M} =
 	CPCollection{M}(shuffle_ivs, mass_fnc, cluster_criterium,
@@ -44,7 +45,7 @@ function npermutations(x::ClusterPermutationTest)
 	if length(x.cpc.S) == 0
 		return 0
 	else
-		return size(x.cpc.S[1], 2)
+		return size(x.cpc.S[1], 1)
 	end
 end
 ncoefs(x::ClusterPermutationTest) = size(x.cpc.coefs, 2)
@@ -115,17 +116,8 @@ function cluster_nhd(cpt::ClusterPermutationTest,
 	if length(cpt.cpc.S) == 0
 		return zeros(Float64, 0, 0)
 	else
-		rtn = Vector{Float64}[]
 		e_id = _effect_id(cpt, effect)
-		cl_ranges = cluster_ranges(cpt, e_id)
-		time_points = _joined_ranges(cpt.cpc.cl)
-		for cl in cl_ranges
-			rows = findfirst(isequal(cl.start), time_points):findfirst(isequal(cl.stop), time_points)
-			mtx_sub = view(cpt.cpc.S[e_id], rows, :)
-			cl_mass = [cpt.cpc.mass_fnc(col) for col in eachcol(mtx_sub)]
-			push!(rtn, cl_mass)
-		end
-		return reduce(hcat, rtn)
+		return cpt.cpc.S[e_id]
 	end
 end
 

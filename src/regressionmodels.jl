@@ -71,10 +71,10 @@ end
 @inline function parameter_estimates(cpt::CPLinearModel,
 	design::AbstractStudyDesign,
 	time_points::Vector{Int32};
-	store_fits::Bool = false)::TVecTimeXParameter
+	store_fits::Bool = false)::T2DParamVector # time x effect
 
 	design = columntable(design)
-	param = TVecTimeXParameter()
+	param = T2DParamVector()
 	dv_data = getproperty(design, cpt.f.lhs.sym)
 	for t in time_points
 		dv_data[:] = cpt.dat.epochs[:, t] # update dependent variable FIXME view?

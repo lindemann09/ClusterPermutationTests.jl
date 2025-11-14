@@ -7,7 +7,7 @@ struct CPMixedModel <: CPRegressionModel
 	log_file::Union{IOStream, Nothing} # iostream to log fitting
 end;
 
-n_threads_default(::CPMixedModel) = 1 #floor(Int64, Threads.nthreads()/4)
+n_threads_default(::CPMixedModel) = 2
 
 function StatsAPI.fit(::Type{<:CPMixedModel},
 	f::FormulaTerm,
@@ -39,10 +39,10 @@ end
 @inline function parameter_estimates(cpt::CPMixedModel,
 	design::AbstractStudyDesign,
 	time_points::Vector{Int32};
-	store_fits::Bool = false)::TVecTimeXParameter
+	store_fits::Bool = false)::T2DParamVector
 
 	design = columntable(design)
-	param = TVecTimeXParameter()
+	param = T2DParamVector()
 	dv_data = getproperty(design, cpt.f.lhs.sym)
 	if cpt.log_file isa IOStream
 		logger = SimpleLogger(cpt.log_file)
