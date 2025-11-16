@@ -29,21 +29,25 @@ TODO
 """initial fit of  all data samples (time_series) using (not permuted) design"""
 
 
-function fit_initial_time_series!(cpt::ClusterPermutationTest)
-
+function fit_initial_time_series!(cpt::ClusterPermutationTest;
+		logger::Union{AbstractLogger, Nothing} = nothing)
 	empty!(cpt.cpc.S)
 
 	# replace existing fits (m) and coefs
 	empty!(cpt.cpc.m)
 	atp = collect(Int32(1):Int32(epoch_length(cpt.dat))) # all time points
+
+	old_logger = isnothing(logger) ? nothing : global_logger(logger) # change logger
 	c = parameter_estimates(cpt, cpt.dat.design, atp; store_fits = true)
+	isnothing(old_logger) || global_logger(old_logger)
+
 	cpt.cpc.coefs = stack(c, dims = 1) # time X effects
+
 
 	# write new time points
 	cpt.cpc.cl = [_cluster_ranges(d, cpt.cpc.cc) for d in eachcol(cpt.cpc.coefs)]
 	return nothing
 end
-
 
 
 ###
@@ -56,7 +60,8 @@ function resample!(rng::AbstractRNG,
 	cpt::ClusterPermutationTest,
 	n_permutations::Integer;
 	progressmeter::Bool = true,
-	use_threads::Union{Integer, Bool} = true)
+	use_threads::Union{Integer, Bool} = true,
+	logger::Union{AbstractLogger, Nothing} = NullLogger())
 
 	if use_threads === true
 		n_threads = n_threads_default(cpt)
@@ -75,6 +80,8 @@ function resample!(rng::AbstractRNG,
 		prog = nothing
 	end
 
+	old_logger = isnothing(logger) ? nothing : global_logger(logger) # change logger
+
 	if n_threads > 1
 		println(", using $n_threads threads")
 		npt = convert(Int64, ceil(n_permutations/n_threads)) # n permutations per thread
@@ -86,6 +93,7 @@ function resample!(rng::AbstractRNG,
 		println("")
 		results = [_do_resampling(rng, cpt, n_permutations, prog)]
 	end
+	isnothing(old_logger) || global_logger(old_logger)
 	isnothing(prog) || finish!(prog)
 
 	# make matrices of each effect and store in cpt.cpc.S
@@ -123,7 +131,7 @@ function _do_resampling(rng::AbstractRNG,
 	n_permutations::Integer,
 	progressmeter::Union{Nothing, Progress})::Vector{T2DParamVector} # vector of effect X cluster
 
-	design = copy(cpt.dat.design) # shuffle always copy of design
+ 	design = copy(cpt.dat.design) # shuffle always copy of design
 
 	# prepare vector (cms) of effect x cluster
 	permutations = T2DParamVector[]

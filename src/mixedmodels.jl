@@ -4,7 +4,7 @@ struct CPMixedModel <: CPRegressionModel
 
 	f::FormulaTerm
 	contrasts::Dict{Symbol, AbstractContrasts} # contrasts for LinearModel
-	log_file::Union{IOStream, Nothing} # iostream to log fitting
+	reml::Bool # use REML estimation
 end;
 
 n_threads_default(::CPMixedModel) = 2
@@ -16,7 +16,8 @@ function StatsAPI.fit(::Type{<:CPMixedModel},
 	cluster_criterium::TClusterCritODef;
 	mass_fnc::Function = sum,
 	contrasts::Dict{Symbol, <:AbstractContrasts} = Dict{Symbol, AbstractContrasts}(),
-	log_file::Union{IOStream, Nothing} = nothing)
+	logger::Union{AbstractLogger, Nothing} = NullLogger(),
+	reml::Bool = false) ::CPMixedModel
 
 	tbl = _prepare_design_table(f, dat.design; dv_dtype = eltype(dat.epochs))
 	data = CPData(dat.epochs, tbl; unit_obs = unit_observation(dat.design))
@@ -27,8 +28,9 @@ function StatsAPI.fit(::Type{<:CPMixedModel},
 	end
 
 	cpc = CPCollection{LinearMixedModel}(shuffle_ivs, mass_fnc, cluster_criterium)
-	rtn = CPMixedModel(cpc, data, f, contrasts, log_file)
-	fit_initial_time_series!(rtn)
+	rtn = CPMixedModel(cpc, data, f, contrasts, reml)
+
+	fit_initial_time_series!(rtn; logger)
 	return rtn
 end
 
@@ -43,18 +45,10 @@ end
 
 	design = columntable(design)
 	param = T2DParamVector()
-	if cpt.log_file isa IOStream
-		logger = SimpleLogger(cpt.log_file)
-	else
-		logger = NullLogger()
-	end
-	local md
 
 	md = LinearMixedModel(cpt.f, design; contrasts = cpt.contrasts)
 	for t in time_points
-		with_logger(logger) do   # TODO improve logging
-			md = refit!(md, view(cpt.dat.epochs, :, t); progress = false, REML = true)
-		end # logger
+		md = refit!(md, view(cpt.dat.epochs, :, t); progress = false, REML = cpt.reml)
 		z = coef(md) ./ stderror(md) # parameter: t-value of effect
 		push!(param, z[2:end])
 		if store_fits
