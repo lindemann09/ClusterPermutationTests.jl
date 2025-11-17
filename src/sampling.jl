@@ -29,8 +29,9 @@ TODO
 """initial fit of  all data samples (time_series) using (not permuted) design"""
 
 
-function fit_initial_time_series!(cpt::ClusterPermutationTest;
-		logger::Union{AbstractLogger, Nothing} = nothing)
+function fit_initial_time_series!(
+	cpt::ClusterPermutationTest;
+	logger::Union{AbstractLogger, Nothing} = nothing)
 	empty!(cpt.cpc.S)
 
 	# replace existing fits (m) and coefs
@@ -41,11 +42,10 @@ function fit_initial_time_series!(cpt::ClusterPermutationTest;
 	c = parameter_estimates(cpt, cpt.dat.design, atp; store_fits = true)
 	isnothing(old_logger) || global_logger(old_logger)
 
-	cpt.cpc.coefs = stack(c, dims = 1) # time X effects
-
-
+	coefs = stack(c, dims = 1) # time X effects
 	# write new time points
-	cpt.cpc.cl = [_cluster_ranges(d, cpt.cpc.cc) for d in eachcol(cpt.cpc.coefs)]
+	cpt.cpc.cl = [_cluster_ranges(d, cpt.cpc.cc) for d in eachcol(coefs)]
+
 	return nothing
 end
 
@@ -131,7 +131,7 @@ function _do_resampling(rng::AbstractRNG,
 	n_permutations::Integer,
 	progressmeter::Union{Nothing, Progress})::Vector{T2DParamVector} # vector of effect X cluster
 
- 	design = copy(cpt.dat.design) # shuffle always copy of design
+	design = copy(cpt.dat.design) # shuffle always copy of design
 
 	# prepare vector (cms) of effect x cluster
 	permutations = T2DParamVector[]

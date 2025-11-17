@@ -1,12 +1,13 @@
 module ClusterPermutationTests
 
 using Reexport: @reexport
-import StatsAPI: StatsAPI, fit
+import DataAPI: nrow, ncol
+import StatsAPI: StatsAPI, fit, nobs
 using StatsBase: coef, stderror, CoefTable, quantilerank
 using StatsModels
 import GLM: lm, LinearModel
 using HypothesisTests: HypothesisTests, EqualVarianceTTest, OneSampleTTest,
-                        UnequalVarianceTTest, HypothesisTest
+	UnequalVarianceTTest, HypothesisTest
 import MixedModels: LinearMixedModel, is_randomeffectsterm, refit!
 using ProgressMeter: Progress, next!, finish!
 using Logging: with_logger, NullLogger, SimpleLogger, AbstractLogger, global_logger
@@ -18,34 +19,34 @@ include("StudyDesigns/StudyDesigns.jl")
 @reexport using .StudyDesigns
 
 export ClusterPermutationTest,
-    CPTTest, CPPairedSampleTTest, CPEqualVarianceTTest, CPUnequalVarianceTTest,
-    CPRegressionModel, CPLinearModel, CPMixedModel,
-    # data,
-    CPData,
-    select_epochs,
-    epoch_length,
-    nepochs,
-    design_table,
-    # Cluster
-    ClusterCriterium,
-    ClusterDefinition,
-    cluster_mass_stats,
-    cluster_ranges,
-    cluster_pvalues,
-    cluster_table,
-    cluster_nhd,
-    time_series_stats,
-    time_series_fits,
-    npermutations,
-    reset,
-    fit,
-    coefnames,
-    resample!,
-    summary,
-    @formula, # reexport
-    # plotting
-    plot_time_series_stats!,
-    plot_cluster_nhd!
+	CPTTest, CPPairedSampleTTest, CPEqualVarianceTTest, CPUnequalVarianceTTest,
+	CPRegressionModel, CPLinearModel, CPMixedModel,
+	# DataAPI, StatsAPI
+	nrow, ncol,
+	nobs, fit, coefnames, @formula,
+	# data,
+	CPData,
+	select_epochs,
+	epoch_length,
+	nepochs,
+	design_table,
+	# Cluster
+	ClusterCriterium,
+	ClusterDefinition,
+	cluster_mass_stats,
+	cluster_ranges,
+	cluster_pvalues,
+	cluster_table,
+	cluster_nhd,
+	time_series_stats,
+	time_series_fits,
+	npermutations,
+	reset,
+	resample!,
+	# plotting
+	plot_time_series_stats!,
+	plot_cluster_nhd!
+
 
 include("StudyDesigns/utilities.jl")
 include("cluster.jl")

@@ -16,16 +16,18 @@ unit_observation(::NoUnitObs) = nothing
 
 """ The returned AbstractStudyDesign object implements the Tables.jl (https://github.com/JuliaData/Tables.jl/) interface, and can be converted e.g. to a DataFrame via using
   DataFrames; DataFrame(...)."""
-
 function study_design(
 	design::Table;
 	unit_obs::OptSymbolOString = nothing,
-	covariates::OptMultiSymbolOString = nothing)
+	covariates::OptMultiSymbolOString = nothing,
+	exclude_columns::OptMultiSymbolOString = nothing)
 
 	design_vars = columnnames(design)
 	within_names = Symbol[]
 	between_names = Symbol[]
 	covariate_names = Symbol[]
+
+	exclude_columns = isnothing(exclude_columns) ? Symbol[] : to_symbol_vector(exclude_columns)
 
 	# check variables
 	if !isnothing(unit_obs)
@@ -41,7 +43,7 @@ function study_design(
 	end
 	# classify variables
 	for v in design_vars
-		if v == unit_obs || v in covariate_names
+		if v == unit_obs || v in covariate_names || v in exclude_columns
 			continue
 		elseif !_guess_is_categorical(design, v)
 			push!(covariate_names, v)
@@ -103,10 +105,10 @@ function make_design(design::Table, unit_obs::Symbol;
 	end
 end
 
-function make_design(design::Table,	unit_obs::Nothing;
-			between_names::Vector{Symbol},
-			covariate_names::Vector{Symbol},
-			kwargs...)
+function make_design(design::Table, unit_obs::Nothing;
+	between_names::Vector{Symbol},
+	covariate_names::Vector{Symbol},
+	kwargs...)
 	# unit_obs is not defined: It has to be a pure between design
 	# each row is a unit of observation: get cell indices of each unique combination of between variables
 	between = select_col(design, between_names, convert_categorical = true)
@@ -196,17 +198,17 @@ function cell_indices(dat::Table, columns::SymbolVecOrTuple)
 	end
 
 	# all combinations of column values => logically combine bool vector of indices
-    ids = BitVector[]
+	ids = BitVector[]
 	existing_combis = NamedTuple[]
-    for uval in Iterators.product(unique_vals...) # loop each possible combi
+	for uval in Iterators.product(unique_vals...) # loop each possible combi
 		x = true
-        row = [n=>c for (n, c) in zip(columns, uval)] # naming unique combis,  Vector{Pair{Symbol, String}}
+		row = [n=>c for (n, c) in zip(columns, uval)] # naming unique combis,  Vector{Pair{Symbol, String}}
 		for (col, val) in row
 			x = x .& index_dict[col][val]
 		end
 		if any(x)
 			push!(ids, x)
-            push!(existing_combis, NamedTuple(row))
+			push!(existing_combis, NamedTuple(row))
 		end
 	end
 

@@ -32,6 +32,7 @@ GLM = "1.9.0"
 HypothesisTests = "0.11"
 Logging = "1.11.0"
 MixedModels = "5.1.0"
+MixedModelsDatasets = "0.1.2"
 ProgressMeter = "1"
 Reexport = "1.2.2"
 StatsAPI = "1"
@@ -43,7 +44,8 @@ julia = "1.9"
 
 [extras]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
+MixedModelsDatasets = "7e9fb7ac-9f67-43bf-b2c8-96ba0796cbb6"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test", "Aqua"]
+test = ["Test", "Aqua", "MixedModelsDatasets"]

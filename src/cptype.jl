@@ -18,11 +18,12 @@ mutable struct CPCollection{M}
 
 	S::Vector{TParameterMatrix} # one matrix per effect, (permutation X cluster)
 end;
-#= 	FIXME MAYBE NOT MUTABLE AFTER ALL? =#
 
-CPCollection{M}(shuffle_ivs::Vector{Symbol}, mass_fnc::Function, cluster_criterium::TClusterCritODef) where {M} =
-	CPCollection{M}(shuffle_ivs, mass_fnc, cluster_criterium,
-		M[], zeros(Float64, 0, 0), TClusterRange[], TParameterMatrix[])
+function CPCollection{M}(shuffle_ivs::Vector{Symbol}, mass_fnc::Function,
+	cluster_criterium::TClusterCritODef) where {M}
+	return CPCollection{M}(shuffle_ivs, mass_fnc, cluster_criterium,
+			M[], zeros(Float64, 0, 0), TClusterRange[], TParameterMatrix[])
+end
 
 ###
 ### ClusterPermutationTest
@@ -51,16 +52,14 @@ end
 ncoefs(x::ClusterPermutationTest) = size(x.cpc.coefs, 2)
 
 time_series_stats(::ClusterPermutationTest) = throw(no_effect_error)
-time_series_stats(x::ClusterPermutationTest, effect::Union{Integer, Symbol, String}) =
-	view(x.cpc.coefs, :, _effect_id(x, effect))
+time_series_stats(x::ClusterPermutationTest, effect::Union{Integer, Symbol, String}) = view(x.cpc.coefs, :, _effect_id(x, effect))
 
 ##
 ## Cluster Functions
 ##
 
 cluster_ranges(::ClusterPermutationTest) = throw(no_effect_error)
-cluster_ranges(cpt::ClusterPermutationTest, effect::Union{Integer, Symbol, String}) =
-	cpt.cpc.cl[_effect_id(cpt, effect)]
+cluster_ranges(cpt::ClusterPermutationTest, effect::Union{Integer, Symbol, String}) = cpt.cpc.cl[_effect_id(cpt, effect)]
 
 cluster_mass_stats(::ClusterPermutationTest) = throw(no_effect_error)
 function cluster_mass_stats(cpt::ClusterPermutationTest, effect::Union{Integer, Symbol, String})
@@ -80,14 +79,13 @@ end
 function cluster_table(cpt::ClusterPermutationTest, effect::Union{Integer, Symbol, String};
 	inhibit_warning::Bool = false,
 	add_effect_names::Bool = false)::CoefTable
-
 	i = _effect_id(cpt, effect)
 	coef_name = coefnames(cpt)[i]
 	ts = time_series_stats(cpt, i)
 	cl_ranges = cluster_ranges(cpt, i)
 	cl_mass_stats = _cluster_mass_stats(cpt.cpc.mass_fnc, ts, cl_ranges)
 	p_vals = _cluster_pvalues(cluster_nhd(cpt, i), cl_mass_stats, inhibit_warning)
-	_cluster_table(i, coef_name, cl_ranges, cl_mass_stats, p_vals; add_effect_names)
+	return _cluster_table(i, coef_name, cl_ranges, cl_mass_stats, p_vals; add_effect_names)
 end
 
 """Cluster table for all effects"""
@@ -112,7 +110,6 @@ end
 cluster_nhd(::ClusterPermutationTest) = throw(no_effect_error)
 function cluster_nhd(cpt::ClusterPermutationTest,
 	effect::Union{Integer, Symbol, String})::TParameterMatrix # (permutation X cluster)
-
 	if length(cpt.cpc.S) == 0
 		return zeros(Float64, 0, 0)
 	else
@@ -120,7 +117,6 @@ function cluster_nhd(cpt::ClusterPermutationTest,
 		return cpt.cpc.S[e_id]
 	end
 end
-
 
 function StatsAPI.summary(x::ClusterPermutationTest)
 	println(_info(x))

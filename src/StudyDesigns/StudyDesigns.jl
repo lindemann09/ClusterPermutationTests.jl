@@ -1,31 +1,29 @@
 module StudyDesigns
 
 using DataAPI: DataAPI, nrow, ncol
-using StatsAPI
-using CategoricalArrays: CategoricalValue, CategoricalArray, categorical
+using StatsAPI: StatsAPI, fit, nobs
 using Tables
 using Tables: getcolumn, columnnames
+using CategoricalArrays: CategoricalValue, CategoricalArray, categorical
 using TypedTables: Table
 using Random: Random, AbstractRNG, shuffle
 
-export AbstractStudyDesign, BetweenDesign, WithinDesign, MixedDesign,
-    UnitObs, NoUnitObs,
+export AbstractStudyDesign,
+	BetweenDesign, WithinDesign, MixedDesign,
+	UnitObs, NoUnitObs,
 	study_design,
-    names,
-    names_within,
-    names_between,
-    names_covariates,
-    has_variable,
-    is_covariate,
-    is_within,
-    is_between,
-    unit_observation,
-    shuffle_variable!,
-    shuffle_variable,
-    nobs,
-	nrows,
-	ncols
-
+	names,
+	names_within,
+	names_between,
+	names_covariates,
+	has_variable,
+	is_covariate,
+	is_within,
+	is_between,
+	unit_observation,
+	shuffle_variable!,
+	shuffle_variable,
+	nrow, ncol, nobs
 
 ###
 ### Unit of Observation struct
