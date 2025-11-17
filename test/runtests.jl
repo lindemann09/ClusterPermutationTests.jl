@@ -55,13 +55,12 @@ end
 	epochs = CSV.Tables.matrix(CSV.File(download(fl_epochs), header = false))
 	dat = CPData(epochs, CSV.read(download(fl_design), Table); unit_obs = :subject_id)
 
-    cluster_criterium = ClusterCriterium(threshold=1.69, min_size=50) # 10%
+	cluster_criterium = ClusterCriterium(threshold = 1.69, min_size = 50) # 10%
 
 	cpt = fit(CPPairedSampleTTest, @formula(y ~ operator_str), dat, cluster_criterium)
 	resample!(cpt, 2000; use_threads = false)
 	resample!(cpt, 3000; use_threads = true)
-    @test length(cluster_ranges(cpt)) == 2
+	@test length(cluster_ranges(cpt)) == 2
 	@test cluster_mass_stats(cpt) ≈ [-749.6, -13669.8] atol = 1
-    @test cluster_pvalues(cpt)[2] < 0.001
-
+	@test cluster_pvalues(cpt)[2] < 0.001
 end
