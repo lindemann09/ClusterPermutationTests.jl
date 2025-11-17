@@ -1,7 +1,7 @@
 name = "ClusterPermutationTests"
 uuid = "e3bc594e-7e39-4b61-be5a-4b8b3e7ff14e"
 authors = ["Oliver Lindemann"]
-version = "0.4.0-dev"
+version = "0.4.0"
 
 [deps]
 CategoricalArrays = "324d7699-5711-5eae-9e2f-1d82baa6b597"
