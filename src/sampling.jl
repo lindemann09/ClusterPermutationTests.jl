@@ -42,9 +42,9 @@ function fit_initial_time_series!(
 	c = parameter_estimates(cpt, cpt.dat.design, atp; store_fits = true)
 	isnothing(old_logger) || global_logger(old_logger)
 
-	coefs = stack(c, dims = 1) # time X effects
+	cpt.cpc.coefs = stack(c, dims = 1) # time X effects
 	# write new time points
-	cpt.cpc.cl = [_cluster_ranges(d, cpt.cpc.cc) for d in eachcol(coefs)]
+	cpt.cpc.cl = [_cluster_ranges(d, cpt.cpc.cc) for d in eachcol(cpt.cpc.coefs)]
 
 	return nothing
 end
@@ -75,7 +75,7 @@ function resample!(rng::AbstractRNG,
 	print("number of samples to be tested: $n_samples")
 
 	if progressmeter
-		prog = Progress(n_permutations, 0.25, "resampling")
+		prog = Progress(n_permutations; dt = 0.25, desc = "resampling")
 	else
 		prog = nothing
 	end

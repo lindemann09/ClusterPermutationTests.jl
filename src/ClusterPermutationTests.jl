@@ -41,7 +41,6 @@ export ClusterPermutationTest,
 	time_series_stats,
 	time_series_fits,
 	npermutations,
-	reset,
 	resample!,
 	# plotting
 	plot_time_series_stats!,
