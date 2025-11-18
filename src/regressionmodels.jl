@@ -102,7 +102,7 @@ function _prepare_design_table(f::FormulaTerm, design::AbstractStudyDesign;
 		has_variable(design, v) || throw(ArgumentError("Variable '$(v)' not found in design table!"))
 	end
 
-	perm_design = select_col(columntable(design), pred)  # select required variables
+	perm_design = select_cols(columntable(design), pred)  # select required variables
 
 	# add_dv_column
 	dv_name = f.lhs.sym

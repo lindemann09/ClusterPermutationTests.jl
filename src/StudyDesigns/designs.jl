@@ -72,7 +72,7 @@ function make_design(design::Table, unit_obs::Symbol;
 	uo = UnitObs(unit_obs, categorical(getproperty(design, unit_obs)))
 
 	if !isempty(within_names)
-		within = select_col(design, within_names, convert_categorical = true)
+		within = select_cols(design, within_names, convert_categorical = true)
 	else
 		within = nothing
 	end
@@ -81,18 +81,18 @@ function make_design(design::Table, unit_obs::Symbol;
 		if unit_obs ∉ between_names
 			between_names = vcat(uo.name, between_names)
 		end
-		between = select_col(design, between_names, convert_categorical = true)
+		between = select_cols(design, between_names, convert_categorical = true)
 		between = Table(unique(between))
 	else
 		between = nothing
 	end
 	if !isempty(within_names)
-		within = select_col(design, within_names, convert_categorical = true)
+		within = select_cols(design, within_names, convert_categorical = true)
 	else
 		within = nothing
 	end
 
-	co_var_tbl = isempty(covariate_names) ? EMPTYTABLE : select_col(design, covariate_names)
+	co_var_tbl = isempty(covariate_names) ? EMPTYTABLE : select_cols(design, covariate_names)
 
 	if !isnothing(between) && !isnothing(within)
 		return MixedDesign(between, within, co_var_tbl, uo)
@@ -111,11 +111,11 @@ function make_design(design::Table, unit_obs::Nothing;
 	kwargs...)
 	# unit_obs is not defined: It has to be a pure between design
 	# each row is a unit of observation: get cell indices of each unique combination of between variables
-	between = select_col(design, between_names, convert_categorical = true)
+	between = select_cols(design, between_names, convert_categorical = true)
 	ids_uo, between = cell_indices(between, between_names)
 	X = reduce(hcat, ids_uo) # vecvec to matrix
 	i = findfirst.(eachrow(X))
-	co_var_tbl = isempty(covariate_names) ? EMPTYTABLE : select_col(design, covariate_names)
+	co_var_tbl = isempty(covariate_names) ? EMPTYTABLE : select_cols(design, covariate_names)
 	return BetweenDesign(between, co_var_tbl, NoUnitObs(i))
 end
 

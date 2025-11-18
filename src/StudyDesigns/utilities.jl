@@ -24,7 +24,7 @@ function select_rows(nt::NamedTuple,
 	return rtn
 end
 
-function select_col(nt::NamedTuple, cols::AbstractVector{Symbol};
+function select_cols(nt::NamedTuple, cols::AbstractVector{Symbol};
 	convert_categorical::Bool = false)::NamedTuple
 	# utility to select rows of a NamedTuple representation df tabular data
 	rtn = NamedTuple()
@@ -37,8 +37,8 @@ function select_col(nt::NamedTuple, cols::AbstractVector{Symbol};
 	return rtn
 end
 
-function select_col(tbl::Table, cols::AbstractVector{Symbol}; convert_categorical::Bool = false)
-	rtn = select_col(columntable(tbl), cols; convert_categorical)
+function select_cols(tbl::Table, cols::AbstractVector{Symbol}; convert_categorical::Bool = false)
+	rtn = select_cols(columntable(tbl), cols; convert_categorical)
 	if isempty(rtn)
 		return nothing
 	else

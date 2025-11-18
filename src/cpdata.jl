@@ -40,7 +40,7 @@ function CPData(epochs::AbstractMatrix{<:Real},
 				vars = vcat(unit_obs, vars...)
 			end
 		end
-		tbl = select_col(design, vars)
+		tbl = select_cols(design, vars)
 		perm_design = study_design(tbl; unit_obs) # select variables
 		return select_epochs(CPData(epochs, perm_design); kwargs...)
 	end
