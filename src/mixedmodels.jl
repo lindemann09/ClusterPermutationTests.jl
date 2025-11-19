@@ -19,17 +19,9 @@ function StatsAPI.fit(::Type{<:CPMixedModel},
 	logger::Union{AbstractLogger, Nothing} = NullLogger(),
 	reml::Bool = false) ::CPMixedModel
 
-	tbl = _prepare_design_table(f, dat.design; dv_dtype = eltype(dat.epochs))
-	data = CPData(dat.epochs, tbl; unit_obs = unit_observation(dat.design))
-
-	shuffle_ivs = StudyDesigns.to_symbol_vector(shuffle_ivs)
-	for v in shuffle_ivs
-		has_variable(data.design, v) || throw(ArgumentError("Variable '$(v)' not found in formula or design table!"))
-	end
-
+	data, shuffle_ivs = _prepare_regression_data(f, dat, shuffle_ivs)
 	cpc = CPCollection{LinearMixedModel}(shuffle_ivs, mass_fnc, cluster_criterium)
 	rtn = CPMixedModel(cpc, data, f, contrasts, reml)
-
 	fit_initial_time_series!(rtn; logger)
 	return rtn
 end

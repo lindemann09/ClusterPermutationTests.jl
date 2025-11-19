@@ -41,14 +41,7 @@ function StatsAPI.fit(::Type{<:CPLinearModel},
 	mass_fnc::Function = sum,
 	contrasts::Dict{Symbol, <:AbstractContrasts} = Dict{Symbol, AbstractContrasts}())
 
-	tbl = _prepare_design_table(f, dat.design; dv_dtype = eltype(dat.epochs))
-	data = CPData(dat.epochs, tbl; unit_obs = unit_observation(dat.design))
-
-	shuffle_ivs = StudyDesigns.to_symbol_vector(shuffle_ivs)
-	for v in shuffle_ivs
-		has_variable(data.design, v) || throw(ArgumentError("Variable '$(v)' not found in formula or design table!"))
-	end
-
+	data, shuffle_ivs = _prepare_regression_data(f, dat, shuffle_ivs)
 	cpc = CPCollection{StatsModels.TableRegressionModel}(shuffle_ivs, mass_fnc, cluster_criterium)
 	rtn = CPLinearModel(cpc, data, f, contrasts)
 	fit_initial_time_series!(rtn)
@@ -93,8 +86,21 @@ end
 ### Utilities for regression design tables
 ###
 
+function _prepare_regression_data(f::FormulaTerm, dat::CPData,
+	shuffle_ivs::Union{Vector{Symbol}, Symbol, Vector{String}, String})::Tuple{CPData, Vector{Symbol}}
+
+	tbl = __prepare_design_table(f, dat.design; dv_dtype = eltype(dat.epochs))
+	data = CPData(dat.epochs, tbl; unit_obs = unit_observation(dat.design))
+
+	shuffle_ivs = StudyDesigns.to_symbol_vector(shuffle_ivs)
+	for v in shuffle_ivs
+		has_variable(data.design, v) || throw(ArgumentError("Variable '$(v)' not found in formula or design table!"))
+	end
+	return data, shuffle_ivs
+end
+
 """select columns from formula and add (optionally) empty column for dependent variable"""
-function _prepare_design_table(f::FormulaTerm, design::AbstractStudyDesign;
+function __prepare_design_table(f::FormulaTerm, design::AbstractStudyDesign;
 	dv_dtype::Type = Float64)::Table
 
 	pred = StatsModels.termvars(f.rhs) # get all predictor variables
