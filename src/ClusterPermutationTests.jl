@@ -32,7 +32,7 @@ export ClusterPermutationTest,
 	epoch_length,
 	nepochs,
 	design_table,
-	cpdata_convert,
+	convert_to_cpdata,
 	# Cluster
 	ClusterCriterium,
 	ClusterDefinition,

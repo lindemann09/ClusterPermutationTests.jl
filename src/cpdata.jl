@@ -58,7 +58,19 @@ end
 CPData(epochs::AbstractMatrix{<:Real}, design::Any; unit_obs::OptSymbolOString, kwargs...) =
 	CPData(epochs, StudyDesigns.ensure_table(design); unit_obs, kwargs...)
 
-function cpdata_convert(data::Any; unit_obs::Symbol, bin::Symbol, response::Symbol)::CPData
+
+"""
+	convert_to_cpdata(data::Any; unit_obs::Union{Symbol, AbstractString},
+		bin::Union{Symbol, AbstractString}, response::Union{Symbol, AbstractString})
+
+Convert a Tables.jl compatible table (e.g., DataFrame, TypedTable or Arrow.Table) to a CPData object.
+
+The `data` must contain the columns for the design variables, a `bin` variable indicating the
+time bin for each observation, and a `response` variable containing the observed values.
+
+The `unit_obs` specifies the column representing the unit of observation.
+"""
+function convert_to_cpdata(data::Any; unit_obs::SymbolOString, bin::SymbolOString, response::SymbolOString)::CPData
 
 	istable(data) || throw(ArgumentError("Data must be a Tables.jl compatible table (e.g., DataFrame or TypedTable)."))
 	data = columntable(data)
