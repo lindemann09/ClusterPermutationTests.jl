@@ -1,6 +1,13 @@
 module ClusterPermutationTests
 
 using Reexport: @reexport
+using SplitApplyCombine: groupfind
+using Random
+using Tables: columntable, getcolumn, istable
+using TypedTables: Table, columnnames
+using ProgressMeter: Progress, next!, finish!
+using Logging: with_logger, NullLogger, SimpleLogger, AbstractLogger, global_logger
+
 import DataAPI: nrow, ncol
 import StatsAPI: StatsAPI, fit, nobs
 using StatsBase: coef, stderror, CoefTable, quantilerank
@@ -9,11 +16,6 @@ import GLM: lm, LinearModel
 using HypothesisTests: HypothesisTests, EqualVarianceTTest, OneSampleTTest,
 	UnequalVarianceTTest, HypothesisTest
 import MixedModels: LinearMixedModel, is_randomeffectsterm, refit!
-using ProgressMeter: Progress, next!, finish!
-using Logging: with_logger, NullLogger, SimpleLogger, AbstractLogger, global_logger
-using Random
-using Tables: columntable, getcolumn
-using TypedTables: Table, columnnames
 
 include("StudyDesigns/StudyDesigns.jl")
 @reexport using .StudyDesigns
@@ -30,6 +32,7 @@ export ClusterPermutationTest,
 	epoch_length,
 	nepochs,
 	design_table,
+	cpdata_convert,
 	# Cluster
 	ClusterCriterium,
 	ClusterDefinition,

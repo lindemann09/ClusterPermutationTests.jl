@@ -58,6 +58,40 @@ end
 CPData(epochs::AbstractMatrix{<:Real}, design::Any; unit_obs::OptSymbolOString, kwargs...) =
 	CPData(epochs, StudyDesigns.ensure_table(design); unit_obs, kwargs...)
 
+function cpdata_convert(data::Any; unit_obs::Symbol, bin::Symbol, response::Symbol)::CPData
+
+	istable(data) || throw(ArgumentError("Data must be a Tables.jl compatible table (e.g., DataFrame or TypedTable)."))
+	data = columntable(data)
+
+	design_vars = [x for x in keys(data) if x ∉ [bin, response]] # design variables
+	#tbl_data = Table(select_cols(data, data_vars))
+	tbl_design = Table(select_cols(data, design_vars))
+
+	resp = getproperty(data, response)
+	unique_bins = sort(unique(getproperty(data, bin)))
+	bin_ids = groupfind(getproperty(data, bin))
+
+	resp_mtx = Vector{Vector{Float64}}()
+	unique_row_ids = Int[]
+	@info "Found $(length(unique_bins)) bins: $(join(unique_bins, ", "))"
+	for g_ids in groupfind(tbl_design)
+		push!(unique_row_ids, first(g_ids))
+		row = Float64[]
+		for b in unique_bins
+			i = intersect(g_ids, bin_ids[b]) # find all indices for bin, b, in these group indices
+			if length(i) > 1
+				row_dat = join(tbl_design[first(g_ids)], ", ")
+				throw(ArgumentError("Two time bin $(b) for condition ($(row_dat))"))
+			end
+			val = isempty(i) ? NaN : resp[first(i)]
+			push!(row, val)
+		end
+		push!(resp_mtx, row)
+	end
+
+	CPData(stack(resp_mtx, dims=1), tbl_design[unique_row_ids]; unit_obs)
+end
+
 
 function select_epochs(dat::CPData; kwargs...)
 
