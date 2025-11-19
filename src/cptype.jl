@@ -58,14 +58,14 @@ time_series_stats(x::ClusterPermutationTest, effect::Union{Integer, Symbol, Stri
 ## Cluster Functions
 ##
 
-cluster_ranges(::ClusterPermutationTest) = throw(no_effect_error)
-cluster_ranges(cpt::ClusterPermutationTest, effect::Union{Integer, Symbol, String}) = cpt.cpc.cl[_effect_id(cpt, effect)]
+cluster(::ClusterPermutationTest) = throw(no_effect_error)
+cluster(cpt::ClusterPermutationTest, effect::Union{Integer, Symbol, String}) = cpt.cpc.cl[_effect_id(cpt, effect)]
 
 cluster_mass_stats(::ClusterPermutationTest) = throw(no_effect_error)
 function cluster_mass_stats(cpt::ClusterPermutationTest, effect::Union{Integer, Symbol, String})
 	i = _effect_id(cpt, effect)
 	ts = time_series_stats(cpt, i)
-	cl_ranges = cluster_ranges(cpt, i)
+	cl_ranges = cluster(cpt, i)
 	return _cluster_mass_stats(cpt.cpc.mass_fnc, ts, cl_ranges)
 end
 
@@ -82,7 +82,7 @@ function cluster_table(cpt::ClusterPermutationTest, effect::Union{Integer, Symbo
 	i = _effect_id(cpt, effect)
 	coef_name = coefnames(cpt)[i]
 	ts = time_series_stats(cpt, i)
-	cl_ranges = cluster_ranges(cpt, i)
+	cl_ranges = cluster(cpt, i)
 	cl_mass_stats = _cluster_mass_stats(cpt.cpc.mass_fnc, ts, cl_ranges)
 	p_vals = _cluster_pvalues(cluster_nhd(cpt, i), cl_mass_stats, inhibit_warning)
 	return _cluster_table(i, coef_name, cl_ranges, cl_mass_stats, p_vals; add_effect_names)

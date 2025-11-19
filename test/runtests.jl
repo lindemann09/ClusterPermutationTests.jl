@@ -60,7 +60,7 @@ end
 	cpt = fit(CPPairedSampleTTest, @formula(y ~ operator_str), dat, cluster_criterium)
 	resample!(cpt, 2000; use_threads = false)
 	resample!(cpt, 3000; use_threads = true)
-	@test length(cluster_ranges(cpt)) == 2
+	@test length(cluster(cpt)) == 2
 	@test cluster_mass_stats(cpt) ≈ [-749.6, -13669.8] atol = 1
 	@test cluster_pvalues(cpt)[2] < 0.001
 end

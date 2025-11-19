@@ -24,7 +24,7 @@ function ClusterDefinition(single_range::UnitRange)
 	return ClusterDefinition([single_range])
 end
 
-function _cluster_ranges(dat::AbstractArray{Float64}, cc::ClusterCriterium)::Vector{TClusterRange}
+function _clusterranges(dat::AbstractArray{Float64}, cc::ClusterCriterium)::Vector{TClusterRange}
 	# find clusters in dat according to cc
 	d = cc.use_absolute ? abs.(dat) : dat
 	threshold = cc.threshold
@@ -55,7 +55,7 @@ function _cluster_ranges(dat::AbstractArray{Float64}, cc::ClusterCriterium)::Vec
 	return ranges
 end;
 
-_cluster_ranges(::Any, cc::ClusterDefinition)::Vector{TClusterRange} = cc.ranges
+_clusterranges(::Any, cc::ClusterDefinition)::Vector{TClusterRange} = cc.ranges
 
 function _cluster_mass_stats(mass_fnc::Function, dat::AbstractArray{Float64}, cl_ranges::Vector{TClusterRange})
 	# compute cluster mass for all clusters detected in dat

@@ -44,7 +44,7 @@ function fit_initial_time_series!(
 
 	cpt.cpc.coefs = stack(c, dims = 1) # time X effects
 	# write new time points
-	cpt.cpc.cl = [_cluster_ranges(d, cpt.cpc.cc) for d in eachcol(cpt.cpc.coefs)]
+	cpt.cpc.cl = [_clusterranges(d, cpt.cpc.cc) for d in eachcol(cpt.cpc.coefs)]
 
 	return nothing
 end
