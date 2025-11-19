@@ -116,7 +116,7 @@ function _cluster_table(coef_id::Integer,
 	colnms = ["cluster", "from", "to", "size", "mass stats", "Pr(>|z|)", "sign"]
 	cols = [cid, from, to, size, cms, p, sign]
 	rownms = [string(coef_id) * "."*string(i) for i in cid]
-	if add_effect_names
+	if add_effect_names && !isempty(rownms)
 		rownms[1] *= " - " * coefname
 	end
 	pvalcol = 6
