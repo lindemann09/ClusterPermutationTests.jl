@@ -55,8 +55,19 @@ function CPData(cpdat::CPData; kwargs...)
 	CPData(cpdat.epochs, columntable(cpdat.design); unit_obs, kwargs...) # copy with selection
 end
 
-CPData(epochs::AbstractMatrix{<:Real}, design::Any; unit_obs::OptSymbolOString, kwargs...) =
-	CPData(epochs, StudyDesigns.ensure_table(design); unit_obs, kwargs...)
+function CPData(epochs::Any, design::Any; unit_obs::OptSymbolOString, kwargs...)
+	istable(design) || throw(ArgumentError("Design must be a Tables.jl compatible table (e.g., DataFrame or TypedTable)."))
+	if istable(epochs)
+		epochs = matrix(epochs)
+	end
+	if !(epochs isa AbstractMatrix{<:Real})
+		throw(ArgumentError("Epochs must be a matrix or Tables.jl compatible table of real values."))
+	end
+	CPData(epochs, Table(design); unit_obs, kwargs...)
+end
+
+CPData(epochs::AbstractString, design::AbstractString; unit_obs::OptSymbolOString, kwargs...) =
+	CPData(CSV.File(epochs, header=false), CSV.File(design, header=true); unit_obs, kwargs...)
 
 
 """

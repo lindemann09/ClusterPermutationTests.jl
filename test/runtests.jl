@@ -52,7 +52,7 @@ end
 	fl_design = "https://raw.githubusercontent.com/lindemann09/JuliaDataSets/refs/heads/main/data/cpt1_design.csv"
 	fl_epochs = "https://raw.githubusercontent.com/lindemann09/JuliaDataSets/refs/heads/main/data/cpt1_epochs.dat"
 
-	epochs = CSV.Tables.matrix(CSV.File(download(fl_epochs), header = false))
+	epochs = CSV.File(download(fl_epochs), header = false)
 	dat = CPData(epochs, CSV.read(download(fl_design), Table); unit_obs = :subject_id)
 
 	cluster_criterium = ClusterCriterium(threshold = 1.69, min_size = 50) # 10%
