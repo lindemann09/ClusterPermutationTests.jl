@@ -56,18 +56,24 @@ function CPData(cpdat::CPData; kwargs...)
 end
 
 function CPData(epochs::Any, design::Any; unit_obs::OptSymbolOString, kwargs...)
-	istable(design) || throw(ArgumentError("Design must be a Tables.jl compatible table (e.g., DataFrame or TypedTable)."))
+
+	if design isa AbstractString
+		design = CSV.File(design, header = true)
+	end
+
+	if epochs isa AbstractString
+		epochs = matrix(CSV.File(epochs, header = false))
+	end
 	if istable(epochs)
 		epochs = matrix(epochs)
 	end
-	if !(epochs isa AbstractMatrix{<:Real})
+
+	istable(design) ||
+		throw(ArgumentError("Design must be a Tables.jl compatible table (e.g., DataFrame or TypedTable)."))
+	epochs isa AbstractMatrix{<:Real} ||
 		throw(ArgumentError("Epochs must be a matrix or Tables.jl compatible table of real values."))
-	end
 	CPData(epochs, Table(design); unit_obs, kwargs...)
 end
-
-CPData(epochs::AbstractString, design::AbstractString; unit_obs::OptSymbolOString, kwargs...) =
-	CPData(CSV.File(epochs, header=false), CSV.File(design, header=true); unit_obs, kwargs...)
 
 
 """
@@ -112,7 +118,7 @@ function convert_to_cpdata(data::Any; unit_obs::SymbolOString, bin::SymbolOStrin
 		push!(resp_mtx, row)
 	end
 
-	CPData(stack(resp_mtx, dims=1), tbl_design[unique_row_ids]; unit_obs)
+	CPData(stack(resp_mtx, dims = 1), tbl_design[unique_row_ids]; unit_obs)
 end
 
 
@@ -134,9 +140,9 @@ function select_epochs(dat::CPData; kwargs...)
 
 	df = Table(select_rows(d_columns, idx)) # selected design table
 	perm_design = StudyDesigns.make_design(df, unit_observation(dsgn.uo);
-				between_names = names_between(dsgn),
-				within_names = names_within(dsgn),
-				covariate_names = names_covariates(dsgn))
+		between_names = names_between(dsgn),
+		within_names = names_within(dsgn),
+		covariate_names = names_covariates(dsgn))
 	return CPData(dat.epochs[idx, :], perm_design)
 end
 
