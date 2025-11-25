@@ -57,11 +57,11 @@ end
 
 function CPData(epochs::Any, design::Any; unit_obs::OptSymbolOString, kwargs...)
 
-	if design isa AbstractString
+	if design isa AbstractString # try to read file
 		design = CSV.File(design, header = true)
 	end
 
-	if epochs isa AbstractString
+	if epochs isa AbstractString # try to read file
 		epochs = matrix(CSV.File(epochs, header = false))
 	end
 	if istable(epochs)
@@ -89,6 +89,9 @@ The `unit_obs` specifies the column representing the unit of observation.
 """
 function convert_to_cpdata(data::Any; unit_obs::SymbolOString, bin::SymbolOString, response::SymbolOString)::CPData
 
+	if data isa AbstractString # try to read file
+		data = CSV.File(data, header = true)
+	end
 	istable(data) || throw(ArgumentError("Data must be a Tables.jl compatible table (e.g., DataFrame or TypedTable)."))
 	data = columntable(data)
 
