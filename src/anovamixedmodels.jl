@@ -3,8 +3,7 @@ struct CPAnovaMixedModel <: CPRegressionModel
 	dat::CPData
 
 	f::FormulaTerm
-	contrasts::Dict{Symbol, AbstractContrasts} # contrasts for LinearModel
-	reml::Bool # use REML estimation
+	contrasts::Dict{Symbol, AbstractContrasts}
 	type::Int
 end;
 
@@ -18,16 +17,14 @@ function StatsAPI.fit(::Type{<:CPAnovaMixedModel},
 	mass_fnc::Function = sum,
 	contrasts::Dict{Symbol, <:AbstractContrasts} = Dict{Symbol, AbstractContrasts}(),
 	logger::Union{AbstractLogger, Nothing} = NullLogger(),
-	reml::Bool = false,
 	type::Int = 3)
 
 	data, shuffle_ivs = _prepare_regression_data(f, dat, shuffle_ivs)
 	cpc = CPCollection{LinearMixedModel}(shuffle_ivs, mass_fnc, cluster_criterium)
-	rtn = CPAnovaMixedModel(cpc, data, f, contrasts, reml, type)
+	rtn = CPAnovaMixedModel(cpc, data, f, contrasts, type)
 	fit_initial_time_series!(rtn; logger)
 	return rtn
 end
-
 
 ####
 #### Parameter estimates
