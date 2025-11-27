@@ -3,10 +3,11 @@ module ClusterPermutationTests
 using Reexport: @reexport
 using SplitApplyCombine: groupfind
 using Random
-using Tables: columntable, getcolumn, istable
+using Tables: columntable, getcolumn, istable, matrix
 using TypedTables: Table, columnnames
 using ProgressMeter: Progress, next!, finish!
 using Logging: with_logger, NullLogger, SimpleLogger, AbstractLogger, global_logger
+using CSV
 
 import DataAPI: nrow, ncol
 import StatsAPI: StatsAPI, fit, nobs

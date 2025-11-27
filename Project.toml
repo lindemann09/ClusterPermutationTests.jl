@@ -1,10 +1,11 @@
 name = "ClusterPermutationTests"
 uuid = "e3bc594e-7e39-4b61-be5a-4b8b3e7ff14e"
-authors = ["Oliver Lindemann"]
 version = "0.4.1-dev"
+authors = ["Oliver Lindemann"]
 
 [deps]
 AnovaMixedModels = "6832ca0c-c2dd-4d0c-851a-521ca5db42f5"
+CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 CategoricalArrays = "324d7699-5711-5eae-9e2f-1d82baa6b597"
 DataAPI = "9a962f9c-6df0-11e9-0e5d-c546b8b5ee8a"
 GLM = "38e38edf-8417-5370-95a0-9cbb8c7f171a"
@@ -28,7 +29,7 @@ Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
 CPTestMakieExt = ["Makie"]
 
 [compat]
-AnovaMixedModels = "0.2.4"
+AnovaMixedModels = "0.3.0"
 Aqua = "0.8"
 CSV = "0.10"
 CategoricalArrays = "0.10, 1"
@@ -38,7 +39,7 @@ GLM = "1"
 HypothesisTests = "0.11"
 Logging = "1"
 Makie = "0.23, 0.24"
-MixedModels = "4, 5"
+MixedModels = "5"
 MixedModelsDatasets = "0.1.2"
 ProgressMeter = "1"
 Random = "1"
@@ -50,14 +51,13 @@ StatsModels = "0.7"
 Tables = "1"
 Test = "1"
 TypedTables = "1"
-julia = "1.10"
+julia = "1.9"
 
 [extras]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
-CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 Downloads = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
 MixedModelsDatasets = "7e9fb7ac-9f67-43bf-b2c8-96ba0796cbb6"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test", "Aqua", "MixedModelsDatasets", "CSV", "Downloads"]
+test = ["Test", "Aqua", "MixedModelsDatasets", "Downloads"]
