@@ -16,9 +16,9 @@ TODO
 	data might contain different data as in cpt struct (entire time series & not permuted design),
 	that is, the design might be permuted and/or epochs might be the data of merely a particular cluster.
 	list of test_statistics has to be returned as TParameterVector
-	if store_fits is true, the function has to store the fitted models in cpt.cpc.m
+	if store_fits is true, the function has to store the fitted models in cpt.cpc.M
 3. time_series_stats(cpt::ClusterPermutationTest)::TParameterVector
-	function to extract the test statistics from the initial fit stored in cpt.cpc.m
+	function to extract the test statistics from the initial fit stored in cpt.cpc.M
 4. StatsAPI.fit(::Type{}, ...)
 	the function has to create an instance of CP<Model>, call fit_initial_time_series!(..) on it
 	to detect clusters to be tested and return the instance
@@ -35,7 +35,7 @@ function fit_initial_time_series!(
 	empty!(cpt.cpc.S)
 
 	# replace existing fits (m) and coefs
-	empty!(cpt.cpc.m)
+	empty!(cpt.cpc.M)
 	atp = collect(Int32(1):Int32(epoch_length(cpt.dat))) # all time points
 
 	old_logger = isnothing(logger) ? nothing : global_logger(logger) # change logger

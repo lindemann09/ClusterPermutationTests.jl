@@ -52,7 +52,7 @@ end
 #### coefnames
 ####
 function StatsAPI.coefnames(cpt::CPRegressionModel)
-	rtn = coefnames(first(cpt.cpc.m))
+	rtn = coefnames(first(cpt.cpc.M))
 	return rtn[2:end] # remove Intercept
 end
 
@@ -75,7 +75,7 @@ end
 		z = coef(md) ./ stderror(md) # parameter: z or t-value of effect
 		push!(param, z[2:end])
 		if store_fits
-			push!(cpt.cpc.m, md)
+			push!(cpt.cpc.M, md)
 		end
 	end
 	return param

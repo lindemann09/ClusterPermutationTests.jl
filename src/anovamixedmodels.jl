@@ -1,5 +1,5 @@
 struct CPAnovaMixedModel <: CPRegressionModel
-	cpc::CPCollection{AnovaResult}
+	cpc::CPCollection{LinearMixedModel}
 	dat::CPData
 
 	f::FormulaTerm
@@ -8,7 +8,7 @@ struct CPAnovaMixedModel <: CPRegressionModel
 	type::Int
 end;
 
-n_threads_default(::CPAnovaMixedModel) = n_threads_default(::CPMixedModel)
+n_threads_default(::CPAnovaMixedModel) = 2
 
 function StatsAPI.fit(::Type{<:CPAnovaMixedModel},
 	f::FormulaTerm,
@@ -22,7 +22,7 @@ function StatsAPI.fit(::Type{<:CPAnovaMixedModel},
 	type::Int = 3)
 
 	data, shuffle_ivs = _prepare_regression_data(f, dat, shuffle_ivs)
-	cpc = CPCollection{AnovaResult}(shuffle_ivs, mass_fnc, cluster_criterium)
+	cpc = CPCollection{LinearMixedModel}(shuffle_ivs, mass_fnc, cluster_criterium)
 	rtn = CPAnovaMixedModel(cpc, data, f, contrasts, reml, type)
 	fit_initial_time_series!(rtn; logger)
 	return rtn
@@ -32,23 +32,28 @@ end
 ####
 #### Parameter estimates
 ####
-@inline function parameter_estimates(cpt::CPAnovaMixedModel,
+function parameter_estimates(cpt::CPAnovaMixedModel,
 	design::AbstractStudyDesign,
 	time_points::Vector{Int32};
 	store_fits::Bool = false)::T2DParamVector
 
 	design = columntable(design)
 	param = T2DParamVector()
-
 	md = LinearMixedModel(cpt.f, design; contrasts = cpt.contrasts)
 	for t in time_points
-		md = refit!(md, view(cpt.dat.epochs, :, t); progress = false, REML = cpt.reml)
-		aov = anova(md, type = cpt.type)
-		f = teststat(aov)
-		push!(param, f[2:end])
+		md = refit!(md, view(cpt.dat.epochs, :, t); progress = false, REML = false)
+		f = teststat(anova(md, type = cpt.type))
+		push!(param, collect(f[2:end]))
 		if store_fits
-			push!(cpt.cpc.m, aov)
+			push!(cpt.cpc.M, md)
 		end
 	end
 	return param
+end
+
+time_series_fits(x::CPAnovaMixedModel) = anova.(x.cpc.M, type = x.type)
+
+function StatsAPI.coefnames(cpt::CPAnovaMixedModel)
+	rtn = coefnames(anova(first(cpt.cpc.M), type = cpt.type))
+	return rtn[2:end] # remove Intercept
 end

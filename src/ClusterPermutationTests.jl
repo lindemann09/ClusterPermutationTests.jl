@@ -17,13 +17,15 @@ import GLM: lm, LinearModel
 using HypothesisTests: HypothesisTests, EqualVarianceTTest, OneSampleTTest,
 	UnequalVarianceTTest, HypothesisTest
 import MixedModels: LinearMixedModel, is_randomeffectsterm, refit!
+using AnovaMixedModels: anova, teststat
+
 
 include("StudyDesigns/StudyDesigns.jl")
 @reexport using .StudyDesigns
 
 export ClusterPermutationTest,
 	CPTTest, CPPairedSampleTTest, CPEqualVarianceTTest, CPUnequalVarianceTTest,
-	CPRegressionModel, CPLinearModel, CPMixedModel,
+	CPRegressionModel, CPLinearModel, CPMixedModel, CPAnovaMixedModel,
 	# DataAPI, StatsAPI
 	nrow, ncol,
 	nobs, fit, coefnames, @formula,
@@ -60,7 +62,7 @@ include("sampling.jl")
 include("ttest.jl")
 include("regressionmodels.jl")
 include("mixedmodels.jl")
-
+include("anovamixedmodels.jl")
 
 
 ## Makie extensions

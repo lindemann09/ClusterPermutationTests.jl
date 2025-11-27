@@ -11,7 +11,7 @@ mutable struct CPCollection{M}
 	mass_fnc::Function # cluster mass function
 	cc::TClusterCritODef # cluster definition
 
-	m::Vector{M} # fitted models of initial fit
+	M::Vector{M} # fitted models of initial fit
 	coefs::TParameterMatrix # (time X effect) time series statistics of the initial fit
 
 	cl::Vector{Vector{TClusterRange}} # cluster ranges for all effects (effectXcluster)
@@ -40,7 +40,7 @@ design_table(x::ClusterPermutationTest) = design_table(x.dat)
 StudyDesigns.unit_observation(x::ClusterPermutationTest) = unit_observation(x.dat.design.uo)
 
 cluster_criterium(x::ClusterPermutationTest) = x.cpc.cc
-time_series_fits(x::ClusterPermutationTest) = x.cpc.m
+time_series_fits(x::ClusterPermutationTest) = x.cpc.M
 
 function npermutations(x::ClusterPermutationTest)
 	if length(x.cpc.S) == 0

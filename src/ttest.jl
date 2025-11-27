@@ -111,7 +111,7 @@ StatsAPI.coefnames(::CPTTest) = ["contrast"]
 		tt = _estimate(T, view(epochs, :, t), design_tbl, iv, cpt.compare)
 		push!(param, [tt.t])
 		if store_fits
-			push!(cpt.cpc.m, tt)
+			push!(cpt.cpc.M, tt)
 		end
 	end
 	return param
