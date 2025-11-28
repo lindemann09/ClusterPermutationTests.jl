@@ -6,6 +6,8 @@ using MixedModelsDatasets: dataset
 using CSV
 using TypedTables
 using Downloads: download
+using RData
+using CodecBzip2
 
 Aqua.test_all(ClusterPermutationTests; ambiguities = false, deps_compat = true)
 
@@ -46,9 +48,20 @@ Aqua.test_all(ClusterPermutationTests; ambiguities = false, deps_compat = true)
 	@test length(names_covariates(d)) == 2
 end
 
+@testset "CPData" begin
 
+ 	d  = RData.load(download(
+	 "https://github.com/dalejbarr/clusterperm/raw/refs/heads/master/data/kb07bins.rda"))
+	dat = convert_to_cpdata(d["kb07bins"]; unit_obs = :SubjID, bin=:bin, response=:TAS);
+	@test names(dat.design) ==  [:SubjID, :Speaker, :Precedent, :Load]
+	@test names_within(dat.design) == [:Speaker, :Precedent, :Load]
+	@test names_between(dat.design) == []
+	@test unit_observation(dat.design) == :SubjID
+	@test epoch_length(dat) == 35
+	@test nepochs(dat) == 448
+end
 
-@testset "ClusterPermutationTests.jl" begin
+@testset "ClusterPermutationTests" begin
 	fl_design = "https://raw.githubusercontent.com/lindemann09/JuliaDataSets/refs/heads/main/data/cpt1_design.csv"
 	fl_epochs = "https://raw.githubusercontent.com/lindemann09/JuliaDataSets/refs/heads/main/data/cpt1_epochs.dat"
 
@@ -63,4 +76,18 @@ end
 	@test length(cluster(cpt)) == 2
 	@test cluster_mass_stats(cpt) ≈ [-749.6, -13669.8] atol = 1
 	@test cluster_pvalues(cpt)[2] < 0.001
+
+
+	cpt_mm = fit(CPMixedModel, @formula(y ~ operator_str + (1|subject_id)), dat,
+			cluster_criterium, reml = true)
+	resample!(cpt_mm, 10; use_threads = false)
+	summary(cpt_mm)
+	@test length(cluster(cpt_mm, 1)) == 2
+	@test cluster_mass_stats(cpt_mm, 1) ≈ [749.6, 13669.8] atol = 1
+
+	cpt_amm = fit(CPAnovaMixedModel, @formula(y ~ operator_str + (1|subject_id)), dat,
+			cluster_criterium)
+	resample!(cpt_amm, 10; use_threads = true)
+	summary(cpt_amm)
+	@test cluster_mass_stats(cpt_amm, 1) ≈ [124.9, 49656.2] atol = 1
 end
