@@ -47,8 +47,8 @@ function _clusterranges(dat::AbstractArray{Float64}, cc::ClusterCriterium)::Vect
 		if c == n
 			# last element processed
 			if cluster_size >= min_size
-				# valid cluster at the end
-				push!(ranges, (c-cluster_size):c)
+				# valid cluster until the end (as if cluster ends c+1)
+				push!(ranges, (c+1-cluster_size):c)
 			end
 		end
 	end
