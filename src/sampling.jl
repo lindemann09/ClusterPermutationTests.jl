@@ -59,9 +59,10 @@ resample!(cpt::ClusterPermutationTest, n_permutations::Integer; kwargs...) =
 function resample!(rng::AbstractRNG,
 	cpt::ClusterPermutationTest,
 	n_permutations::Integer;
-	progressmeter::Bool = true,
+	progressmeter::Union{Bool, Nothing} = nothing,
 	use_threads::Union{Integer, Bool} = true,
 	logger::Union{AbstractLogger, Nothing} = NullLogger())
+	# progressmeter used per default, if terminal is used (not jupyter or quarto)
 
 	if use_threads === true
 		n_threads = n_threads_default(cpt)
@@ -72,10 +73,13 @@ function resample!(rng::AbstractRNG,
 	end
 
 	n_samples = length(_joined_ranges(cpt.cpc.cl))
-	print("number of samples to be tested: $n_samples")
+	print("Number of samples to be tested: $n_samples")
 
+	if progressmeter === nothing
+		progressmeter = isa(stderr, Base.TTY) # if terminal is used and not jupyter or Quarto
+	end
 	if progressmeter
-		prog = Progress(n_permutations; dt = 0.25, desc = "resampling")
+		prog = Progress(n_permutations; dt = 0.25, desc = "Resampling")
 	else
 		prog = nothing
 	end
