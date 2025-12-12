@@ -64,6 +64,9 @@ function CPData(epochs::Any, design::Any; unit_obs::OptSymbolOString, kwargs...)
 	if epochs isa AbstractString # try to read file
 		epochs = matrix(CSV.File(epochs, header = false))
 	end
+	if epochs isa SubArray
+		epochs = collect(epochs)
+	end
 	if istable(epochs)
 		epochs = matrix(epochs)
 	end
