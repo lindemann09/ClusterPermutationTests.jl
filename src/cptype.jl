@@ -106,7 +106,9 @@ end
 ##
 ## Null-hypothesis distributions
 ##
-"""Null-hypothesis distributions of the cluster mass statistics"""
+"""Null-hypothesis distributions of the cluster mass statistics
+	each column represents one effect
+"""
 cluster_nhd(::ClusterPermutationTest) = throw(no_effect_error)
 function cluster_nhd(cpt::ClusterPermutationTest,
 	effect::Union{Integer, Symbol, String})::TParameterMatrix # (permutation X cluster)
