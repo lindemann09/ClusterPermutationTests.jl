@@ -23,13 +23,15 @@ end;
 
 function ClusterPermutationTests.plot_cluster_nhd!(fig::Figure, cpt::ClusterPermutationTest;
 	effect::Union{Integer, Symbol, String}=1,
-	xlabel = "test statistics", bins=100)
+	xlabel = "test statistics", bins=100,
+	color = (:blue, 0.3))
+
 	cs = cluster_mass_stats(cpt, effect)
 	dist = cluster_nhd(cpt, effect)
 	for i in 1:size(dist, 2)
 		ax = Axis(fig[i, 1]; xlabel, ylabel = "count")
-		hist!(ax, dist[:, i]; bins)
-		#density!(ax, dist[:, i], color=(:blue, 0.9))
+		hist!(ax, dist[:, i]; bins, color)
+		#density!(ax, dist[:, i], color=(:blue, 0.3))
 		vlines!(ax, [cs[i]]; color = :black,
 			linewidth = 3, linestyle = :dash)
 	end
