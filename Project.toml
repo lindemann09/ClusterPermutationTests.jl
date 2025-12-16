@@ -1,6 +1,6 @@
 name = "ClusterPermutationTests"
 uuid = "e3bc594e-7e39-4b61-be5a-4b8b3e7ff14e"
-version = "0.4.1-dev"
+version = "0.4.1"
 authors = ["Oliver Lindemann"]
 
 [deps]
