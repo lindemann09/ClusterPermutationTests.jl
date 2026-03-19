@@ -306,12 +306,10 @@ cluster_table(cpt_amm)
 
 ## Citation
 
-If you use ClusterPermutationTests.jl in published work, please cite the package
-and the methodological reference:
+If you use ClusterPermutationTests.jl in published work, please cite the package:
 
-> Maris, E., & Oostenveld, R. (2007). Nonparametric statistical testing of EEG-
-> and MEG-data. *Journal of Neuroscience Methods, 164*(1), 177–190.
-> https://doi.org/10.1016/j.jneumeth.2007.03.024
+> Lindemann, O. (2024). *ClusterPermutationTests.jl* [Computer software].
+> GitHub. https://github.com/lindemann09/ClusterPermutationTests.jl
 
 ## License
 
