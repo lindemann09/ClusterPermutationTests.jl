@@ -3,6 +3,8 @@
 [![Build Status](https://github.com/lindemann09/ClusterPermutationTests.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/lindemann09/ClusterPermutationTests.jl/actions/workflows/CI.yml?query=branch%3Amain)
 [![Julia](https://img.shields.io/badge/Julia-1.9%2B-blue)](https://julialang.org)
 
+**Oliver Lindemann** — Erasmus University Rotterdam
+
 A Julia package for **cluster-based permutation testing** on time-series data.
 Cluster permutation tests are a nonparametric approach widely used in neuroscience
 (EEG, ERP, fMRI) and psycholinguistics to identify significant temporal effects while
