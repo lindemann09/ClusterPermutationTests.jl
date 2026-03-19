@@ -1,3 +1,11 @@
+"""
+    CPAnovaMixedModel
+
+Cluster permutation test using ANOVA F-statistics from a mixed-effects model
+(via AnovaMixedModels.jl).
+
+Use `fit(CPAnovaMixedModel, formula, dat, cluster_criterium)` to construct.
+"""
 struct CPAnovaMixedModel <: CPRegressionModel
 	cpc::CPCollection{LinearMixedModel}
 	dat::CPData
@@ -9,6 +17,16 @@ end;
 
 n_threads_default(::CPAnovaMixedModel) = 2
 
+"""
+    fit(::Type{<:CPAnovaMixedModel}, f::FormulaTerm, shuffle_ivs, dat::CPData, cluster_criterium;
+        mass_fnc=sum, contrasts=Dict(), logger=NullLogger(), type=3) -> CPAnovaMixedModel
+
+Fit a cluster permutation test using ANOVA F-statistics from a linear mixed-effects model.
+
+`shuffle_ivs` explicitly specifies which predictor variables are shuffled during permutation.
+`type`: ANOVA type (1, 2, or 3; default: 3).
+`mass_fnc` is the cluster mass function (default: `sum`).
+"""
 function StatsAPI.fit(::Type{<:CPAnovaMixedModel},
 	f::FormulaTerm,
 	shuffle_ivs::Union{Vector{Symbol}, Symbol, Vector{String}, String},

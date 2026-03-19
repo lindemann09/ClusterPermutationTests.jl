@@ -53,6 +53,21 @@ end
 ###
 ### Resampling
 ###
+"""
+    resample!(cpt::ClusterPermutationTest, n_permutations::Integer; kwargs...)
+    resample!(rng::AbstractRNG, cpt::ClusterPermutationTest, n_permutations::Integer;
+              progressmeter=nothing, use_threads=true, logger=NullLogger())
+
+Run `n_permutations` permutations and accumulate the null-hypothesis distribution in `cpt`.
+
+Repeated calls append to the existing permutation samples.
+
+# Keyword arguments
+- `progressmeter`: show a progress bar; defaults to `true` when running in a terminal.
+- `use_threads`: `true` uses all available threads, an integer limits the count, `false`/`1`
+  uses a single thread.
+- `logger`: logging backend used during model fitting; defaults to `NullLogger()` to suppress output.
+"""
 resample!(cpt::ClusterPermutationTest, n_permutations::Integer; kwargs...) =
 	resample!(Random.GLOBAL_RNG, cpt, n_permutations; kwargs...)
 

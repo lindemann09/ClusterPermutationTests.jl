@@ -9,13 +9,36 @@ function UnitObs(name::Symbol, values::CategoricalArray)
 	return UnitObs(name, values, X, findfirst.(eachrow(X)))
 end
 
+"""
+    unit_observation(d::AbstractStudyDesign) -> Union{Symbol, Nothing}
+
+Return the name of the unit-of-observation variable, or `nothing` if none was specified.
+"""
+unit_observation(d::AbstractStudyDesign) = unit_observation(d.uo)
 unit_observation(uo::UnitObs) = uo.name
 unit_observation(::NoUnitObs) = nothing
 
 ### study_design
 
-""" The returned AbstractStudyDesign object implements the Tables.jl (https://github.com/JuliaData/Tables.jl/) interface, and can be converted e.g. to a DataFrame via using
-  DataFrames; DataFrame(...)."""
+"""
+    study_design(design; unit_obs=nothing, covariates=nothing, exclude_columns=nothing)
+
+Create an `AbstractStudyDesign` from a Tables.jl compatible table (e.g. `DataFrame`, `TypedTable`).
+
+Variables are automatically classified:
+- **within-subject**: categorical variable where each unit of observation has more than one level.
+- **between-subject**: categorical variable where each unit of observation has a single level.
+- **covariate**: continuous (non-categorical) variable; never shuffled during permutation.
+
+# Arguments
+- `design`: a Tables.jl compatible table.
+- `unit_obs`: column name identifying the unit of observation (e.g. participant ID).
+- `covariates`: column name(s) to treat as covariates.
+- `exclude_columns`: column name(s) to ignore entirely.
+
+The returned object implements the Tables.jl interface and can be converted to a `DataFrame`
+via `using DataFrames; DataFrame(design)`.
+"""
 function study_design(
 	design::Table;
 	unit_obs::OptSymbolOString = nothing,
@@ -119,13 +142,35 @@ function make_design(design::Table, unit_obs::Nothing;
 	return BetweenDesign(between, co_var_tbl, NoUnitObs(i))
 end
 
-unit_observation(d::AbstractStudyDesign) = unit_observation(d.uo)
+"""
+    names_between(d::AbstractStudyDesign) -> Vector{Symbol}
+
+Return the names of between-subject variables in the design (excluding the unit of observation).
+"""
 names_between(d::BetweenDesign) = collect(columnnames(d.between))
 names_between(d::MixedDesign) = setdiff(columnnames(d.between), [unit_observation(d)])
 names_between(::WithinDesign) = Symbol[]
+
+"""
+    names_within(d::AbstractStudyDesign) -> Vector{Symbol}
+
+Return the names of within-subject variables in the design.
+"""
 names_within(d::Union{WithinDesign, MixedDesign}) = collect(columnnames(d.within))
 names_within(::BetweenDesign) = Symbol[]
+
+"""
+    names_covariates(d::AbstractStudyDesign) -> Vector{Symbol}
+
+Return the names of covariate variables in the design.
+"""
 names_covariates(d::AbstractStudyDesign) = !isempty(d.covariates) ? collect(columnnames(d.covariates)) : Symbol[]
+
+"""
+    names(d::AbstractStudyDesign) -> Vector{Symbol}
+
+Return all variable names in the design (unit of observation, between, within, covariates).
+"""
 function Base.names(d::AbstractStudyDesign)
 	uo = unit_observation(d)
 	rtn = vcat(names_between(d), names_within(d), names_covariates(d))
@@ -160,11 +205,35 @@ function Base.show(io::IO, mime::MIME"text/plain", x::AbstractStudyDesign)
 	return nothing
 end
 
+"""
+    is_covariate(d::AbstractStudyDesign, var::Symbol) -> Bool
+
+Return `true` if `var` is a covariate in the design.
+"""
 is_covariate(d::AbstractStudyDesign, var::Symbol) = var in names_covariates(d)
+
+"""
+    is_within(d::AbstractStudyDesign, var::Symbol) -> Bool
+
+Return `true` if `var` is a within-subject variable in the design.
+"""
 is_within(::BetweenDesign, var::Symbol) = false
 is_between(::WithinDesign, var::Symbol) = false
 is_within(d::Union{WithinDesign, MixedDesign}, var::Symbol) = var in names_within(d)
+
+"""
+    is_between(d::AbstractStudyDesign, var::Symbol) -> Bool
+
+Return `true` if `var` is a between-subject variable in the design.
+"""
 is_between(d::Union{BetweenDesign, MixedDesign}, var::Symbol) = var in names_between(d)
+
+"""
+    has_variable(d::AbstractStudyDesign, var::Symbol) -> Bool
+
+Return `true` if `var` is any variable in the design (between, within, covariate, or
+unit of observation).
+"""
 has_variable(d::AbstractStudyDesign, var::Symbol) =
 	is_between(d, var) || is_within(d, var) || is_covariate(d, var) || var == unit_observation(d)
 

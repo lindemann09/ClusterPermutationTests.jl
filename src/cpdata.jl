@@ -1,7 +1,17 @@
 """
-	?
+    CPData(epochs::Matrix{<:Real}, design::AbstractStudyDesign)
+    CPData(epochs, design; unit_obs, kwargs...)
 
-Data for a cluster permutation analysis
+Data container for a cluster permutation analysis.
+
+# Fields
+- `epochs`: matrix of shape `(n_epochs × epoch_length)` containing the observed values per time point.
+- `design`: an `AbstractStudyDesign` describing the experimental design.
+
+The constructor validates that the number of rows in `epochs` matches the number of
+observations in `design`. When `design` is a Tables.jl-compatible table the design is
+automatically classified via `study_design`. Additional keyword arguments are forwarded to
+`select_epochs` to restrict the data to a subset of conditions.
 """
 struct CPData{T <: Real}
 	epochs::Matrix{T}
@@ -16,14 +26,6 @@ struct CPData{T <: Real}
 	end
 end
 
-
-
-"""
-	CPData(epochs::AbstractMatrix{<:Real},
-	...) TODO
-
-Data for a cluster permutation analysis
-"""
 function CPData(epochs::AbstractMatrix{<:Real},
 	design::Table;
 	unit_obs::OptSymbolOString,
@@ -128,6 +130,20 @@ function convert_to_cpdata(data::Any; unit_obs::SymbolOString, bin::SymbolOStrin
 end
 
 
+"""
+    select_epochs(dat::CPData; kwargs...) -> CPData
+
+Return a subset of `dat` restricted to epochs matching the specified conditions.
+
+Each keyword argument names a design variable and specifies the allowed value(s).
+Pass `:all` or `"all"` to keep all levels of a variable. At least one variable
+must be specified.
+
+# Example
+```julia
+select_epochs(dat; condition = ["A", "B"], subject = :all)
+```
+"""
 function select_epochs(dat::CPData; kwargs...)
 
 	ivs = keys(kwargs)
@@ -152,8 +168,25 @@ function select_epochs(dat::CPData; kwargs...)
 	return CPData(dat.epochs[idx, :], perm_design)
 end
 
+"""
+    design_table(x) -> Table
+
+Return the experimental design as a `TypedTable.Table`.
+"""
 design_table(x::CPData) = Table(x.design)
+
+"""
+    epoch_length(x) -> Int
+
+Return the number of time points (columns) in the epoch matrix.
+"""
 epoch_length(x::CPData) = size(x.epochs, 2)
+
+"""
+    nepochs(x) -> Int
+
+Return the number of observations (rows) in the epoch matrix.
+"""
 nepochs(x::CPData) = size(x.epochs, 1)
 StudyDesigns.unit_observation(x::CPData) = unit_observation(x.design.uo)
 

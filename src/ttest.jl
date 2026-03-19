@@ -1,18 +1,46 @@
+"""
+Abstract base type for cluster permutation t-tests.
+Concrete subtypes are `CPPairedSampleTTest`, `CPEqualVarianceTTest`, and `CPUnequalVarianceTTest`.
+"""
 abstract type CPTTest <: ClusterPermutationTest end
 abstract type CPTwoSampleTTest <: CPTTest end
 
+"""
+    CPPairedSampleTTest
+
+Cluster permutation test using a paired-sample (one-sample) t-test.
+
+Appropriate when the independent variable is a within-subject factor.
+Use `fit(CPPairedSampleTTest, iv, dat, cluster_criterium)` to construct.
+"""
 struct CPPairedSampleTTest <: CPTTest
 	cpc::CPCollection{OneSampleTTest}
 	dat::CPData
 	compare::Tuple
 end;
 
+"""
+    CPEqualVarianceTTest
+
+Cluster permutation test using an equal-variance two-sample t-test.
+
+Appropriate when the independent variable is a between-subject factor and equal variances
+can be assumed. Use `fit(CPEqualVarianceTTest, iv, dat, cluster_criterium)` to construct.
+"""
 struct CPEqualVarianceTTest <: CPTwoSampleTTest
 	cpc::CPCollection{EqualVarianceTTest}
 	dat::CPData
 	compare::Tuple
 end;
 
+"""
+    CPUnequalVarianceTTest
+
+Cluster permutation test using a Welch (unequal-variance) two-sample t-test.
+
+Appropriate when the independent variable is a between-subject factor and equal variances
+cannot be assumed. Use `fit(CPUnequalVarianceTTest, iv, dat, cluster_criterium)` to construct.
+"""
 struct CPUnequalVarianceTTest <: CPTwoSampleTTest
 	cpc::CPCollection{UnequalVarianceTTest}
 	dat::CPData
@@ -31,6 +59,19 @@ end
 ####
 #### Fit TTests
 ####
+"""
+    fit(T::Type{<:CPTTest}, iv, dat::CPData, cluster_criterium; mass_fnc=sum) -> CPTTest
+    fit(T::Type{<:CPTTest}, f::FormulaTerm, dat::CPData, cluster_criterium; kwargs...) -> CPTTest
+
+Fit a cluster permutation t-test to `dat`.
+
+`T` may be `CPTTest` (auto-selects based on design), `CPPairedSampleTTest`,
+`CPEqualVarianceTTest`, or `CPUnequalVarianceTTest`.
+`iv` is the name of a binary independent variable (symbol or string); `f` is a one-sided
+formula `_ ~ iv`. The independent variable must have exactly two levels.
+
+`mass_fnc` is the function used to compute the cluster mass statistic (default: `sum`).
+"""
 function StatsAPI.fit(T::Type{<:CPTTest},
 	iv::SymbolOString,
 	dat::CPData,

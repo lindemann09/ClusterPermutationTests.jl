@@ -29,6 +29,13 @@ end
 ### ClusterPermutationTest
 ###
 
+"""
+Abstract base type for all cluster permutation tests.
+
+Concrete subtypes (e.g. `CPPairedSampleTTest`, `CPLinearModel`) are constructed via
+`fit(T, ...)`, which runs the initial time-series fit and detects clusters. Call
+`resample!` afterwards to build the null-hypothesis distribution.
+"""
 abstract type ClusterPermutationTest end
 #requires
 #	cpc::CPCollection
@@ -40,8 +47,20 @@ design_table(x::ClusterPermutationTest) = design_table(x.dat)
 StudyDesigns.unit_observation(x::ClusterPermutationTest) = unit_observation(x.dat.design.uo)
 
 cluster_criterium(x::ClusterPermutationTest) = x.cpc.cc
+
+"""
+    time_series_fits(x::ClusterPermutationTest)
+
+Return the vector of fitted models from the initial (un-permuted) fit, one per time point.
+"""
 time_series_fits(x::ClusterPermutationTest) = x.cpc.M
 
+"""
+    npermutations(x::ClusterPermutationTest) -> Int
+
+Return the number of permutations accumulated so far (via `resample!`). Returns 0 if
+`resample!` has not yet been called.
+"""
 function npermutations(x::ClusterPermutationTest)
 	if length(x.cpc.S) == 0
 		return 0
@@ -51,6 +70,14 @@ function npermutations(x::ClusterPermutationTest)
 end
 ncoefs(x::ClusterPermutationTest) = size(x.cpc.coefs, 2)
 
+"""
+    time_series_stats(x::ClusterPermutationTest, effect) -> AbstractVector{Float64}
+
+Return the time series of test statistics for the specified `effect` from the initial fit.
+
+`effect` can be an integer index, a `Symbol`, or a `String` matching a coefficient name
+(see `coefnames`).
+"""
 time_series_stats(::ClusterPermutationTest) = throw(no_effect_error)
 time_series_stats(x::ClusterPermutationTest, effect::Union{Integer, Symbol, String}) = view(x.cpc.coefs, :, _effect_id(x, effect))
 
@@ -58,9 +85,25 @@ time_series_stats(x::ClusterPermutationTest, effect::Union{Integer, Symbol, Stri
 ## Cluster Functions
 ##
 
+"""
+    cluster(cpt::ClusterPermutationTest, effect) -> Vector{UnitRange{Int32}}
+
+Return the detected cluster ranges for the specified `effect`.
+
+`effect` can be an integer index, a `Symbol`, or a `String` matching a coefficient name.
+"""
 cluster(::ClusterPermutationTest) = throw(no_effect_error)
 cluster(cpt::ClusterPermutationTest, effect::Union{Integer, Symbol, String}) = cpt.cpc.cl[_effect_id(cpt, effect)]
 
+"""
+    cluster_mass_stats(cpt::ClusterPermutationTest, effect) -> Vector{Float64}
+
+Return the cluster mass statistics for each detected cluster of the specified `effect`.
+
+The mass statistic is computed by applying `mass_fnc` (default: `sum`) to the
+time-series statistics within each cluster range.
+`effect` can be an integer index, a `Symbol`, or a `String` matching a coefficient name.
+"""
 cluster_mass_stats(::ClusterPermutationTest) = throw(no_effect_error)
 function cluster_mass_stats(cpt::ClusterPermutationTest, effect::Union{Integer, Symbol, String})
 	i = _effect_id(cpt, effect)
@@ -69,6 +112,15 @@ function cluster_mass_stats(cpt::ClusterPermutationTest, effect::Union{Integer, 
 	return _cluster_mass_stats(cpt.cpc.mass_fnc, ts, cl_ranges)
 end
 
+"""
+    cluster_pvalues(cpt::ClusterPermutationTest, effect; inhibit_warning=false) -> Vector{Float64}
+
+Return the Monte Carlo permutation p-values for each detected cluster of the specified `effect`.
+
+Requires at least 1000 permutations; warns when fewer than 5000 are available.
+Call `resample!` to accumulate permutations.
+`effect` can be an integer index, a `Symbol`, or a `String` matching a coefficient name.
+"""
 cluster_pvalues(::ClusterPermutationTest; kwargs...) = throw(no_effect_error)
 function cluster_pvalues(cpt::ClusterPermutationTest, effect::Union{Integer, Symbol, String};
 	inhibit_warning::Bool = false)
@@ -76,6 +128,15 @@ function cluster_pvalues(cpt::ClusterPermutationTest, effect::Union{Integer, Sym
 	return _cluster_pvalues(cluster_nhd(cpt, i), cluster_mass_stats(cpt, i), inhibit_warning)
 end
 
+"""
+    cluster_table(cpt::ClusterPermutationTest) -> CoefTable
+    cluster_table(cpt::ClusterPermutationTest, effect; inhibit_warning=false, add_effect_names=false) -> CoefTable
+
+Return a table summarising detected clusters with their range, size, mass statistic, and p-value.
+
+When called without an `effect`, results for all effects are combined into a single table.
+`effect` can be an integer index, a `Symbol`, or a `String` matching a coefficient name.
+"""
 function cluster_table(cpt::ClusterPermutationTest, effect::Union{Integer, Symbol, String};
 	inhibit_warning::Bool = false,
 	add_effect_names::Bool = false)::CoefTable
@@ -106,8 +167,14 @@ end
 ##
 ## Null-hypothesis distributions
 ##
-"""Null-hypothesis distributions of the cluster mass statistics
-	each column represents one effect
+"""
+    cluster_nhd(cpt::ClusterPermutationTest, effect) -> Matrix{Float64}
+
+Return the null-hypothesis distribution of cluster mass statistics for the specified `effect`.
+
+The returned matrix has shape `(n_permutations × n_clusters)`. Returns an empty matrix if
+`resample!` has not been called yet.
+`effect` can be an integer index, a `Symbol`, or a `String` matching a coefficient name.
 """
 cluster_nhd(::ClusterPermutationTest) = throw(no_effect_error)
 function cluster_nhd(cpt::ClusterPermutationTest,

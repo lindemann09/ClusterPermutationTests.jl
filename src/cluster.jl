@@ -2,12 +2,31 @@
 ### Cluster definitions and criteriums
 ###
 const TClusterRange = UnitRange{Int32}
+
+"""
+    ClusterCriterium(; threshold, min_size=10, use_absolute=true)
+
+Criterion for automatically detecting clusters in a time series of test statistics.
+
+# Arguments
+- `threshold`: minimum value a statistic must reach to be part of a cluster.
+- `min_size`: minimum number of consecutive time points required to form a valid cluster (default: 10).
+- `use_absolute`: if `true` (default), the absolute value of the statistic is compared to `threshold`.
+"""
 struct ClusterCriterium
 	threshold::Real
 	min_size::Int32
 	use_absolute::Bool
 end
 
+"""
+    ClusterDefinition(ranges::Vector{UnitRange{Int32}})
+    ClusterDefinition(single_range::UnitRange)
+
+Specifies predefined cluster ranges instead of detecting them automatically.
+
+Use this when the time windows of interest are known in advance.
+"""
 struct ClusterDefinition
 	ranges::Vector{TClusterRange}
 end

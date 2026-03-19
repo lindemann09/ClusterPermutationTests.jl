@@ -1,5 +1,16 @@
+"""
+Abstract base type for cluster permutation regression models.
+Concrete subtypes are `CPLinearModel`, `CPMixedModel`, and `CPAnovaMixedModel`.
+"""
 abstract type CPRegressionModel <: ClusterPermutationTest end
 
+"""
+    CPLinearModel
+
+Cluster permutation test using OLS linear regression (via GLM.jl).
+
+Use `fit(CPLinearModel, formula, dat, cluster_criterium)` to construct.
+"""
 struct CPLinearModel <: CPRegressionModel
 	cpc::CPCollection{StatsModels.TableRegressionModel}
 	dat::CPData
@@ -20,6 +31,18 @@ end
 ####
 #### Fit Regressions
 ####
+"""
+    fit(T::Type{<:CPRegressionModel}, f::FormulaTerm, dat::CPData, cluster_criterium; kwargs...) -> T
+
+Fit a cluster permutation regression model.
+
+All categorical predictors in `f` that are not covariates or random effects are shuffled
+during permutation. To override the shuffled variables, use the method that accepts a
+`shuffle_ivs` argument explicitly.
+
+See also `fit(::Type{<:CPLinearModel}, ...)`, `fit(::Type{<:CPMixedModel}, ...)`,
+`fit(::Type{<:CPAnovaMixedModel}, ...)`.
+"""
 function StatsAPI.fit(T::Type{<:CPRegressionModel},
 	f::FormulaTerm, dat::CPData, cluster_criterium::TClusterCritODef; kwargs...)
 	# default shuffle variables: all categorical predictors except covariates and random effects
@@ -33,6 +56,16 @@ function StatsAPI.fit(T::Type{<:CPRegressionModel},
 	fit(T, f, shuffle_ivs, dat, cluster_criterium; kwargs...)
 end
 
+"""
+    fit(::Type{<:CPLinearModel}, f::FormulaTerm, shuffle_ivs, dat::CPData, cluster_criterium;
+        mass_fnc=sum, contrasts=Dict()) -> CPLinearModel
+
+Fit a cluster permutation test using OLS linear regression.
+
+`shuffle_ivs` explicitly specifies which predictor variables are shuffled during permutation.
+`mass_fnc` is the cluster mass function (default: `sum`).
+`contrasts` is a `Dict{Symbol,AbstractContrasts}` passed to `GLM.lm`.
+"""
 function StatsAPI.fit(::Type{<:CPLinearModel},
 	f::FormulaTerm,
 	shuffle_ivs::Union{Vector{Symbol}, Symbol, Vector{String}, String},

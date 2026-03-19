@@ -1,3 +1,18 @@
+"""
+    shuffle_variable!(rng::AbstractRNG, perm_design::AbstractStudyDesign, iv; synchronize=nothing)
+    shuffle_variable!(perm_design::AbstractStudyDesign, iv; kwargs...)
+
+Shuffle the values of independent variable `iv` in-place within `perm_design` and return it.
+
+For within-subject variables, values are shuffled independently within each unit of observation.
+For between-subject variables, values are shuffled across units of observation.
+
+The optional `synchronize` keyword specifies variable(s) whose cells define groups within which
+shuffling is performed independently (i.e. values are only exchanged within cells that share the
+same level of each synchronize variable).
+
+`iv` can be a symbol, string, or vector thereof.
+"""
 function shuffle_variable!(rng::AbstractRNG,
 	perm_design::AbstractStudyDesign,
 	iv::Symbol;
@@ -72,6 +87,14 @@ shuffle_variable!(rng::AbstractRNG, perm_design::AbstractStudyDesign, iv::Vector
 shuffle_variable!(perm_design::AbstractStudyDesign, iv::Union{Symbol, Vector{Symbol}, String, Vector{String}}; kwargs...) =
 	shuffle_variable!(Random.GLOBAL_RNG, perm_design, iv; kwargs...)
 
+"""
+    shuffle_variable(rng::AbstractRNG, perm_design::AbstractStudyDesign, iv; kwargs...)
+    shuffle_variable(perm_design::AbstractStudyDesign, iv; kwargs...)
+
+Return a copy of `perm_design` with the values of `iv` shuffled.
+
+Non-mutating version of `shuffle_variable!`. See that function for argument details.
+"""
 shuffle_variable(rng::AbstractRNG, perm_design::AbstractStudyDesign, iv::Union{Symbol, Vector{Symbol}, String, Vector{String}}; kwargs...) =
 	shuffle_variable!(rng, copy(perm_design), iv; kwargs...)
 shuffle_variable(perm_design::AbstractStudyDesign, iv::Union{Symbol, Vector{Symbol}, String, Vector{String}}; kwargs...) =

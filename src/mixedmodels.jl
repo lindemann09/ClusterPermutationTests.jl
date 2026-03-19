@@ -1,3 +1,10 @@
+"""
+    CPMixedModel
+
+Cluster permutation test using a linear mixed-effects model (via MixedModels.jl).
+
+Use `fit(CPMixedModel, formula, dat, cluster_criterium)` to construct.
+"""
 struct CPMixedModel <: CPRegressionModel
 	cpc::CPCollection{LinearMixedModel}
 	dat::CPData
@@ -9,6 +16,16 @@ end;
 
 n_threads_default(::CPMixedModel) = 2
 
+"""
+    fit(::Type{<:CPMixedModel}, f::FormulaTerm, shuffle_ivs, dat::CPData, cluster_criterium;
+        mass_fnc=sum, contrasts=Dict(), logger=NullLogger(), reml=false) -> CPMixedModel
+
+Fit a cluster permutation test using a linear mixed-effects model.
+
+`shuffle_ivs` explicitly specifies which predictor variables are shuffled during permutation.
+`reml`: if `true`, use REML estimation (default: `false`, i.e. ML).
+`mass_fnc` is the cluster mass function (default: `sum`).
+"""
 function StatsAPI.fit(::Type{<:CPMixedModel},
 	f::FormulaTerm,
 	shuffle_ivs::Union{Vector{Symbol}, Symbol, Vector{String}, String},
