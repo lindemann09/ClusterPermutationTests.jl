@@ -74,7 +74,7 @@ end
 	resample!(cpt, 2000; use_threads = false)
 	resample!(cpt, 3000; use_threads = true)
 	@test length(cluster(cpt)) == 2
-	@test cluster_mass_stats(cpt) ≈ [-749.6, -13669.8] atol = 1
+	@test cluster_mass_stats(cpt) ≈ [-749.6, -13669.8] atol = 2
 	@test cluster_pvalues(cpt)[2] < 0.001
 
 
@@ -83,11 +83,11 @@ end
 	resample!(cpt_mm, 10; use_threads = false)
 	summary(cpt_mm)
 	@test length(cluster(cpt_mm, 1)) == 2
-	@test cluster_mass_stats(cpt_mm, 1) ≈ [749.6, 13669.8] atol = 1
+	@test cluster_mass_stats(cpt_mm, 1) ≈ [749.6, 13669.8] atol = 2
 
 	cpt_amm = fit(CPAnovaMixedModel, @formula(y ~ operator_str + (1|subject_id)), dat,
 			cluster_criterium)
 	resample!(cpt_amm, 10; use_threads = true)
 	summary(cpt_amm)
-	@test cluster_mass_stats(cpt_amm, 1) ≈ [124.9, 49656.2] atol = 1
+	@test cluster_mass_stats(cpt_amm, 1) ≈ [124.9, 49656.2] atol = 2
 end

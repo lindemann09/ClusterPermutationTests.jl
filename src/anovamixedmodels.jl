@@ -69,6 +69,6 @@ end
 time_series_fits(x::CPAnovaMixedModel) = anova.(x.cpc.M, type = x.type)
 
 function StatsAPI.coefnames(cpt::CPAnovaMixedModel)
-	rtn = coefnames(anova(first(cpt.cpc.M), type = cpt.type))
-	return rtn[2:end] # remove Intercept
+	rtn = anovatable(anova(first(cpt.cpc.M), type = cpt.type))
+	return rtn.rownms[2:end] # remove Intercept
 end

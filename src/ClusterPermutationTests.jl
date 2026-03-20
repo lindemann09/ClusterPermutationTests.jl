@@ -17,7 +17,7 @@ import GLM: lm, LinearModel
 using HypothesisTests: HypothesisTests, EqualVarianceTTest, OneSampleTTest,
 	UnequalVarianceTTest, HypothesisTest
 import MixedModels: LinearMixedModel, is_randomeffectsterm, refit!
-using AnovaMixedModels: anova, teststat
+using AnovaMixedModels: anova, teststat, anovatable
 
 
 include("StudyDesigns/StudyDesigns.jl")
