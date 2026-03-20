@@ -56,7 +56,7 @@ Return the vector of fitted models from the initial (un-permuted) fit, one per t
 time_series_fits(x::ClusterPermutationTest) = x.cpc.M
 
 """
-    npermutations(x::ClusterPermutationTest) -> Int
+    npermutations(x::ClusterPermutationTest)
 
 Return the number of permutations accumulated so far (via `resample!`). Returns 0 if
 `resample!` has not yet been called.
@@ -71,7 +71,7 @@ end
 ncoefs(x::ClusterPermutationTest) = size(x.cpc.coefs, 2)
 
 """
-    time_series_stats(x::ClusterPermutationTest, effect) -> AbstractVector{Float64}
+    time_series_stats(x::ClusterPermutationTest, effect)
 
 Return the time series of test statistics for the specified `effect` from the initial fit.
 
@@ -86,7 +86,7 @@ time_series_stats(x::ClusterPermutationTest, effect::Union{Integer, Symbol, Stri
 ##
 
 """
-    cluster(cpt::ClusterPermutationTest, effect) -> Vector{UnitRange{Int32}}
+    cluster(cpt::ClusterPermutationTest, effect)
 
 Return the detected cluster ranges for the specified `effect`.
 
@@ -96,7 +96,7 @@ cluster(::ClusterPermutationTest) = throw(no_effect_error)
 cluster(cpt::ClusterPermutationTest, effect::Union{Integer, Symbol, String}) = cpt.cpc.cl[_effect_id(cpt, effect)]
 
 """
-    cluster_mass_stats(cpt::ClusterPermutationTest, effect) -> Vector{Float64}
+    cluster_mass_stats(cpt::ClusterPermutationTest, effect)
 
 Return the cluster mass statistics for each detected cluster of the specified `effect`.
 
@@ -113,7 +113,7 @@ function cluster_mass_stats(cpt::ClusterPermutationTest, effect::Union{Integer, 
 end
 
 """
-    cluster_pvalues(cpt::ClusterPermutationTest, effect; inhibit_warning=false) -> Vector{Float64}
+    cluster_pvalues(cpt::ClusterPermutationTest, effect; inhibit_warning=false)
 
 Return the Monte Carlo permutation p-values for each detected cluster of the specified `effect`.
 
@@ -129,8 +129,8 @@ function cluster_pvalues(cpt::ClusterPermutationTest, effect::Union{Integer, Sym
 end
 
 """
-    cluster_table(cpt::ClusterPermutationTest) -> CoefTable
-    cluster_table(cpt::ClusterPermutationTest, effect; inhibit_warning=false, add_effect_names=false) -> CoefTable
+    cluster_table(cpt::ClusterPermutationTest)
+    cluster_table(cpt::ClusterPermutationTest, effect; inhibit_warning=false, add_effect_names=false)
 
 Return a table summarising detected clusters with their range, size, mass statistic, and p-value.
 
@@ -168,7 +168,7 @@ end
 ## Null-hypothesis distributions
 ##
 """
-    cluster_nhd(cpt::ClusterPermutationTest, effect) -> Matrix{Float64}
+    cluster_nhd(cpt::ClusterPermutationTest, effect)
 
 Return the null-hypothesis distribution of cluster mass statistics for the specified `effect`.
 

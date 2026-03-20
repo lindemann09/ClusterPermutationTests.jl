@@ -18,7 +18,7 @@ n_threads_default(::CPMixedModel) = 2
 
 """
     fit(::Type{<:CPMixedModel}, f::FormulaTerm, shuffle_ivs, dat::CPData, cluster_criterium;
-        mass_fnc=sum, contrasts=Dict(), logger=NullLogger(), reml=false) -> CPMixedModel
+        mass_fnc=sum, contrasts=Dict(), logger=NullLogger(), reml=false)
 
 Fit a cluster permutation test using a linear mixed-effects model.
 

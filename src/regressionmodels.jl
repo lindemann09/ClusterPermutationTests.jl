@@ -32,7 +32,7 @@ end
 #### Fit Regressions
 ####
 """
-    fit(T::Type{<:CPRegressionModel}, f::FormulaTerm, dat::CPData, cluster_criterium; kwargs...) -> T
+    fit(T::Type{<:CPRegressionModel}, f::FormulaTerm, dat::CPData, cluster_criterium; kwargs...)
 
 Fit a cluster permutation regression model.
 
@@ -58,7 +58,7 @@ end
 
 """
     fit(::Type{<:CPLinearModel}, f::FormulaTerm, shuffle_ivs, dat::CPData, cluster_criterium;
-        mass_fnc=sum, contrasts=Dict()) -> CPLinearModel
+        mass_fnc=sum, contrasts=Dict())
 
 Fit a cluster permutation test using OLS linear regression.
 

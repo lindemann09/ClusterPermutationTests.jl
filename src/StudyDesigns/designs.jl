@@ -10,7 +10,7 @@ function UnitObs(name::Symbol, values::CategoricalArray)
 end
 
 """
-    unit_observation(d::AbstractStudyDesign) -> Union{Symbol, Nothing}
+    unit_observation(d::AbstractStudyDesign)
 
 Return the name of the unit-of-observation variable, or `nothing` if none was specified.
 """
@@ -143,7 +143,7 @@ function make_design(design::Table, unit_obs::Nothing;
 end
 
 """
-    names_between(d::AbstractStudyDesign) -> Vector{Symbol}
+    names_between(d::AbstractStudyDesign)
 
 Return the names of between-subject variables in the design (excluding the unit of observation).
 """
@@ -152,7 +152,7 @@ names_between(d::MixedDesign) = setdiff(columnnames(d.between), [unit_observatio
 names_between(::WithinDesign) = Symbol[]
 
 """
-    names_within(d::AbstractStudyDesign) -> Vector{Symbol}
+    names_within(d::AbstractStudyDesign)
 
 Return the names of within-subject variables in the design.
 """
@@ -160,14 +160,14 @@ names_within(d::Union{WithinDesign, MixedDesign}) = collect(columnnames(d.within
 names_within(::BetweenDesign) = Symbol[]
 
 """
-    names_covariates(d::AbstractStudyDesign) -> Vector{Symbol}
+    names_covariates(d::AbstractStudyDesign)
 
 Return the names of covariate variables in the design.
 """
 names_covariates(d::AbstractStudyDesign) = !isempty(d.covariates) ? collect(columnnames(d.covariates)) : Symbol[]
 
 """
-    names(d::AbstractStudyDesign) -> Vector{Symbol}
+    names(d::AbstractStudyDesign)
 
 Return all variable names in the design (unit of observation, between, within, covariates).
 """
@@ -206,14 +206,14 @@ function Base.show(io::IO, mime::MIME"text/plain", x::AbstractStudyDesign)
 end
 
 """
-    is_covariate(d::AbstractStudyDesign, var::Symbol) -> Bool
+    is_covariate(d::AbstractStudyDesign, var::Symbol)
 
 Return `true` if `var` is a covariate in the design.
 """
 is_covariate(d::AbstractStudyDesign, var::Symbol) = var in names_covariates(d)
 
 """
-    is_within(d::AbstractStudyDesign, var::Symbol) -> Bool
+    is_within(d::AbstractStudyDesign, var::Symbol)
 
 Return `true` if `var` is a within-subject variable in the design.
 """
@@ -222,14 +222,14 @@ is_between(::WithinDesign, var::Symbol) = false
 is_within(d::Union{WithinDesign, MixedDesign}, var::Symbol) = var in names_within(d)
 
 """
-    is_between(d::AbstractStudyDesign, var::Symbol) -> Bool
+    is_between(d::AbstractStudyDesign, var::Symbol)
 
 Return `true` if `var` is a between-subject variable in the design.
 """
 is_between(d::Union{BetweenDesign, MixedDesign}, var::Symbol) = var in names_between(d)
 
 """
-    has_variable(d::AbstractStudyDesign, var::Symbol) -> Bool
+    has_variable(d::AbstractStudyDesign, var::Symbol)
 
 Return `true` if `var` is any variable in the design (between, within, covariate, or
 unit of observation).

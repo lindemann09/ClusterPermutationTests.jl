@@ -19,7 +19,7 @@ n_threads_default(::CPAnovaMixedModel) = 2
 
 """
     fit(::Type{<:CPAnovaMixedModel}, f::FormulaTerm, shuffle_ivs, dat::CPData, cluster_criterium;
-        mass_fnc=sum, contrasts=Dict(), logger=NullLogger(), type=3) -> CPAnovaMixedModel
+        mass_fnc=sum, contrasts=Dict(), logger=NullLogger(), type=3)
 
 Fit a cluster permutation test using ANOVA F-statistics from a linear mixed-effects model.
 

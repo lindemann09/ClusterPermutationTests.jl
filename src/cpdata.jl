@@ -131,7 +131,7 @@ end
 
 
 """
-    select_epochs(dat::CPData; kwargs...) -> CPData
+    select_epochs(dat::CPData; kwargs...)
 
 Return a subset of `dat` restricted to epochs matching the specified conditions.
 
@@ -169,21 +169,21 @@ function select_epochs(dat::CPData; kwargs...)
 end
 
 """
-    design_table(x) -> Table
+    design_table(x)
 
 Return the experimental design as a `TypedTable.Table`.
 """
 design_table(x::CPData) = Table(x.design)
 
 """
-    epoch_length(x) -> Int
+    epoch_length(x)
 
 Return the number of time points (columns) in the epoch matrix.
 """
 epoch_length(x::CPData) = size(x.epochs, 2)
 
 """
-    nepochs(x) -> Int
+    nepochs(x)
 
 Return the number of observations (rows) in the epoch matrix.
 """

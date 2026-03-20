@@ -60,8 +60,8 @@ end
 #### Fit TTests
 ####
 """
-    fit(T::Type{<:CPTTest}, iv, dat::CPData, cluster_criterium; mass_fnc=sum) -> CPTTest
-    fit(T::Type{<:CPTTest}, f::FormulaTerm, dat::CPData, cluster_criterium; kwargs...) -> CPTTest
+    fit(T::Type{<:CPTTest}, iv, dat::CPData, cluster_criterium; mass_fnc=sum)
+    fit(T::Type{<:CPTTest}, f::FormulaTerm, dat::CPData, cluster_criterium; kwargs...)
 
 Fit a cluster permutation t-test to `dat`.
 
