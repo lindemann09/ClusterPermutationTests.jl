@@ -9,7 +9,7 @@ makedocs(
     doctest = false,
     authors = "Oliver Lindemann",
     pages = [
-        "index.md",
+        "index.md"
     ],
 )
 

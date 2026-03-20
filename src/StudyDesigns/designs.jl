@@ -186,6 +186,12 @@ Base.copy(x::BetweenDesign) = BetweenDesign(copy(x.between), x.covariates, x.uo)
 Base.copy(x::WithinDesign) = WithinDesign(copy(x.within), x.covariates, x.uo)
 Base.copy(x::MixedDesign) = MixedDesign(copy(x.between), copy(x.within), x.covariates, x.uo)
 
+"""
+    StatsAPI.nobs(x::AbstractStudyDesign)
+
+Return a table with the number of observations (rows) for each unique combination
+of the design variables.
+"""
 function StatsAPI.nobs(x::AbstractStudyDesign)
 	ids, combis = cell_indices(x)
 	n = (; nobs = [sum(i) for i in ids])
