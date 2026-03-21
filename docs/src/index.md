@@ -1,92 +1,51 @@
-# ClusterPermutationTests.jl
+# ClusterPermutationTests.jl Documentation
 
-## Tests
-```@docs
-CPPairedSampleTTest
-CPEqualVarianceTTest
-CPUnequalVarianceTTest
-CPRegressionModel
-CPMixedModel
-CPAnovaMixedModel
+A Julia package for **cluster-based permutation testing** on time-series data.
+Cluster permutation tests are a nonparametric approach widely used in neuroscience
+(EEG, ERP, fMRI) and psycholinguistics to identify significant temporal effects while
+naturally controlling the family-wise error rate across many time points.
 
-CPTTest
-CPLinearModel
-```
+## Overview
 
-### Methods
+The test proceeds in three steps:
 
-```@docs
-cluster
-cluster_mass_stats
-cluster_nhd
-cluster_pvalues
-cluster_table
-npermutations
-resample!
-time_series_fits
-time_series_stats
-```
+1. **Fit a statistical model at every time point** — t-test, linear regression, or
+   linear mixed model.
+2. **Detect clusters** — contiguous windows where the test statistic exceeds a
+   threshold.
+3. **Build a null-hypothesis distribution via permutation** — shuffle the
+   condition labels, refit, and record the maximum cluster mass. Repeat thousands
+   of times. The p-value of each observed cluster is its quantile rank against
+   this distribution.
 
-## Data
-```@docs
-CPData
-```
+Compared to mass-univariate correction methods (Bonferroni, FDR), the cluster
+approach exploits the temporal autocorrelation that is intrinsic to physiological
+time series and typically has greater power when effects span multiple consecutive
+time points.
 
-### Methods
-```@docs
-convert_to_cpdata
-design_table
-epoch_length
-nepochs
-select_epochs
-```
+## Supported Statistical Models
 
-## Cluster
+| Type | Constructor |
+|---|---|
+| Paired-samples t-test | `CPPairedSampleTTest` |
+| Independent-samples t-test (equal variances) | `CPEqualVarianceTTest` |
+| Welch's t-test (unequal variances) | `CPUnequalVarianceTTest` |
+| OLS linear regression | `CPLinearModel` |
+| Linear mixed-effects model | `CPMixedModel` |
+| ANOVA F-test from mixed model | `CPAnovaMixedModel` |
 
-```@docs
-ClusterCriterium
-ClusterDefinition
-```
+All model types share the same interface: `fit` → `resample!` → `cluster_table`.
 
-## Study Design
+## Related Software
 
-```@docs
-BetweenDesign
-WithinDesign
-MixedDesign
-UnitObs
-NoUnitObs
-```
+- [MixedModels.jl](https://github.com/JuliaStats/MixedModels.jl) — mixed-effects models used internally for `CPMixedModel`
+- [HypothesisTests.jl](https://github.com/JuliaStats/HypothesisTests.jl) — t-test implementations used internally
+- [clusterperm (R)](https://github.com/dalejbarr/clusterperm) — R reference implementation
 
-### Methods
+## Citation
 
-```@docs
-study_design
-unit_observation
-names_between
-names_within
-names_covariates
-is_between
-is_within
-is_covariate
-has_variable
-shuffle_variable!
-shuffle_variable
-```
+If you use ClusterPermutationTests.jl in published work, please cite the package:
 
-
-## Methods from `StatsAPI.jl`, `DataAPI.jl`
-```julia
-coefnames
-fit
-ncol
-nobs
-nrow
-@formula
-```
-
-## Plotting
-
-TODO
-
+> Lindemann, O. (2024). *ClusterPermutationTests.jl* [Computer software].
+> GitHub. https://github.com/lindemann09/ClusterPermutationTests.jl
 
