@@ -36,12 +36,6 @@ time points.
 
 All model types share the same interface: `fit` → `resample!` → `cluster_table`.
 
-## Related Software
-
-- [MixedModels.jl](https://github.com/JuliaStats/MixedModels.jl) — mixed-effects models used internally for `CPMixedModel`
-- [HypothesisTests.jl](https://github.com/JuliaStats/HypothesisTests.jl) — t-test implementations used internally
-- [clusterperm (R)](https://github.com/dalejbarr/clusterperm) — R reference implementation
-
 ## Citation
 
 If you use ClusterPermutationTests.jl in published work, please cite the package:

@@ -43,9 +43,8 @@ All model types share the same interface: `fit` → `resample!` → `cluster_tab
 
 ## Related Software
 
-- [MixedModels.jl](https://github.com/JuliaStats/MixedModels.jl) — mixed-effects models used internally for `CPMixedModel`
 - [HypothesisTests.jl](https://github.com/JuliaStats/HypothesisTests.jl) — t-test implementations used internally
-- [clusterperm (R)](https://github.com/dalejbarr/clusterperm) — R reference implementation
+- [MixedModels.jl](https://github.com/JuliaStats/MixedModels.jl) — mixed-effects models used internally for `CPMixedModel`
 
 ## Citation
 
