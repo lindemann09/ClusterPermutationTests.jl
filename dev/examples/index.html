@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Examples · ClusterPermutationTests.jl</title><meta name="title" content="Examples · ClusterPermutationTests.jl"/><meta property="og:title" content="Examples · ClusterPermutationTests.jl"/><meta property="twitter:title" content="Examples · ClusterPermutationTests.jl"/><meta name="description" content="Documentation for ClusterPermutationTests.jl."/><meta property="og:description" content="Documentation for ClusterPermutationTests.jl."/><meta property="twitter:description" content="Documentation for ClusterPermutationTests.jl."/><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../">ClusterPermutationTests.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../">ClusterPermutationTests.jl Documentation</a></li><li class="is-active"><a class="tocitem" href>Examples</a><ul class="internal"><li><a class="tocitem" href="#Quick-Example"><span>Quick Example</span></a></li><li><a class="tocitem" href="#Data-Input"><span>Data Input</span></a></li><li><a class="tocitem" href="#Study-Designs"><span>Study Designs</span></a></li><li><a class="tocitem" href="#Fitting-Models"><span>Fitting Models</span></a></li><li><a class="tocitem" href="#Permutation-Resampling"><span>Permutation Resampling</span></a></li><li><a class="tocitem" href="#Querying-Results"><span>Querying Results</span></a></li><li><a class="tocitem" href="#Cluster-Specification"><span>Cluster Specification</span></a></li><li><a class="tocitem" href="#Visualization"><span>Visualization</span></a></li><li><a class="tocitem" href="#Full-Workflow-Example"><span>Full Workflow Example</span></a></li></ul></li><li><a class="tocitem" href="../api/">ClusterPermutationTests.jl</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Examples</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Examples</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/lindemann09/ClusterPermutationTests.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/lindemann09/ClusterPermutationTests.jl/blob/main/docs/src/examples.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Examples"><a class="docs-heading-anchor" href="#Examples">Examples</a><a id="Examples-1"></a><a class="docs-heading-anchor-permalink" href="#Examples" title="Permalink"></a></h1><h2 id="Quick-Example"><a class="docs-heading-anchor" href="#Quick-Example">Quick Example</a><a id="Quick-Example-1"></a><a class="docs-heading-anchor-permalink" href="#Quick-Example" title="Permalink"></a></h2><pre><code class="language-julia hljs">using ClusterPermutationTests, CSV, TypedTables, Downloads
+
+# --- Load data ---
+# `epochs` is an (n_epochs × n_timepoints) matrix of observed values.
+# `design` is a table with one row per epoch describing the experimental conditions.
+epochs = CSV.File(download(&quot;…/epochs.dat&quot;), header=false)
+design = CSV.read(download(&quot;…/design.csv&quot;), Table)
+
+dat = CPData(epochs, design; unit_obs=:subject_id)
+
+# --- Define cluster criterion ---
+# Clusters = consecutive time points where |t| ≥ 1.69, spanning at least 50 samples.
+cc = ClusterCriterium(threshold=1.69, min_size=50)
+
+# --- Fit the initial time series and detect clusters ---
+cpt = fit(CPPairedSampleTTest, @formula(y ~ condition), dat, cc)
+
+# --- Build the null-hypothesis distribution ---
+resample!(cpt, 5000; use_threads=true)
+
+# --- Inspect results ---
+cluster_table(cpt)</code></pre><pre><code class="nohighlight hljs"> cluster │ from  to   size  mass stats  Pr(&gt;|z|)  sign
+─────────┼──────────────────────────────────────────────
+ 1.1     │  210  274    65    -749.6      0.041    *
+ 1.2     │  350  869   520  -13669.8     &lt;0.001    *</code></pre><h2 id="Data-Input"><a class="docs-heading-anchor" href="#Data-Input">Data Input</a><a id="Data-Input-1"></a><a class="docs-heading-anchor-permalink" href="#Data-Input" title="Permalink"></a></h2><h3 id="CPData-—-the-data-container"><a class="docs-heading-anchor" href="#CPData-—-the-data-container"><code>CPData</code> — the data container</a><a id="CPData-—-the-data-container-1"></a><a class="docs-heading-anchor-permalink" href="#CPData-—-the-data-container" title="Permalink"></a></h3><p><code>CPData</code> holds an <code>(n_epochs × n_timepoints)</code> epoch matrix together with a design table describing the experimental conditions for each epoch.</p><pre><code class="language-julia hljs"># From two files / CSV sources
+dat = CPData(epochs_matrix, design_table; unit_obs=:subject_id)
+
+# Restrict to a subset of conditions at construction time
+dat = CPData(epochs, design; unit_obs=:subject_id, condition=[&quot;A&quot;, &quot;B&quot;])
+
+# Subset an existing CPData object
+dat2 = select_epochs(dat; condition=&quot;A&quot;, subject=:all)
+
+# Inspect
+epoch_length(dat)   # number of time points
+nepochs(dat)        # number of observations (rows)
+design_table(dat)   # retrieve the design as a TypedTable</code></pre><h3 id="convert_to_cpdata-—-from-long-format-data"><a class="docs-heading-anchor" href="#convert_to_cpdata-—-from-long-format-data"><code>convert_to_cpdata</code> — from long-format data</a><a id="convert_to_cpdata-—-from-long-format-data-1"></a><a class="docs-heading-anchor-permalink" href="#convert_to_cpdata-—-from-long-format-data" title="Permalink"></a></h3><p>If your data are in long format (one row per observation × time bin), use <code>convert_to_cpdata</code>:</p><pre><code class="language-julia hljs"># data has columns: subject_id, condition, bin (time index), response (DV)
+dat = convert_to_cpdata(data; unit_obs=:subject_id, bin=:bin, response=:response)</code></pre><h2 id="Study-Designs"><a class="docs-heading-anchor" href="#Study-Designs">Study Designs</a><a id="Study-Designs-1"></a><a class="docs-heading-anchor-permalink" href="#Study-Designs" title="Permalink"></a></h2><p>ClusterPermutationTests automatically classifies your design variables as <strong>between-subjects</strong>, <strong>within-subjects</strong>, or <strong>covariates</strong> by inspecting which variables vary across the unit of observation.</p><pre><code class="language-julia hljs">design = study_design(table; unit_obs=:subject_id)
+
+names_between(design)      # between-subject variables
+names_within(design)       # within-subject variables
+names_covariates(design)   # numeric covariates
+unit_observation(design)   # the unit-of-observation column</code></pre><p>During permutation, within-subject variables are shuffled independently per participant; between-subject variables are shuffled globally. This preserves the within-subject correlation structure.</p><h2 id="Fitting-Models"><a class="docs-heading-anchor" href="#Fitting-Models">Fitting Models</a><a id="Fitting-Models-1"></a><a class="docs-heading-anchor-permalink" href="#Fitting-Models" title="Permalink"></a></h2><p>All model types are constructed via <code>fit</code>:</p><pre><code class="language-julia hljs"># T-tests  (iv must name a binary condition variable)
+cpt = fit(CPPairedSampleTTest, @formula(y ~ condition), dat, cc)
+cpt = fit(CPEqualVarianceTTest, @formula(y ~ condition), dat, cc)
+cpt = fit(CPUnequalVarianceTTest, @formula(y ~ condition), dat, cc)
+
+# OLS regression
+cpt = fit(CPLinearModel, @formula(y ~ condition + covariate), dat, cc)
+
+# Linear mixed model
+cpt = fit(CPMixedModel,
+          @formula(y ~ condition + (1 | subject_id)),
+          dat, cc;
+          reml=true)
+
+# ANOVA F-statistics from a mixed model
+cpt = fit(CPAnovaMixedModel,
+          @formula(y ~ condition + (1 | subject_id)),
+          dat, cc)</code></pre><p>The <code>shuffle_ivs</code> keyword (regression models) lets you explicitly name the predictor(s) to permute if the automatic detection is not what you want:</p><pre><code class="language-julia hljs">cpt = fit(CPMixedModel, formula, dat, cc; shuffle_ivs=[:condition])</code></pre><h3 id="Cluster-mass-function"><a class="docs-heading-anchor" href="#Cluster-mass-function">Cluster mass function</a><a id="Cluster-mass-function-1"></a><a class="docs-heading-anchor-permalink" href="#Cluster-mass-function" title="Permalink"></a></h3><p>By default the cluster mass is the <strong>sum</strong> of test statistics within a cluster. Pass <code>mass_fnc</code> to use a different aggregation:</p><pre><code class="language-julia hljs">cpt = fit(CPLinearModel, formula, dat, cc; mass_fnc=maximum)</code></pre><h2 id="Permutation-Resampling"><a class="docs-heading-anchor" href="#Permutation-Resampling">Permutation Resampling</a><a id="Permutation-Resampling-1"></a><a class="docs-heading-anchor-permalink" href="#Permutation-Resampling" title="Permalink"></a></h2><pre><code class="language-julia hljs"># Run 5 000 permutations using all available threads
+resample!(cpt, 5_000; use_threads=true)
+
+# Limit to a specific number of threads
+resample!(cpt, 5_000; use_threads=4)
+
+# Append more permutations to an already-resampled object
+resample!(cpt, 5_000)   # total becomes 10 000
+
+npermutations(cpt)      # how many permutations have been accumulated</code></pre><p>A minimum of <strong>1 000 permutations</strong> is required to compute p-values; at least <strong>5 000</strong> is recommended for reliable estimates.</p><h2 id="Querying-Results"><a class="docs-heading-anchor" href="#Querying-Results">Querying Results</a><a id="Querying-Results-1"></a><a class="docs-heading-anchor-permalink" href="#Querying-Results" title="Permalink"></a></h2><p>All functions below accept an <code>effect</code> argument that can be an integer index, a <code>Symbol</code>, or a <code>String</code> matching a coefficient name (see <code>coefnames</code>). When a model has only one effect, <code>effect</code> can be omitted.</p><table><tr><th style="text-align: right">Function</th><th style="text-align: right">Returns</th></tr><tr><td style="text-align: right"><code>time_series_stats(cpt, effect)</code></td><td style="text-align: right">Per-time-point test statistics (length = epoch_length)</td></tr><tr><td style="text-align: right"><code>cluster(cpt, effect)</code></td><td style="text-align: right">Detected cluster ranges (<code>Vector{UnitRange}</code>)</td></tr><tr><td style="text-align: right"><code>cluster_mass_stats(cpt, effect)</code></td><td style="text-align: right">Aggregate mass statistic per cluster</td></tr><tr><td style="text-align: right"><code>cluster_nhd(cpt, effect)</code></td><td style="text-align: right">Null-hypothesis distribution matrix (n<em>permutations × n</em>clusters)</td></tr><tr><td style="text-align: right"><code>cluster_pvalues(cpt, effect)</code></td><td style="text-align: right">Monte Carlo permutation p-values</td></tr><tr><td style="text-align: right"><code>cluster_table(cpt)</code></td><td style="text-align: right">Summary <code>CoefTable</code> for all effects</td></tr><tr><td style="text-align: right"><code>cluster_table(cpt, effect)</code></td><td style="text-align: right">Summary table for a single effect</td></tr><tr><td style="text-align: right"><code>time_series_fits(cpt)</code></td><td style="text-align: right">Vector of fitted model objects (one per time point)</td></tr></table><pre><code class="language-julia hljs"># Example: retrieve results for a named effect
+cluster_pvalues(cpt, :condition)
+cluster_mass_stats(cpt, :condition)
+cluster(cpt, :condition)
+
+# Inspect the full summary
+summary(cpt)</code></pre><h2 id="Cluster-Specification"><a class="docs-heading-anchor" href="#Cluster-Specification">Cluster Specification</a><a id="Cluster-Specification-1"></a><a class="docs-heading-anchor-permalink" href="#Cluster-Specification" title="Permalink"></a></h2><h3 id="Automatic-detection-—-ClusterCriterium"><a class="docs-heading-anchor" href="#Automatic-detection-—-ClusterCriterium">Automatic detection — <code>ClusterCriterium</code></a><a id="Automatic-detection-—-ClusterCriterium-1"></a><a class="docs-heading-anchor-permalink" href="#Automatic-detection-—-ClusterCriterium" title="Permalink"></a></h3><pre><code class="language-julia hljs">ClusterCriterium(threshold=2.0, min_size=10, use_absolute=true)</code></pre><table><tr><th style="text-align: right">Argument</th><th style="text-align: right">Description</th><th style="text-align: right">Default</th></tr><tr><td style="text-align: right"><code>threshold</code></td><td style="text-align: right">Minimum statistic value to enter a cluster</td><td style="text-align: right">(required)</td></tr><tr><td style="text-align: right"><code>min_size</code></td><td style="text-align: right">Minimum number of consecutive time points</td><td style="text-align: right"><code>10</code></td></tr><tr><td style="text-align: right"><code>use_absolute</code></td><td style="text-align: right">Compare `</td><td style="text-align: right">statistic</td></tr></table><p>A common choice for <code>threshold</code> is the critical value of the <em>t</em>-distribution at the desired α-level (e.g., <code>t_{0.05, df} ≈ 1.69</code> for large <em>df</em>).</p><h3 id="Predefined-windows-—-ClusterDefinition"><a class="docs-heading-anchor" href="#Predefined-windows-—-ClusterDefinition">Predefined windows — <code>ClusterDefinition</code></a><a id="Predefined-windows-—-ClusterDefinition-1"></a><a class="docs-heading-anchor-permalink" href="#Predefined-windows-—-ClusterDefinition" title="Permalink"></a></h3><p>If the time windows of interest are known a priori:</p><pre><code class="language-julia hljs">cc = ClusterDefinition([200:400, 600:900])   # two fixed windows
+cc = ClusterDefinition(200:800)              # single window</code></pre><h2 id="Visualization"><a class="docs-heading-anchor" href="#Visualization">Visualization</a><a id="Visualization-1"></a><a class="docs-heading-anchor-permalink" href="#Visualization" title="Permalink"></a></h2><p>Optional plotting support is available via a Makie extension. Load any Makie backend (e.g., <code>GLMakie</code>, <code>CairoMakie</code>) to activate it.</p><pre><code class="language-julia hljs">using CairoMakie, ClusterPermutationTests
+
+fig = Figure(size=(800, 400))
+plot_time_series_stats!(Axis(fig[1, 1]), cpt, :condition)   # time series of t-values
+
+fig2 = Figure()
+plot_cluster_nhd!(fig2, cpt; effect=:condition, bins=100)   # null distribution histograms</code></pre><p><code>plot_cluster_nhd!</code> draws one histogram per detected cluster, with the observed cluster mass overlaid as a vertical line.</p><h2 id="Full-Workflow-Example"><a class="docs-heading-anchor" href="#Full-Workflow-Example">Full Workflow Example</a><a id="Full-Workflow-Example-1"></a><a class="docs-heading-anchor-permalink" href="#Full-Workflow-Example" title="Permalink"></a></h2><pre><code class="language-julia hljs">using ClusterPermutationTests, CSV, TypedTables, Downloads
+
+# 1. Load data
+fl_design = &quot;https://raw.githubusercontent.com/lindemann09/JuliaDataSets/refs/heads/main/data/cpt1_design.csv&quot;
+fl_epochs = &quot;https://raw.githubusercontent.com/lindemann09/JuliaDataSets/refs/heads/main/data/cpt1_epochs.dat&quot;
+
+epochs = CSV.File(download(fl_epochs), header=false)
+design = CSV.read(download(fl_design), Table)
+dat    = CPData(epochs, design; unit_obs=:subject_id)
+
+# 2. Define cluster criterion
+cc = ClusterCriterium(threshold=1.69, min_size=50)
+
+# 3a. Paired t-test
+cpt_t = fit(CPPairedSampleTTest, @formula(y ~ operator_str), dat, cc)
+resample!(cpt_t, 5_000; use_threads=true)
+cluster_table(cpt_t)
+
+# 3b. Linear mixed model
+cpt_mm = fit(CPMixedModel,
+             @formula(y ~ operator_str + (1 | subject_id)),
+             dat, cc; reml=true)
+resample!(cpt_mm, 5_000; use_threads=true)
+cluster_table(cpt_mm)
+
+# 3c. ANOVA F-test
+cpt_amm = fit(CPAnovaMixedModel,
+              @formula(y ~ operator_str + (1 | subject_id)),
+              dat, cc)
+resample!(cpt_amm, 5_000; use_threads=true)
+cluster_table(cpt_amm)</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« ClusterPermutationTests.jl Documentation</a><a class="docs-footer-nextpage" href="../api/">ClusterPermutationTests.jl »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Saturday 21 March 2026 13:52">Saturday 21 March 2026</span>. Using Julia version 1.10.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
