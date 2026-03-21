@@ -133,7 +133,8 @@ end
 """
     select_epochs(dat::CPData; kwargs...)
 
-Return a subset of `dat` restricted to epochs matching the specified conditions.
+Return a subset of the data `dat` restricted to epochs matching the
+specified conditions.
 
 Each keyword argument names a design variable and specifies the allowed value(s).
 Pass `:all` or `"all"` to keep all levels of a variable. At least one variable
