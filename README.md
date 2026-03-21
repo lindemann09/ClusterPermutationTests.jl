@@ -10,6 +10,8 @@ naturally controlling the family-wise error rate across many time points.
 
 **Documentation**: [https://lindemann09.github.io/ClusterPermutationTests.jl](https://lindemann09.github.io/ClusterPermutationTests.jl)
 
+(C) 2024 Oliver Lindemann -- Erasmus University Rotterdam.
+
 ## Overview
 
 The test proceeds in three steps:
@@ -41,17 +43,17 @@ time points.
 
 All model types share the same interface: `fit` → `resample!` → `cluster_table`.
 
+## Installation
+
+```julia
+using Pkg
+Pkg.add("ClusterPermutationTests")
+```
+
 ## Related Software
 
 - [HypothesisTests.jl](https://github.com/JuliaStats/HypothesisTests.jl) — t-test implementations used internally
 - [MixedModels.jl](https://github.com/JuliaStats/MixedModels.jl) — mixed-effects models used internally for `CPMixedModel`
-
-## Citation
-
-If you use ClusterPermutationTests.jl in published work, please cite the package:
-
-> Lindemann, O. (2024). *ClusterPermutationTests.jl* [Computer software].
-> GitHub. https://github.com/lindemann09/ClusterPermutationTests.jl
 
 ## License
 
