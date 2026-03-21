@@ -10,7 +10,7 @@ naturally controlling the family-wise error rate across many time points.
 
 **Documentation**: [https://lindemann09.github.io/ClusterPermutationTests.jl](https://lindemann09.github.io/ClusterPermutationTests.jl)
 
-(C) 2024 Oliver Lindemann -- Erasmus University Rotterdam.
+(C) 2024 Oliver Lindemann, Erasmus University Rotterdam.
 
 ## Overview
 
