@@ -41,5 +41,16 @@ All model types share the same interface: `fit` → `resample!` → `cluster_tab
 If you use ClusterPermutationTests.jl in published work, please cite the package:
 
 > Lindemann, O. (2024). *ClusterPermutationTests.jl* [Computer software].
-> GitHub. https://github.com/lindemann09/ClusterPermutationTests.jl
+> JuliaHub. https://github.com/lindemann09/ClusterPermutationTests.jl
 
+Or in BibTeX:
+
+```bibtex
+@software{Lindemann2024,
+  author = {Oliver Lindemann},
+  title = {{ClusterPermutationTests.jl}},
+  year = {2024},
+  publisher = {JuliaHub},
+  url = {https://github.com/lindemann09/ClusterPermutationTests.jl}
+}
+```

@@ -50,6 +50,12 @@ using Pkg
 Pkg.add("ClusterPermutationTests")
 ```
 
+An optional plotting extension for `Makie.jl` is available.
+
+```julia
+Pkg.add("Makie")   # file I/O
+```
+
 ## Related Software
 
 - [HypothesisTests.jl](https://github.com/JuliaStats/HypothesisTests.jl) — t-test implementations used internally

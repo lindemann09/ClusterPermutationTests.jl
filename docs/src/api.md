@@ -1,4 +1,4 @@
-# ClusterPermutationTests.jl
+# API
 
 ## Tests
 ```@docs
@@ -86,6 +86,8 @@ nrow
 ```
 
 ## Plotting
+
+An optional plotting extension for `Makie.jl` are available, if the package is loaded.
 
 TODO
 
