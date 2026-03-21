@@ -5,16 +5,11 @@ concurrency:
 on:
   push:
     branches: [main]
-    tags: [v*]
+    tags: ['v*']
     paths-ignore:
       - 'LICENSE.md'
       - 'README.md'
   pull_request:
-    branches:
-      - main
-    paths-ignore:
-      - 'LICENSE.md'
-      - 'README.md'
 jobs:
   Documenter:
     name: Documentation
