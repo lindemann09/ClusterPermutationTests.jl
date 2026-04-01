@@ -5,6 +5,7 @@ using SplitApplyCombine: groupfind
 using Random
 using Tables: columntable, getcolumn, istable, matrix
 using TypedTables: Table, columnnames
+using DimensionalData: DimArray, DimMatrix
 using ProgressMeter: Progress, next!, finish!
 using Logging: with_logger, NullLogger, SimpleLogger, AbstractLogger, global_logger
 using CSV

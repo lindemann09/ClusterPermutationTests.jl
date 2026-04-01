@@ -58,7 +58,6 @@ function CPData(cpdat::CPData; kwargs...)
 end
 
 function CPData(epochs::Any, design::Any; unit_obs::OptSymbolOString, kwargs...)
-
 	if design isa AbstractString # try to read file
 		design = CSV.File(design, header = true)
 	end
@@ -66,10 +65,14 @@ function CPData(epochs::Any, design::Any; unit_obs::OptSymbolOString, kwargs...)
 	if epochs isa AbstractString # try to read file
 		epochs = matrix(CSV.File(epochs, header = false))
 	end
-	if epochs isa SubArray
+	if epochs isa Vector{<:Real}
+		epochs = reshape(epochs, :, 1) # make it a column vector
+	elseif epochs isa SubArray
 		epochs = collect(epochs)
-	end
-	if istable(epochs)
+	elseif epochs isa DimArray{<:Real, 2} || epochs isa DimMatrix{<:Real}
+		# DimArray will be transform to matrix, as long data. We just want to ensure that data shape is unchanged.
+		epochs = epochs.data
+	elseif istable(epochs)
 		epochs = matrix(epochs)
 	end
 
