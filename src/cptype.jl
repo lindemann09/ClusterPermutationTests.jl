@@ -187,9 +187,9 @@ function cluster_nhd(cpt::ClusterPermutationTest,
 	end
 end
 
-function StatsAPI.summary(x::ClusterPermutationTest)
+function Base.summary( x::ClusterPermutationTest)
 	println(_info(x))
-	println(cluster_table(x))
+	display(cluster_table(x))
 	return println("  n permutations: $(npermutations(x))")
 end;
 
