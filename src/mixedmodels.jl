@@ -12,7 +12,6 @@ struct CPMixedModel <: CPRegressionModel
 	f::FormulaTerm
 	contrasts::Dict{Symbol, AbstractContrasts} # contrasts for LinearModel
 	reml::Bool # use REML estimation
-	z_values::Bool
 end;
 
 n_threads_default(::CPMixedModel) = 2
@@ -35,8 +34,7 @@ function StatsAPI.fit(::Type{<:CPMixedModel},
 	mass_fnc::Function = sum,
 	contrasts::Dict{Symbol, <:AbstractContrasts} = Dict{Symbol, AbstractContrasts}(),
 	logger::Union{AbstractLogger, Nothing} = NullLogger(),
-	reml::Bool = false,
-	z_values::Bool = true) ::CPMixedModel
+	reml::Bool = false) ::CPMixedModel
 
 	data, shuffle_ivs = _prepare_regression_data(f, dat, shuffle_ivs)
 	cpc = CPCollection{LinearMixedModel}(shuffle_ivs, mass_fnc, cluster_criterium)
