@@ -97,7 +97,7 @@ end
 @inline function parameter_estimates(cpt::CPLinearModel,
 	design::AbstractStudyDesign,
 	time_points::Vector{Int32};
-	store_fits::Bool = false)::T2DParamVector # time x effect
+	is_initial_fit::Bool = false)::T2DParamVector # time x effect
 
 	design = columntable(design)
 	param = T2DParamVector()
@@ -107,7 +107,7 @@ end
 		md = fit(LinearModel, cpt.f, design; contrasts = cpt.contrasts) ## fit model!
 		z = coef(md) ./ stderror(md) # parameter: z or t-value of effect
 		push!(param, z[2:end])
-		if store_fits
+		if is_initial_fit
 			push!(cpt.cpc.M, md)
 		end
 	end

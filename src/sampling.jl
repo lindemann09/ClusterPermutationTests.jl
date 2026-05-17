@@ -8,7 +8,7 @@ TODO
 	* cpc::CPCollection
 	* dat::CPData
 2. parameter_estimates(cpt::ClusterPermutationTest;
-			fit_cluster_only::Bool=false, store_fits::Bool = false)::Vector{TParameterVector}
+			fit_cluster_only::Bool=false, is_initial_fit::Bool = false)::Vector{TParameterVector}
 
 	returns vector (time) of parameter vector
 
@@ -16,7 +16,7 @@ TODO
 	data might contain different data as in cpt struct (entire time series & not permuted design),
 	that is, the design might be permuted and/or epochs might be the data of merely a particular cluster.
 	list of test_statistics has to be returned as TParameterVector
-	if store_fits is true, the function has to store the fitted models in cpt.cpc.M
+	if is_initial_fit is true, the function has to store the fitted models in cpt.cpc.M
 3. time_series_stats(cpt::ClusterPermutationTest)::TParameterVector
 	function to extract the test statistics from the initial fit stored in cpt.cpc.M
 4. StatsAPI.fit(::Type{}, ...)
@@ -39,7 +39,7 @@ function fit_initial_time_series!(
 	atp = collect(Int32(1):Int32(epoch_length(cpt.dat))) # all time points
 
 	old_logger = isnothing(logger) ? nothing : global_logger(logger) # change logger
-	c = parameter_estimates(cpt, cpt.dat.design, atp; store_fits = true)
+	c = parameter_estimates(cpt, cpt.dat.design, atp; is_initial_fit = true)
 	isnothing(old_logger) || global_logger(old_logger)
 
 	cpt.cpc.coefs = stack(c, dims = 1) # time X effects
@@ -168,7 +168,7 @@ function _do_resampling(rng::AbstractRNG,
 	for _ in 1:n_permutations
 		shuffle_variable!(rng, design, cpt.cpc.shuffle_ivs) # shuffle design
 		# get parameter estimates for the time points (time x effect)
-		params_time = parameter_estimates(cpt, design, time_points; store_fits = false)
+		params_time = parameter_estimates(cpt, design, time_points; is_initial_fit = false)
 
 		cms_vec = T2DParamVector()
 		for (eid, effect_cluster) in enumerate(idx)

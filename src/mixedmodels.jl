@@ -12,6 +12,7 @@ struct CPMixedModel <: CPRegressionModel
 	f::FormulaTerm
 	contrasts::Dict{Symbol, AbstractContrasts} # contrasts for LinearModel
 	reml::Bool # use REML estimation
+	z_values::Bool
 end;
 
 n_threads_default(::CPMixedModel) = 2
@@ -34,7 +35,8 @@ function StatsAPI.fit(::Type{<:CPMixedModel},
 	mass_fnc::Function = sum,
 	contrasts::Dict{Symbol, <:AbstractContrasts} = Dict{Symbol, AbstractContrasts}(),
 	logger::Union{AbstractLogger, Nothing} = NullLogger(),
-	reml::Bool = false) ::CPMixedModel
+	reml::Bool = false,
+	z_values::Bool = true) ::CPMixedModel
 
 	data, shuffle_ivs = _prepare_regression_data(f, dat, shuffle_ivs)
 	cpc = CPCollection{LinearMixedModel}(shuffle_ivs, mass_fnc, cluster_criterium)
@@ -50,7 +52,7 @@ end
 @inline function parameter_estimates(cpt::CPMixedModel,
 	design::AbstractStudyDesign,
 	time_points::Vector{Int32};
-	store_fits::Bool = false)::T2DParamVector
+	is_initial_fit::Bool = false)::T2DParamVector
 
 	design = columntable(design)
 	param = T2DParamVector()
@@ -60,7 +62,7 @@ end
 		md = refit!(md, view(cpt.dat.epochs, :, t); progress = false, REML = cpt.reml)
 		z = coef(md) ./ stderror(md) # parameter: t-value of effect
 		push!(param, z[2:end])
-		if store_fits
+		if is_initial_fit
 			push!(cpt.cpc.M, md)
 		end
 	end
