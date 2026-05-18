@@ -28,7 +28,7 @@ cluster_table(cpt)
 ```
 
 ```
- cluster │ from  to   size  mass stats  Pr(>|z|)  sign
+ cluster │ from  to   size  mass stats      p    sign
 ─────────┼──────────────────────────────────────────────
  1.1     │  210  274    65    -749.6      0.041    *
  1.2     │  350  869   520  -13669.8     <0.001    *

@@ -132,7 +132,7 @@ function _cluster_table(coef_id::Integer,
 	from = [c.start for c in cl_ranges]
 	to = [c.stop for c in cl_ranges]
 	size = [c.stop - c.start + 1 for c in cl_ranges]
-	colnms = ["cluster", "from", "to", "size", "mass stats", "Pr(>|z|)", "sign"]
+	colnms = ["cluster", "from", "to", "size", "mass stats", "p", "sign"]
 	cols = [cid, from, to, size, cms, p, sign]
 	rownms = [string(coef_id) * "."*string(i) for i in cid]
 	if add_effect_names && !isempty(rownms)
