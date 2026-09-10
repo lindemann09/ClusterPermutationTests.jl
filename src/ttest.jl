@@ -76,7 +76,8 @@ function StatsAPI.fit(T::Type{<:CPTTest},
 	iv::SymbolOString,
 	dat::CPData,
 	cluster_criterium::TClusterCritODef;
-	mass_fnc::Function = sum)
+	mass_fnc::Function = sum,
+	cluster_statistic::SymbolOString = :clusterwise)
 
 	iv = Symbol(iv)
 	paired = is_within(dat.design, iv)
@@ -107,7 +108,7 @@ function StatsAPI.fit(T::Type{<:CPTTest},
 	else
 		throw(ArgumentError("Test $(T) not supported for t.test."))
 	end
-	cpc = CPCollection{M}([iv], mass_fnc, cluster_criterium)
+	cpc = CPCollection{M}([iv], mass_fnc, cluster_criterium, cluster_statistic)
 
 	rtn = T(cpc, dat, (compare[1], compare[2]))
 
@@ -139,8 +140,8 @@ StatsAPI.coefnames(::CPTTest) = ["contrast"]
 """returns vector (time) of vector (parameters)"""
 @inline function parameter_estimates(cpt::CPTTest,
 	design::AbstractStudyDesign,
-	time_points::Vector{Int32};
-	is_initial_fit::Bool = false)::T2DParamVector # time x effect
+	time_points::Vector{<:Integer};
+	store_model_fits::Bool = false)::T2DParamVector # time x effect
 
 	# Estimate parameters for a specific cluster (range)
 	T = typeof(cpt)
@@ -151,7 +152,7 @@ StatsAPI.coefnames(::CPTTest) = ["contrast"]
 	for t in time_points
 		tt = _estimate(T, view(epochs, :, t), design_tbl, iv, cpt.compare)
 		push!(param, [tt.t])
-		if is_initial_fit
+		if store_model_fits
 			push!(cpt.cpc.M, tt)
 		end
 	end

@@ -5,11 +5,13 @@ const TParameterVector = Vector{Float64}
 const TParameterMatrix = Matrix{Float64}
 const T2DParamVector = Vector{TParameterVector}
 const no_effect_error = ArgumentError("Please specify an effect.")
+const ClusterStatistics = [:clusterwise, :max]
 
 mutable struct CPCollection{M}
 	shuffle_ivs::Vector{Symbol} # name of the to be shuffled independent variable
 	mass_fnc::Function # cluster mass function
 	cc::TClusterCritODef # cluster definition
+	cluster_statistic::Symbol # clusterwise, max
 
 	M::Vector{M} # fitted models of initial fit
 	coefs::TParameterMatrix # (time X effect) time series statistics of the initial fit
@@ -18,9 +20,13 @@ mutable struct CPCollection{M}
 end;
 
 function CPCollection{M}(shuffle_ivs::Vector{Symbol}, mass_fnc::Function,
-	cluster_criterium::TClusterCritODef) where {M}
+	cluster_criterium::TClusterCritODef, cluster_statistic::SymbolOString) where {M}
+	cluster_statistic = Symbol(cluster_statistic)
+	if !in(cluster_statistic, ClusterStatistics)
+		throw(ArgumentError("Cluster statistic $(cluster_statistic) not supported."))
+	end
 	return CPCollection{M}(shuffle_ivs, mass_fnc, cluster_criterium,
-			M[], zeros(Float64, 0, 0), TParameterMatrix[])
+			cluster_statistic, M[], zeros(Float64, 0, 0), TParameterMatrix[])
 end
 
 ###

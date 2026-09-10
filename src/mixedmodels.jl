@@ -32,12 +32,13 @@ function StatsAPI.fit(::Type{<:CPMixedModel},
 	dat::CPData,
 	cluster_criterium::TClusterCritODef;
 	mass_fnc::Function = sum, # length, max
+	cluster_statistic::SymbolOString = :clusterwise,
 	contrasts::Dict{Symbol, <:AbstractContrasts} = Dict{Symbol, AbstractContrasts}(),
 	logger::Union{AbstractLogger, Nothing} = NullLogger(),
 	reml::Bool = false) ::CPMixedModel
 
 	data, shuffle_ivs = _prepare_regression_data(f, dat, shuffle_ivs)
-	cpc = CPCollection{LinearMixedModel}(shuffle_ivs, mass_fnc, cluster_criterium)
+	cpc = CPCollection{LinearMixedModel}(shuffle_ivs, mass_fnc, cluster_criterium, cluster_statistic)
 	rtn = CPMixedModel(cpc, data, f, contrasts, reml)
 	fit_initial_time_series!(rtn; logger)
 	return rtn
@@ -49,8 +50,8 @@ end
 ####
 @inline function parameter_estimates(cpt::CPMixedModel,
 	design::AbstractStudyDesign,
-	time_points::Vector{Int32};
-	is_initial_fit::Bool = false)::T2DParamVector
+	time_points::Vector{<:Integer};
+	store_model_fits::Bool = false)::T2DParamVector
 
 	design = columntable(design)
 	param = T2DParamVector()
@@ -60,7 +61,7 @@ end
 		md = refit!(md, view(cpt.dat.epochs, :, t); progress = false, REML = cpt.reml)
 		z = coef(md) ./ stderror(md) # parameter: t-value of effect
 		push!(param, z[2:end])
-		if is_initial_fit
+		if store_model_fits
 			push!(cpt.cpc.M, md)
 		end
 	end

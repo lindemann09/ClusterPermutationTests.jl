@@ -15,8 +15,7 @@ import StatsAPI: StatsAPI, fit, nobs
 using StatsBase: coef, stderror, CoefTable, quantilerank
 using StatsModels
 import GLM: lm, LinearModel
-using HypothesisTests: HypothesisTests, EqualVarianceTTest, OneSampleTTest,
-	UnequalVarianceTTest, HypothesisTest
+using HypothesisTests: EqualVarianceTTest, OneSampleTTest, UnequalVarianceTTest
 import MixedModels: LinearMixedModel, is_randomeffectsterm, refit!
 using AnovaMixedModels: anova, teststat, anovatable
 
@@ -54,7 +53,6 @@ export ClusterPermutationTest,
 	# plotting
 	plot_time_series_stats!,
 	plot_cluster_nhd!
-
 
 include("StudyDesigns/utilities.jl")
 include("cluster.jl")

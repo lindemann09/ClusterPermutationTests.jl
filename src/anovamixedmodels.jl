@@ -33,12 +33,13 @@ function StatsAPI.fit(::Type{<:CPAnovaMixedModel},
 	dat::CPData,
 	cluster_criterium::TClusterCritODef;
 	mass_fnc::Function = sum,
+	cluster_statistic::SymbolOString = :clusterwise,
 	contrasts::Dict{Symbol, <:AbstractContrasts} = Dict{Symbol, AbstractContrasts}(),
 	logger::Union{AbstractLogger, Nothing} = NullLogger(),
 	type::Int = 3)
 
 	data, shuffle_ivs = _prepare_regression_data(f, dat, shuffle_ivs)
-	cpc = CPCollection{LinearMixedModel}(shuffle_ivs, mass_fnc, cluster_criterium)
+	cpc = CPCollection{LinearMixedModel}(shuffle_ivs, mass_fnc, cluster_criterium, cluster_statistic)
 	rtn = CPAnovaMixedModel(cpc, data, f, contrasts, type)
 	fit_initial_time_series!(rtn; logger)
 	return rtn
@@ -49,8 +50,8 @@ end
 ####
 function parameter_estimates(cpt::CPAnovaMixedModel,
 	design::AbstractStudyDesign,
-	time_points::Vector{Int32};
-	is_initial_fit::Bool = false)::T2DParamVector
+	time_points::Vector{<:Integer};
+	store_model_fits::Bool = false)::T2DParamVector
 
 	design = columntable(design)
 	param = T2DParamVector()
@@ -59,7 +60,7 @@ function parameter_estimates(cpt::CPAnovaMixedModel,
 		md = refit!(md, view(cpt.dat.epochs, :, t); progress = false, REML = false)
 		f = teststat(anova(md, type = cpt.type))
 		push!(param, collect(f[2:end]))
-		if is_initial_fit
+		if store_model_fits
 			push!(cpt.cpc.M, md)
 		end
 	end

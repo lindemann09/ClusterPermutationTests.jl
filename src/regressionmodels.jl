@@ -72,10 +72,12 @@ function StatsAPI.fit(::Type{<:CPLinearModel},
 	dat::CPData,
 	cluster_criterium::TClusterCritODef;
 	mass_fnc::Function = sum,
+	cluster_statistic::SymbolOString = :clusterwise,
 	contrasts::Dict{Symbol, <:AbstractContrasts} = Dict{Symbol, AbstractContrasts}())
 
 	data, shuffle_ivs = _prepare_regression_data(f, dat, shuffle_ivs)
-	cpc = CPCollection{StatsModels.TableRegressionModel}(shuffle_ivs, mass_fnc, cluster_criterium)
+	cpc = CPCollection{StatsModels.TableRegressionModel}(shuffle_ivs, mass_fnc, cluster_criterium,
+						cluster_statistic)
 	rtn = CPLinearModel(cpc, data, f, contrasts)
 	fit_initial_time_series!(rtn)
 	return rtn
@@ -96,8 +98,8 @@ end
 """
 @inline function parameter_estimates(cpt::CPLinearModel,
 	design::AbstractStudyDesign,
-	time_points::Vector{Int32};
-	is_initial_fit::Bool = false)::T2DParamVector # time x effect
+	time_points::Vector{<:Integer};
+	store_model_fits::Bool = false)::T2DParamVector # time x effect
 
 	design = columntable(design)
 	param = T2DParamVector()
@@ -107,7 +109,7 @@ end
 		md = fit(LinearModel, cpt.f, design; contrasts = cpt.contrasts) ## fit model!
 		z = coef(md) ./ stderror(md) # parameter: z or t-value of effect
 		push!(param, z[2:end])
-		if is_initial_fit
+		if store_model_fits
 			push!(cpt.cpc.M, md)
 		end
 	end
