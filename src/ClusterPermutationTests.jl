@@ -40,7 +40,6 @@ export ClusterPermutationTest,
 	ClusterCriterium,
 	ClusterDefinition,
 	# Functions
-	info,
 	cluster_mass_stats,
 	cluster_nhd,
 	cluster_pvalues,

@@ -5,7 +5,7 @@ const TParameterVector = Vector{Float64}
 const TParameterMatrix = Matrix{Float64}
 const T2DParamVector = Vector{TParameterVector}
 const no_effect_error = ArgumentError("Please specify an effect.")
-const ClusterStatistics = [:clusterwise, :max]
+const ClusterStatistics = [:clusterwise, :maxmass]
 
 mutable struct CPCollection{M}
 	shuffle_ivs::Vector{Symbol} # name of the to be shuffled independent variable
@@ -49,17 +49,6 @@ nepochs(x::ClusterPermutationTest) = nepochs(x.dat)
 epoch_length(x::ClusterPermutationTest) = epoch_length(x.dat)
 design_table(x::ClusterPermutationTest) = design_table(x.dat)
 StudyDesigns.unit_observation(x::ClusterPermutationTest) = unit_observation(x.dat.design.uo)
-
-
-"""
-	info(x::ClusterPermutationTest)
-
-Information about the configuation of the cluster permutation test
-"""
-function info(x::ClusterPermutationTest)
-	println("Cluster $(_cluster_info_str(x.cpc.cc))")
-	println("Cluster mass: $(x.cpc.mass_fnc)")
-end
 
 
 """
@@ -109,8 +98,8 @@ Return the detected cluster ranges for the specified `effect`.
 """
 cluster(::ClusterPermutationTest) = throw(no_effect_error)
 function cluster(cpt::ClusterPermutationTest, effect::Union{Integer, Symbol, String})
-	eff_id = _effect_id(cpt, effect)
-	return _cluster_ranges(cpt.cpc.coefs[:, eff_id], cpt.cpc.cc)
+	ts = view(cpt.cpc.coefs, :, _effect_id(cpt, effect)) # time series stats for this effect
+	return _cluster_ranges(ts, cpt.cpc.cc)
 end
 
 """
@@ -207,21 +196,22 @@ end
 
 function Base.summary(x::ClusterPermutationTest)
 	println(_info(x))
+	ivs = join(string.(x.cpc.shuffle_ivs), ", ")
+	println("  shuffled variables: $(ivs)")
+	println("  cluster $(_cluster_info_str(x.cpc.cc))")
+	println("  cluster stats: $(x.cpc.mass_fnc), statistic: $(x.cpc.cluster_statistic)")
 	display(cluster_table(x))
 	return println("  n permutations: $(npermutations(x))")
 end;
 
 function Base.show(io::IO, mime::MIME"text/plain", x::ClusterPermutationTest)
 	println(io, _info(x))
-	println(io, "  cluster $(_cluster_info_str(x.cpc.cc))")
 	return println(io, "  $(npermutations(x)) permutations")
 end;
 
 function _info(x::ClusterPermutationTest)::String
 	rtn = "$(test_info(x))\n"
 	rtn *= "  data: $(nepochs(x)) x $(epoch_length(x))\n"
-	ivs = join(string.(x.cpc.shuffle_ivs), ", ")
-	rtn *= "  shuffled ivs: $(ivs)\n"
 	n = join(coefnames(x), "\n           ")
 	return rtn * "  effects: $n"
 end

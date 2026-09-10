@@ -12,7 +12,7 @@ TODO
 			time_points::Vector{<:Integer};
 			store_model_fits::Bool = false)::T2DParamVector
 
-	returns vector (time) of parameter vector
+	returns vector time x parameter
 
 	function to estimates for the entire time series for a given permutation
 	data might contain different data as in cpt struct (entire time series & not permuted design),
@@ -78,6 +78,9 @@ function resample!(rng::AbstractRNG,
 	logger::Union{AbstractLogger, Nothing} = NullLogger())
 	# progressmeter used per default, if terminal is used (not jupyter or quarto)
 
+	if !in(cpt.cpc.cluster_statistic, ClusterStatistics)
+		throw(ArgumentError("Cluster statistic $(cpt.cpc.cluster_statistic) is not supported."))
+	end
 	if use_threads === true
 		n_threads = n_threads_default(cpt)
 	elseif use_threads > 1 # use_threads is integer
@@ -86,9 +89,14 @@ function resample!(rng::AbstractRNG,
 		n_threads = 1
 	end
 
-	all_cluster = _cluster_ranges(cpt.cpc.coefs, cpt.cpc.cc)
-	n_samples = length(_joined_ranges(all_cluster))
-	print("Number of samples to be tested: $n_samples")
+	if cpt.cpc.cluster_statistic == :clusterwise
+		all_cluster = _cluster_ranges(cpt.cpc.coefs, cpt.cpc.cc)
+		n_samples = length(_joined_ranges(all_cluster))
+	else
+		n_samples = epoch_length(cpt.dat)
+	end
+	print("To-be tested samples ($(cpt.cpc.cluster_statistic)): $n_samples")
+
 
 	if progressmeter === nothing
 		progressmeter = isa(stderr, Base.TTY) # if terminal is used and not jupyter or Quarto
@@ -105,31 +113,55 @@ function resample!(rng::AbstractRNG,
 	if n_threads > 1
 		println(", using $n_threads threads")
 		npt = convert(Int64, ceil(n_permutations/n_threads)) # n permutations per thread
-		results = Vector{Vector{T2DParamVector}}(undef, n_threads) # permutations per threads
+		if cpt.cpc.cluster_statistic == :clusterwise
+			results = Vector{Vector{T2DParamVector}}(undef, n_threads) # permutations per threads
+			Threads.@threads for n in 1:n_threads
+				results[n] = _resampling_cluster_wise(rng, cpt, npt, prog)
+			end
+		else
+			results = Vector{T2DParamVector}(undef, n_threads) # permutations per threads
+			Threads.@threads for n in 1:n_threads
+				results[n] = _resampling_max_cluster_stats(rng, cpt, npt, prog)
+			end
+		end
+
 		Threads.@threads for n in 1:n_threads
-			results[n] = _do_resampling(rng, cpt, npt, prog)
+			if cpt.cpc.cluster_statistic == :clusterwise
+				results[n] = _resampling_cluster_wise(rng, cpt, npt, prog)
+			else
+				results[n] = _resampling_max_cluster_stats(rng, cpt, npt, prog)
+			end
 		end
 	else
 		println("")
-		results = [_do_resampling(rng, cpt, n_permutations, prog)]
+		if cpt.cpc.cluster_statistic == :clusterwise
+			results = [_resampling_cluster_wise(rng, cpt, n_permutations, prog)]
+		else
+			results = [_resampling_max_cluster_stats(rng, cpt, n_permutations, prog)]
+		end
 	end
 	isnothing(old_logger) || global_logger(old_logger)
 	isnothing(prog) || finish!(prog)
 
-	# make matrices of each effect and store in cpt.cpc.S
-
-	# cluster masses for each effect: NDVector effect x permutation X cluster
 	n_effects = ncoefs(cpt)
 	effects_cl_masses = [T2DParamVector() for _ in 1:n_effects]
+
+	## combine all threads results
+	# make 3d-vector of cluster masses: effect x all combined permutations x clusters (n cluster=1 for maxmass)
 	for thread_result in results
 		for permutation in thread_result
 			for (eid, cms_eff) in enumerate(permutation)
-				push!(effects_cl_masses[eid], cms_eff)
+				if cpt.cpc.cluster_statistic == :clusterwise
+					push!(effects_cl_masses[eid], cms_eff)
+				else
+					push!(effects_cl_masses[eid], [cms_eff])
+				end
 			end
 		end
 	end
 
-	# append cpt.cpc.S:  vector (effect) of matrix sample X cluster
+	# make one matrix per effect and store in cpt.cpc.S
+	# append cpt.cpc.S:  vector (effect) of matrix sample X cluster (with cluster=1 for max)
 	append_samples = length(cpt.cpc.S) > 0
 	for (eid, effects) in enumerate(effects_cl_masses)
 		mtx = stack(effects, dims = 1) # make matrix (sample X permutation)
@@ -142,12 +174,44 @@ function resample!(rng::AbstractRNG,
 	return nothing
 end;
 
-
 """returns vector (sample) of vector (time) of vector (effect)"""
-function _do_resampling(rng::AbstractRNG,
+@inline function _resampling_max_cluster_stats(rng::AbstractRNG,
 	cpt::ClusterPermutationTest,
 	n_permutations::Integer,
-	progressmeter::Union{Nothing, Progress})::Vector{T2DParamVector} # vector (permutations) of effect X cluster
+	progressmeter::Union{Nothing, Progress})::T2DParamVector # vector (permutations) x effect
+
+	design = copy(cpt.dat.design) # shuffle always copy of design
+
+	time_points = collect(1:epoch_length(cpt.dat)) # all time points
+	n_effects = ncoefs(cpt)
+
+	# prepare vector (permutation) x effect
+	permutations = TParameterVector[]
+	for _ in 1:n_permutations
+		shuffle_variable!(rng, design, cpt.cpc.shuffle_ivs) # shuffle design
+		# get parameter estimates for the time points (time x effect)
+		params = parameter_estimates(cpt, design, time_points; store_model_fits = false)
+
+		max_cluster_masses = TParameterVector(undef, n_effects)
+		for eid in 1:n_effects
+			ts = getindex.(params, eid) # time series stats for this effect
+			cl_ranges = _cluster_ranges(ts, cpt.cpc.cc)
+			cms = _cluster_mass_stats(cpt.cpc.mass_fnc, ts, cl_ranges)
+			max_cluster_masses[eid] = isempty(cms) ? 0.0 : maximum(cms)
+		end
+		push!(permutations, max_cluster_masses)
+
+		isnothing(progressmeter) || next!(progressmeter)
+	end
+	return permutations
+end
+
+"""returns vector (sample) of vector (time) of vector (effect)"""
+@inline function _resampling_cluster_wise(rng::AbstractRNG,
+	cpt::ClusterPermutationTest,
+	n_permutations::Integer,
+	progressmeter::Union{Nothing, Progress})::Vector{T2DParamVector}
+	# vector (permutations) x effect X cluster
 
 	design = copy(cpt.dat.design) # shuffle always copy of design
 
@@ -169,12 +233,12 @@ function _do_resampling(rng::AbstractRNG,
 	for _ in 1:n_permutations
 		shuffle_variable!(rng, design, cpt.cpc.shuffle_ivs) # shuffle design
 		# get parameter estimates for the time points (time x effect)
-		params_time = parameter_estimates(cpt, design, time_points; store_model_fits = false)
+		params = parameter_estimates(cpt, design, time_points; store_model_fits = false)
 
 		cms_vec = T2DParamVector()
 		for (eid, effect_cluster) in enumerate(idx)
 			# cluster mass statistics for each cluster of this effect
-			cms = [cpt.cpc.mass_fnc(getindex.(params_time[cl_idx], eid)) for cl_idx in effect_cluster]
+			cms = [cpt.cpc.mass_fnc(getindex.(params[cl_idx], eid)) for cl_idx in effect_cluster]
 			push!(cms_vec, cms)
 		end
 		push!(permutations, cms_vec)

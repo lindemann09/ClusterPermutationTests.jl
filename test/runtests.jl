@@ -70,13 +70,19 @@ end
 
 	cl_crit = ClusterCriterium(threshold = 1.69, min_size = 50) # 10%
 
-	cpt = fit(CPPairedSampleTTest, @formula(y ~ operator_str), dat, cl_crit)
-	resample!(cpt, 2000; use_threads = false)
-	resample!(cpt, 3000; use_threads = true)
+	cpt = fit(CPPairedSampleTTest, @formula(y ~ operator_str), dat, cl_crit;
+					cluster_statistic = :clusterwise)
+	resample!(cpt, 1000; use_threads = false)
+	resample!(cpt, 2000; use_threads = true)
 	@test length(cluster(cpt)) == 2
 	@test cluster_mass_stats(cpt) ≈ [-749.6, -13669.8] atol = 2
-	@test cluster_pvalues(cpt)[2] < 0.001
+	@test cluster_pvalues(cpt) ≈ [0.05, 0.001] atol = 0.01
 
+	cpt = fit(CPPairedSampleTTest, @formula(y ~ operator_str), dat, cl_crit;
+				cluster_statistic = :maxmass)
+	resample!(cpt, 1000; use_threads = false)
+	resample!(cpt, 2000; use_threads = true)
+	@test cluster_pvalues(cpt) ≈ [0.18, 0.002] atol = 0.02
 
 	cpt_mm = fit(CPMixedModel, @formula(y ~ operator_str + (1|subject_id)), dat,
 			cl_crit, reml = true)

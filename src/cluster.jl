@@ -87,7 +87,7 @@ end;
 
 function _cluster_ranges(coefs_mtx::Matrix{Float64},
 						cc::ClusterCriterium)::Vector{Vector{TClusterRange}}
-	# of all effects (columns) in mtx
+	# of all effects (columns) in mtx, effect x cluster
 	return [_cluster_ranges(d, cc) for d in eachcol(coefs_mtx)]
 end
 
@@ -117,8 +117,18 @@ function _cluster_pvalues(
 		end
 	end
 
+
 	rtn = []
-	for (nhd, cms) in zip(eachcol(cl_nhd), cl_mass_stats)
+	for (i, cms) in enumerate(cl_mass_stats)
+		if size(cl_nhd, 2) == 1
+			# only one cluster in null-hypothesis distribution
+			nhd = view(cl_nhd, :, 1)
+		elseif size(cl_nhd, 2) == length(cl_mass_stats)
+			# cluster specific null-hypothesis distribution
+			nhd  = view(cl_nhd, :, i)
+		else
+			throw(ValueError("Number of null-hypothesis distributions does not match number of clusters."))
+		end
 		p = 1 - quantilerank(abs.(nhd), abs(cms); method = :exc)
 		if one_tail
 			p = p / 2
@@ -150,7 +160,7 @@ function _cluster_table(coef_id::Integer,
 	from = [c.start for c in cl_ranges]
 	to = [c.stop for c in cl_ranges]
 	size = [c.stop - c.start + 1 for c in cl_ranges]
-	colnms = ["cluster", "from", "to", "size", "mass stats", "p", "sign"]
+	colnms = ["cluster", "from", "to", "size", "cl-mass", "p", "sign"]
 	cols = [cid, from, to, size, cms, p, sign]
 	rownms = [string(coef_id) * "."*string(i) for i in cid]
 	if add_effect_names && !isempty(rownms)
