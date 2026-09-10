@@ -50,7 +50,7 @@ end
 @inline function parameter_estimates(cpt::CPMixedModel,
 	design::AbstractStudyDesign,
 	time_points::Vector{Int32};
-	store_fits::Bool = false)::T2DParamVector
+	is_initial_fit::Bool = false)::T2DParamVector
 
 	design = columntable(design)
 	param = T2DParamVector()
@@ -60,7 +60,7 @@ end
 		md = refit!(md, view(cpt.dat.epochs, :, t); progress = false, REML = cpt.reml)
 		z = coef(md) ./ stderror(md) # parameter: t-value of effect
 		push!(param, z[2:end])
-		if store_fits
+		if is_initial_fit
 			push!(cpt.cpc.M, md)
 		end
 	end

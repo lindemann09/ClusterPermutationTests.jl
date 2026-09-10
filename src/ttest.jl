@@ -140,7 +140,7 @@ StatsAPI.coefnames(::CPTTest) = ["contrast"]
 @inline function parameter_estimates(cpt::CPTTest,
 	design::AbstractStudyDesign,
 	time_points::Vector{Int32};
-	store_fits::Bool = false)::T2DParamVector # time x effect
+	is_initial_fit::Bool = false)::T2DParamVector # time x effect
 
 	# Estimate parameters for a specific cluster (range)
 	T = typeof(cpt)
@@ -151,7 +151,7 @@ StatsAPI.coefnames(::CPTTest) = ["contrast"]
 	for t in time_points
 		tt = _estimate(T, view(epochs, :, t), design_tbl, iv, cpt.compare)
 		push!(param, [tt.t])
-		if store_fits
+		if is_initial_fit
 			push!(cpt.cpc.M, tt)
 		end
 	end
