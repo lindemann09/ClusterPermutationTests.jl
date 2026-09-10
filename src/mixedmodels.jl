@@ -31,7 +31,7 @@ function StatsAPI.fit(::Type{<:CPMixedModel},
 	shuffle_ivs::Union{Vector{Symbol}, Symbol, Vector{String}, String},
 	dat::CPData,
 	cluster_criterium::TClusterCritODef;
-	mass_fnc::Function = sum,
+	mass_fnc::Function = sum, # length, max
 	contrasts::Dict{Symbol, <:AbstractContrasts} = Dict{Symbol, AbstractContrasts}(),
 	logger::Union{AbstractLogger, Nothing} = NullLogger(),
 	reml::Bool = false) ::CPMixedModel

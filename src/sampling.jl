@@ -43,9 +43,6 @@ function fit_initial_time_series!(
 	isnothing(old_logger) || global_logger(old_logger)
 
 	cpt.cpc.coefs = stack(c, dims = 1) # time X effects
-	# write new time points
-	cpt.cpc.cl = [_clusterranges(d, cpt.cpc.cc) for d in eachcol(cpt.cpc.coefs)]
-
 	return nothing
 end
 
@@ -87,7 +84,8 @@ function resample!(rng::AbstractRNG,
 		n_threads = 1
 	end
 
-	n_samples = length(_joined_ranges(cpt.cpc.cl))
+	all_cluster = _cluster_ranges(cpt.cpc.coefs, cpt.cpc.cc)
+	n_samples = length(_joined_ranges(all_cluster))
 	print("Number of samples to be tested: $n_samples")
 
 	if progressmeter === nothing
@@ -155,12 +153,13 @@ function _do_resampling(rng::AbstractRNG,
 	# prepare vector (cms) of effect x cluster
 	permutations = T2DParamVector[]
 
-	time_points = _joined_ranges(cpt.cpc.cl)
+	all_cluster = _cluster_ranges(cpt.cpc.coefs, cpt.cpc.cc)
+	time_points = _joined_ranges(all_cluster)
 	# idx: ranges of indices for the returns parameters that correspond to the time points in the cluster
-	idx = deepcopy(cpt.cpc.cl)  # allocated memory
+	idx = deepcopy(all_cluster)  # allocated memory
 	for i in eachindex(idx)
 		for j in eachindex(idx[i])
-			cl = cpt.cpc.cl[i][j]
+			cl = all_cluster[i][j]
 			idx[i][j] = findfirst(isequal(cl.start), time_points):findfirst(isequal(cl.stop), time_points)
 		end
 	end

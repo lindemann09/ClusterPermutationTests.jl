@@ -25,7 +25,7 @@ n_threads_default(::CPLinearModel) = Threads.nthreads()
 #### Test info
 ####
 function test_info(x::CPRegressionModel)
-	return "$(typeof(x)) ($(x.cpc.mass_fnc))\n  $(x.f)"
+	return "$(typeof(x))\n  $(x.f)"
 end
 
 ####

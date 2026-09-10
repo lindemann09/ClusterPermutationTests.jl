@@ -68,9 +68,9 @@ end
 	epochs = CSV.File(download(fl_epochs), header = false)
 	dat = CPData(epochs, CSV.read(download(fl_design), Table); unit_obs = :subject_id)
 
-	cluster_criterium = ClusterCriterium(threshold = 1.69, min_size = 50) # 10%
+	cl_crit = ClusterCriterium(threshold = 1.69, min_size = 50) # 10%
 
-	cpt = fit(CPPairedSampleTTest, @formula(y ~ operator_str), dat, cluster_criterium)
+	cpt = fit(CPPairedSampleTTest, @formula(y ~ operator_str), dat, cl_crit)
 	resample!(cpt, 2000; use_threads = false)
 	resample!(cpt, 3000; use_threads = true)
 	@test length(cluster(cpt)) == 2
@@ -79,14 +79,14 @@ end
 
 
 	cpt_mm = fit(CPMixedModel, @formula(y ~ operator_str + (1|subject_id)), dat,
-			cluster_criterium, reml = true)
+			cl_crit, reml = true)
 	resample!(cpt_mm, 10; use_threads = false)
 	summary(cpt_mm)
 	@test length(cluster(cpt_mm, 1)) == 2
 	@test cluster_mass_stats(cpt_mm, 1) ≈ [749.6, 13669.8] atol = 2
 
 	cpt_amm = fit(CPAnovaMixedModel, @formula(y ~ operator_str + (1|subject_id)), dat,
-			cluster_criterium)
+			cl_crit)
 	resample!(cpt_amm, 10; use_threads = true)
 	summary(cpt_amm)
 	@test cluster_mass_stats(cpt_amm, 1) ≈ [124.9, 49656.2] atol = 2

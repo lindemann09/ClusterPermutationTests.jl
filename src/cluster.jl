@@ -43,7 +43,18 @@ function ClusterDefinition(single_range::UnitRange)
 	return ClusterDefinition([single_range])
 end
 
-function _clusterranges(dat::AbstractArray{Float64}, cc::ClusterCriterium)::Vector{TClusterRange}
+function _cluster_info_str(cc::TClusterCritODef)
+	if cc isa ClusterDefinition
+		return "definition: ranges=$(cc.ranges)"
+	else
+		tr = cc.use_absolute ? "= ±$(cc.threshold)" : "=$(cc.threshold)"
+		rtn =  "criterium: threshold$(tr), min_size=$(cc.min_size)"
+		return rtn
+	end
+end
+
+function _cluster_ranges(dat::AbstractArray{Float64},
+						cc::ClusterCriterium)::Vector{TClusterRange}
 	# find clusters in dat according to cc
 	d = cc.use_absolute ? abs.(dat) : dat
 	threshold = cc.threshold
@@ -74,7 +85,14 @@ function _clusterranges(dat::AbstractArray{Float64}, cc::ClusterCriterium)::Vect
 	return ranges
 end;
 
-_clusterranges(::Any, cc::ClusterDefinition)::Vector{TClusterRange} = cc.ranges
+function _cluster_ranges(coefs_mtx::Matrix{Float64},
+						cc::ClusterCriterium)::Vector{Vector{TClusterRange}}
+	# of all effects (columns) in mtx
+	return [_cluster_ranges(d, cc) for d in eachcol(coefs_mtx)]
+end
+
+_cluster_ranges(::Any, cc::ClusterDefinition)::Vector{TClusterRange} = cc.ranges
+
 
 function _cluster_mass_stats(mass_fnc::Function, dat::AbstractArray{Float64}, cl_ranges::Vector{TClusterRange})
 	# compute cluster mass for all clusters detected in dat

@@ -53,7 +53,7 @@ n_threads_default(::CPTTest) = Threads.nthreads()
 #### Test info
 ####
 function test_info(x::CPTTest)
-	return "$(typeof(x)), (compare=$(string.(x.compare)), $(x.cpc.mass_fnc))"
+	return "$(typeof(x)), compare=$(string.(x.compare))"
 end
 
 ####

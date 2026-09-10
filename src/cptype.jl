@@ -14,15 +14,13 @@ mutable struct CPCollection{M}
 	M::Vector{M} # fitted models of initial fit
 	coefs::TParameterMatrix # (time X effect) time series statistics of the initial fit
 
-	cl::Vector{Vector{TClusterRange}} # cluster ranges for all effects (effectXcluster)
-
 	S::Vector{TParameterMatrix} # one matrix per effect, (permutation X cluster)
 end;
 
 function CPCollection{M}(shuffle_ivs::Vector{Symbol}, mass_fnc::Function,
 	cluster_criterium::TClusterCritODef) where {M}
 	return CPCollection{M}(shuffle_ivs, mass_fnc, cluster_criterium,
-			M[], zeros(Float64, 0, 0), TClusterRange[], TParameterMatrix[])
+			M[], zeros(Float64, 0, 0), TParameterMatrix[])
 end
 
 ###
@@ -46,7 +44,17 @@ epoch_length(x::ClusterPermutationTest) = epoch_length(x.dat)
 design_table(x::ClusterPermutationTest) = design_table(x.dat)
 StudyDesigns.unit_observation(x::ClusterPermutationTest) = unit_observation(x.dat.design.uo)
 
-cluster_criterium(x::ClusterPermutationTest) = x.cpc.cc
+
+"""
+	info(x::ClusterPermutationTest)
+
+Information about the configuation of the cluster permutation test
+"""
+function info(x::ClusterPermutationTest)
+	println("Cluster $(_cluster_info_str(x.cpc.cc))")
+	println("Cluster mass: $(x.cpc.mass_fnc)")
+end
+
 
 """
     time_series_fits(x::ClusterPermutationTest)
@@ -85,6 +93,7 @@ time_series_stats(x::ClusterPermutationTest, effect::Union{Integer, Symbol, Stri
 ## Cluster Functions
 ##
 
+
 """
     cluster(cpt::ClusterPermutationTest, effect)
 
@@ -93,7 +102,10 @@ Return the detected cluster ranges for the specified `effect`.
 `effect` can be an integer index, a `Symbol`, or a `String` matching a coefficient name.
 """
 cluster(::ClusterPermutationTest) = throw(no_effect_error)
-cluster(cpt::ClusterPermutationTest, effect::Union{Integer, Symbol, String}) = cpt.cpc.cl[_effect_id(cpt, effect)]
+function cluster(cpt::ClusterPermutationTest, effect::Union{Integer, Symbol, String})
+	eff_id = _effect_id(cpt, effect)
+	return _cluster_ranges(cpt.cpc.coefs[:, eff_id], cpt.cpc.cc)
+end
 
 """
     cluster_mass_stats(cpt::ClusterPermutationTest, effect)
@@ -187,7 +199,7 @@ function cluster_nhd(cpt::ClusterPermutationTest,
 	end
 end
 
-function Base.summary( x::ClusterPermutationTest)
+function Base.summary(x::ClusterPermutationTest)
 	println(_info(x))
 	display(cluster_table(x))
 	return println("  n permutations: $(npermutations(x))")
@@ -195,13 +207,7 @@ end;
 
 function Base.show(io::IO, mime::MIME"text/plain", x::ClusterPermutationTest)
 	println(io, _info(x))
-	cc = cluster_criterium(x)
-	if cc isa ClusterDefinition
-		println(io, "  cluster definition: ranges=$(cc.ranges)")
-	else
-		println(io,
-			"  cluster definition: threshold=$(cc.threshold), min_size=$(cc.min_size)")
-	end
+	println(io, "  cluster $(_cluster_info_str(x.cpc.cc))")
 	return println(io, "  $(npermutations(x)) permutations")
 end;
 
