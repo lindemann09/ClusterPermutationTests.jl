@@ -26,6 +26,7 @@ include("StudyDesigns/StudyDesigns.jl")
 export ClusterPermutationTest,
 	CPTTest, CPPairedSampleTTest, CPEqualVarianceTTest, CPUnequalVarianceTTest,
 	CPRegressionModel, CPLinearModel, CPMixedModel, CPAnovaMixedModel,
+	CPConfig,
 	# DataAPI, StatsAPI
 	nrow, ncol,
 	nobs, fit, coefnames, @formula,
@@ -55,6 +56,7 @@ export ClusterPermutationTest,
 
 include("StudyDesigns/utilities.jl")
 include("cluster.jl")
+include("cpconfiguration.jl")
 include("cpdata.jl")
 include("cptype.jl")
 include("sampling.jl")

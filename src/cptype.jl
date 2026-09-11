@@ -5,7 +5,6 @@ const TParameterVector = Vector{Float64}
 const TParameterMatrix = Matrix{Float64}
 const T2DParamVector = Vector{TParameterVector}
 const no_effect_error = ArgumentError("Please specify an effect.")
-const ClusterStatistics = [:clusterwise, :maxmass]
 
 mutable struct CPCollection{M}
 	shuffle_ivs::Vector{Symbol} # name of the to be shuffled independent variable

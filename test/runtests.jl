@@ -49,7 +49,6 @@ Aqua.test_all(ClusterPermutationTests; ambiguities = false, deps_compat = true)
 end
 
 @testset "CPData" begin
-
  	d  = RData.load(download(
 	 "https://github.com/dalejbarr/clusterperm/raw/refs/heads/master/data/kb07bins.rda"))
 	dat = convert_to_cpdata(d["kb07bins"]; unit_obs = :SubjID, bin=:bin, response=:TAS);
@@ -65,7 +64,7 @@ end
 	fl_design = "https://raw.githubusercontent.com/lindemann09/JuliaDataSets/refs/heads/main/data/cpt1_design.csv"
 	fl_epochs = "https://raw.githubusercontent.com/lindemann09/JuliaDataSets/refs/heads/main/data/cpt1_epochs.dat"
 
-	epochs = CSV.File(download(fl_epochs), header = false)
+	epochs = CSV.File(download(fl_epochs), header = false, ntasks=1)
 	dat = CPData(epochs, CSV.read(download(fl_design), Table); unit_obs = :subject_id)
 
 	cl_crit = ClusterCriterium(threshold = 1.69, min_size = 50) # 10%
