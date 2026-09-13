@@ -19,10 +19,6 @@ using HypothesisTests: EqualVarianceTTest, OneSampleTTest, UnequalVarianceTTest
 import MixedModels: LinearMixedModel, is_randomeffectsterm, refit!
 using AnovaMixedModels: anova, teststat, anovatable
 
-include("utilities.jl")
-include("StudyDesigns/StudyDesigns.jl")
-@reexport using .StudyDesigns
-
 export ClusterPermutationTest,
 	CPTTest, CPPairedSampleTTest, CPEqualVarianceTTest, CPUnequalVarianceTTest,
 	CPRegressionModel, CPLinearModel, CPMixedModel, CPAnovaMixedModel,
@@ -54,6 +50,10 @@ export ClusterPermutationTest,
 	plot_time_series_stats!,
 	plot_cluster_nhd!
 
+include("utilities.jl")
+include("StudyDesigns/StudyDesigns.jl")
+@reexport using .StudyDesigns
+
 include("cluster.jl")
 include("cpconfiguration.jl")
 include("cpdata.jl")
@@ -64,7 +64,6 @@ include("ttest.jl")
 include("regressionmodels.jl")
 include("mixedmodels.jl")
 include("anovamixedmodels.jl")
-
 
 
 ## Makie extensions
