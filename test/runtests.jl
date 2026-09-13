@@ -80,18 +80,24 @@ end
 
 	cp_config2 = CPConfig(cluster_threshold = 1.69,
 				cluster_min_size =50,
-				cluster_statistic = :maxmass)
+				cluster_statistic = :maxmass10)
 
 	cpt = fit(CPPairedSampleTTest, @formula(y ~ operator_str), dat, cp_config2)
-	@test cpt.config.cluster_statistic == :maxmass
+	@test cpt.config.cluster_statistic == "maxmass10"
+	@test cpt.config.mxms == 10
 	resample!(cpt, 1000; use_threads = false)
 	resample!(cpt, 2000; use_threads = true)
 
 	@test npermutations(cpt) == 3000
 	@test cluster_pvalues(cpt) ≈ [0.18, 0.002] atol = 0.02
 
+	cp_config3 = CPConfig(cluster_threshold = 1.69, cluster_min_size = 50)
+	@test cp_config3.cluster_statistic == "maxmass"
+	@test cp_config3.mxms == 2
+	# FIXME missing test predefined cluster
 	cpt_mm = fit(CPMixedModel, @formula(y ~ operator_str + (1|subject_id)), dat,
-			cp_config, reml = true)
+			cp_config3, reml = true)
+
 	resample!(cpt_mm, 10; use_threads = false)
 	summary(cpt_mm)
 	@test length(cluster(cpt_mm, 1)) == 2

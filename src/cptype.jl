@@ -81,20 +81,20 @@ time_series_stats(x::ClusterPermutationTest, effect::Union{Integer, Symbol, Stri
 """
     cluster(cpt::ClusterPermutationTest, effect)
 
-Return the detected cluster ranges for the specified `effect`.
+Return the detected or defined cluster ranges for the specified `effect`.
 
 `effect` can be an integer index, a `Symbol`, or a `String` matching a coefficient name.
 """
 cluster(::ClusterPermutationTest) = throw(no_effect_error)
 function cluster(cpt::ClusterPermutationTest, effect::Union{Integer, Symbol, String})
 	ts = view(cpt.cpc.coefs, :, _effect_id(cpt, effect)) # time series stats for this effect
-	return _cluster_ranges(ts, cpt.config.cc)
+	return _cluster_ranges(ts, cluster_type(cpt.config))
 end
 
 """
     cluster_mass_stats(cpt::ClusterPermutationTest, effect)
 
-Return the cluster mass statistics for each detected cluster of the specified `effect`.
+Return the cluster mass statistics for each detected or defined cluster of the specified `effect`.
 
 The mass statistic is computed by applying `mass_fnc` (default: `sum`) to the
 time-series statistics within each cluster range.

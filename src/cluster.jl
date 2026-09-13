@@ -1,7 +1,7 @@
 ###
 ### Cluster definitions and criteriums
 ###
-const TClusterRange = UnitRange{Int32}
+const TClusterRange = UnitRange{Int64}
 
 """
     ClusterCriterium(; threshold, min_size=10, use_absolute=true)
@@ -15,12 +15,12 @@ Criterion for automatically detecting clusters in a time series of test statisti
 """
 struct ClusterCriterium
 	threshold::Real
-	min_size::Int32
+	min_size::Int
 	use_absolute::Bool
 end
 
 """
-    ClusterDefinition(ranges::Vector{UnitRange{Int32}})
+    ClusterDefinition(ranges::Vector{UnitRange{Int64}})
     ClusterDefinition(single_range::UnitRange)
 
 Specifies predefined cluster ranges instead of detecting them automatically.
@@ -33,7 +33,8 @@ end
 
 const TClusterCritODef = Union{ClusterCriterium, ClusterDefinition}
 
-function ClusterCriterium(; threshold::Real,
+function ClusterCriterium(;
+	threshold::Real,
 	min_size::Int = 10,
 	use_absolute::Bool = true)
 	return ClusterCriterium(threshold, min_size, use_absolute)

@@ -89,8 +89,8 @@ function resample!(rng::AbstractRNG,
 		n_threads = 1
 	end
 
-	if cpt.config.cluster_statistic == :clusterwise
-		all_cluster = _cluster_ranges(cpt.cpc.coefs, cpt.config.cc)
+	if cpt.config.cluster_statistic == "clusterwise"
+		all_cluster = _cluster_ranges(cpt.cpc.coefs, cluster_type(cpt.config))
 		n_samples = length(_joined_ranges(all_cluster))
 	else
 		n_samples = epoch_length(cpt.dat)
@@ -113,7 +113,7 @@ function resample!(rng::AbstractRNG,
 	if n_threads > 1
 		println(", using $n_threads threads")
 		npt = convert(Int64, ceil(n_permutations/n_threads)) # n permutations per thread
-		if cpt.config.cluster_statistic == :clusterwise
+		if cpt.config.cluster_statistic == "clusterwise"
 			results = Vector{Vector{T2DParamVector}}(undef, n_threads) # permutations per threads
 			Threads.@threads for n in 1:n_threads
 				results[n] = _resampling_cluster_wise(rng, cpt, npt, prog)
@@ -126,7 +126,7 @@ function resample!(rng::AbstractRNG,
 		end
 
 		Threads.@threads for n in 1:n_threads
-			if cpt.config.cluster_statistic == :clusterwise
+			if cpt.config.cluster_statistic == "clusterwise"
 				results[n] = _resampling_cluster_wise(rng, cpt, npt, prog)
 			else
 				results[n] = _resampling_max_cluster_stats(rng, cpt, npt, prog)
@@ -134,7 +134,7 @@ function resample!(rng::AbstractRNG,
 		end
 	else
 		println("")
-		if cpt.config.cluster_statistic == :clusterwise
+		if cpt.config.cluster_statistic == "clusterwise"
 			results = [_resampling_cluster_wise(rng, cpt, n_permutations, prog)]
 		else
 			results = [_resampling_max_cluster_stats(rng, cpt, n_permutations, prog)]
@@ -151,7 +151,7 @@ function resample!(rng::AbstractRNG,
 	for thread_result in results
 		for permutation in thread_result
 			for (eid, cms_eff) in enumerate(permutation)
-				if cpt.config.cluster_statistic == :clusterwise
+				if cpt.config.cluster_statistic == "clusterwise"
 					push!(effects_cl_masses[eid], cms_eff)
 				else
 					push!(effects_cl_masses[eid], [cms_eff])
@@ -185,6 +185,11 @@ end;
 	time_points = collect(1:epoch_length(cpt.dat)) # all time points
 	n_effects = ncoefs(cpt)
 
+	cc = ClusterCriterium(
+		threshold = cpt.config.cc.threshold,
+		min_size = cpt.config.mxms, # different min_size for permutation
+		use_absolute = cpt.config.cc.use_absolute)
+
 	# prepare vector (permutation) x effect
 	permutations = TParameterVector[]
 	for _ in 1:n_permutations
@@ -195,8 +200,7 @@ end;
 		max_cluster_masses = TParameterVector(undef, n_effects)
 		for eid in 1:n_effects
 			ts = getindex.(params, eid) # time series stats for this effect
-			cl_ranges = _cluster_ranges(ts, cpt.config.cc)
-			cms = _cluster_mass_stats(cpt.config.mass_fnc, ts, cl_ranges)
+			cms = _cluster_mass_stats(cpt.config.mass_fnc, ts, _cluster_ranges(ts, cc))
 			max_cluster_masses[eid] = isempty(cms) ? 0.0 : maximum(cms)
 		end
 		push!(permutations, max_cluster_masses)
@@ -218,7 +222,7 @@ end
 	# prepare vector (cms) of effect x cluster
 	permutations = T2DParamVector[]
 
-	all_cluster = _cluster_ranges(cpt.cpc.coefs, cpt.config.cc)
+	all_cluster = _cluster_ranges(cpt.cpc.coefs, cluster_type(cpt.config))
 	time_points = _joined_ranges(all_cluster)
 
 	# idx: ranges of indices for the returns parameters that correspond to the time points in the cluster
