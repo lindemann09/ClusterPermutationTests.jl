@@ -71,4 +71,4 @@ _makie_error() = throw(ArgumentError("Have you loaded an appropriate Makie backe
 plot_time_series_stats!(::Any, ::Any; kwargs...) = _makie_error()
 plot_cluster_nhd!(::Any, ::Any; kwargs...) = _makie_error()
 
-end;
+end
