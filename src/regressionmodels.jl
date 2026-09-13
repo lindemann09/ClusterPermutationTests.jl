@@ -12,6 +12,7 @@ Cluster permutation test using OLS linear regression (via GLM.jl).
 Use `fit(CPLinearModel, formula, dat, cluster_criterium)` to construct.
 """
 struct CPLinearModel <: CPRegressionModel
+	config::CPConfig
 	cpc::CPCollection{StatsModels.TableRegressionModel}
 	dat::CPData
 
@@ -44,7 +45,8 @@ See also `fit(::Type{<:CPLinearModel}, ...)`, `fit(::Type{<:CPMixedModel}, ...)`
 `fit(::Type{<:CPAnovaMixedModel}, ...)`.
 """
 function StatsAPI.fit(T::Type{<:CPRegressionModel},
-	f::FormulaTerm, dat::CPData, cluster_criterium::TClusterCritODef; kwargs...)
+	f::FormulaTerm, dat::CPData,
+	config::CPConfig; kwargs...)
 	# default shuffle variables: all categorical predictors except covariates and random effects
 
 	# shuffle_ivs: no covariates and no random effects (only categorical predictors)
@@ -53,7 +55,7 @@ function StatsAPI.fit(T::Type{<:CPRegressionModel},
 	random_effects = isempty(i) ? Symbol[] : [x.args[2].sym for x in f.rhs[i]]
 	shuffle_ivs = filter(x -> !is_covariate(dat.design, x) && x ∉ random_effects, pred)
 
-	fit(T, f, shuffle_ivs, dat, cluster_criterium; kwargs...)
+	fit(T, f, shuffle_ivs, dat, config; kwargs...)
 end
 
 """
@@ -70,15 +72,12 @@ function StatsAPI.fit(::Type{<:CPLinearModel},
 	f::FormulaTerm,
 	shuffle_ivs::Union{Vector{Symbol}, Symbol, Vector{String}, String},
 	dat::CPData,
-	cluster_criterium::TClusterCritODef;
-	mass_fnc::Function = sum,
-	cluster_statistic::SymbolOString = :clusterwise,
+	config::CPConfig;
 	contrasts::Dict{Symbol, <:AbstractContrasts} = Dict{Symbol, AbstractContrasts}())
 
 	data, shuffle_ivs = _prepare_regression_data(f, dat, shuffle_ivs)
-	cpc = CPCollection{StatsModels.TableRegressionModel}(shuffle_ivs, mass_fnc, cluster_criterium,
-						cluster_statistic)
-	rtn = CPLinearModel(cpc, data, f, contrasts)
+	cpc = CPCollection{StatsModels.TableRegressionModel}(shuffle_ivs)
+	rtn = CPLinearModel(config, cpc, data, f, contrasts)
 	fit_initial_time_series!(rtn)
 	return rtn
 end

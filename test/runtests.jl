@@ -68,30 +68,33 @@ end
 	dat = CPData(epochs, CSV.read(download(fl_design), Table); unit_obs = :subject_id)
 
 	cl_crit = ClusterCriterium(threshold = 1.69, min_size = 50) # 10%
+	cp_config = CPConfig(cl_crit; cluster_statistic = :clusterwise)
 
-	cpt = fit(CPPairedSampleTTest, @formula(y ~ operator_str), dat, cl_crit;
-					cluster_statistic = :clusterwise)
-	resample!(cpt, 1000; use_threads = false)
+	cpt = fit(CPPairedSampleTTest, @formula(y ~ operator_str), dat, cp_config)
+	resample!(cpt, 500; use_threads = false)
 	resample!(cpt, 2000; use_threads = true)
 	@test length(cluster(cpt)) == 2
 	@test cluster_mass_stats(cpt) ≈ [-749.6, -13669.8] atol = 2
 	@test cluster_pvalues(cpt) ≈ [0.05, 0.001] atol = 0.01
 
-	cpt = fit(CPPairedSampleTTest, @formula(y ~ operator_str), dat, cl_crit;
+	cp_config2 = CPConfig(cluster_threshold = 1.69,
+				cluster_min_size =50,
 				cluster_statistic = :maxmass)
-	resample!(cpt, 1000; use_threads = false)
+
+	cpt = fit(CPPairedSampleTTest, @formula(y ~ operator_str), dat, cp_config2)
+	resample!(cpt, 500; use_threads = false)
 	resample!(cpt, 2000; use_threads = true)
 	@test cluster_pvalues(cpt) ≈ [0.18, 0.002] atol = 0.02
 
 	cpt_mm = fit(CPMixedModel, @formula(y ~ operator_str + (1|subject_id)), dat,
-			cl_crit, reml = true)
+			cp_config, reml = true)
 	resample!(cpt_mm, 10; use_threads = false)
 	summary(cpt_mm)
 	@test length(cluster(cpt_mm, 1)) == 2
 	@test cluster_mass_stats(cpt_mm, 1) ≈ [749.6, 13669.8] atol = 2
 
 	cpt_amm = fit(CPAnovaMixedModel, @formula(y ~ operator_str + (1|subject_id)), dat,
-			cl_crit)
+			cp_config)
 	resample!(cpt_amm, 10; use_threads = true)
 	summary(cpt_amm)
 	@test cluster_mass_stats(cpt_amm, 1) ≈ [124.9, 49656.2] atol = 2

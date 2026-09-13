@@ -6,6 +6,7 @@ Cluster permutation test using a linear mixed-effects model (via MixedModels.jl)
 Use `fit(CPMixedModel, formula, dat, cluster_criterium)` to construct.
 """
 struct CPMixedModel <: CPRegressionModel
+	config::CPConfig
 	cpc::CPCollection{LinearMixedModel}
 	dat::CPData
 
@@ -30,17 +31,14 @@ function StatsAPI.fit(::Type{<:CPMixedModel},
 	f::FormulaTerm,
 	shuffle_ivs::Union{Vector{Symbol}, Symbol, Vector{String}, String},
 	dat::CPData,
-	cluster_criterium::TClusterCritODef;
-	mass_fnc::Function = sum, # length, max
-	cluster_statistic::SymbolOString = :clusterwise,
+	config::CPConfig;
 	contrasts::Dict{Symbol, <:AbstractContrasts} = Dict{Symbol, AbstractContrasts}(),
-	logger::Union{AbstractLogger, Nothing} = NullLogger(),
 	reml::Bool = false) ::CPMixedModel
 
 	data, shuffle_ivs = _prepare_regression_data(f, dat, shuffle_ivs)
-	cpc = CPCollection{LinearMixedModel}(shuffle_ivs, mass_fnc, cluster_criterium, cluster_statistic)
-	rtn = CPMixedModel(cpc, data, f, contrasts, reml)
-	fit_initial_time_series!(rtn; logger)
+	cpc = CPCollection{LinearMixedModel}(shuffle_ivs)
+	rtn = CPMixedModel(config, cpc, data, f, contrasts, reml)
+	fit_initial_time_series!(rtn)
 	return rtn
 end
 

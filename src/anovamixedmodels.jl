@@ -7,6 +7,7 @@ Cluster permutation test using ANOVA F-statistics from a mixed-effects model
 Use `fit(CPAnovaMixedModel, formula, dat, cluster_criterium)` to construct.
 """
 struct CPAnovaMixedModel <: CPRegressionModel
+	config::CPConfig
 	cpc::CPCollection{LinearMixedModel}
 	dat::CPData
 
@@ -31,17 +32,14 @@ function StatsAPI.fit(::Type{<:CPAnovaMixedModel},
 	f::FormulaTerm,
 	shuffle_ivs::Union{Vector{Symbol}, Symbol, Vector{String}, String},
 	dat::CPData,
-	cluster_criterium::TClusterCritODef;
-	mass_fnc::Function = sum,
-	cluster_statistic::SymbolOString = :clusterwise,
+	config::CPConfig;
 	contrasts::Dict{Symbol, <:AbstractContrasts} = Dict{Symbol, AbstractContrasts}(),
-	logger::Union{AbstractLogger, Nothing} = NullLogger(),
 	type::Int = 3)
 
 	data, shuffle_ivs = _prepare_regression_data(f, dat, shuffle_ivs)
-	cpc = CPCollection{LinearMixedModel}(shuffle_ivs, mass_fnc, cluster_criterium, cluster_statistic)
-	rtn = CPAnovaMixedModel(cpc, data, f, contrasts, type)
-	fit_initial_time_series!(rtn; logger)
+	cpc = CPCollection{LinearMixedModel}(shuffle_ivs)
+	rtn = CPAnovaMixedModel(config, cpc, data, f, contrasts, type)
+	fit_initial_time_series!(rtn)
 	return rtn
 end
 

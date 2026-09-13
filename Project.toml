@@ -1,6 +1,6 @@
 name = "ClusterPermutationTests"
 uuid = "e3bc594e-7e39-4b61-be5a-4b8b3e7ff14e"
-version = "0.5.0-dev1"
+version = "0.5.0-dev2"
 authors = ["Oliver Lindemann"]
 
 [deps]
@@ -30,16 +30,16 @@ Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
 CPTestMakieExt = ["Makie"]
 
 [compat]
-AnovaMixedModels = "0.3.0"
+AnovaMixedModels = "0.3"
 Aqua = "0.8"
 CSV = "0.10"
-CategoricalArrays = "0.10, 1"
+CategoricalArrays = "1"
 CodecBzip2 = "0.8"
-DataAPI = "1.16.0"
+DataAPI = "1.16"
 DimensionalData = "0.30.1"
 Downloads = "1"
 GLM = "1"
-HypothesisTests = "0.11"
+HypothesisTests = "0.12"
 Logging = "1"
 Makie = "0.23, 0.24"
 MixedModels = "5"
@@ -55,7 +55,7 @@ StatsModels = "0.7"
 Tables = "1"
 Test = "1"
 TypedTables = "1"
-julia = "1.10"
+julia = "1.10, 1.11, 1.12, 1.13"
 
 [extras]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"

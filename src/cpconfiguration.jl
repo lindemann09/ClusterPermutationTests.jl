@@ -36,9 +36,10 @@ Further options
 """
 function CPConfig(cc::TClusterCritODef;
         mass_fnc::Function = sum,
-        cluster_statistic::Symbol = :maxmass,
+        cluster_statistic::SymbolOString = :maxmass,
         logger::Union{AbstractLogger, Nothing} = nothing)
 
+    cluster_statistic = Symbol(cluster_statistic)
     if !in(cluster_statistic, ClusterStatistics)
 		throw(ArgumentError("Cluster statistic $(cluster_statistic) not supported."))
 	end

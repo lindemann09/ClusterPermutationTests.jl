@@ -8,24 +8,14 @@ const no_effect_error = ArgumentError("Please specify an effect.")
 
 mutable struct CPCollection{M}
 	shuffle_ivs::Vector{Symbol} # name of the to be shuffled independent variable
-	mass_fnc::Function # cluster mass function
-	cc::TClusterCritODef # cluster definition
-	cluster_statistic::Symbol # clusterwise, max
-
 	M::Vector{M} # fitted models of initial fit
 	coefs::TParameterMatrix # (time X effect) time series statistics of the initial fit
 
 	S::Vector{TParameterMatrix} # one matrix per effect, (permutation X cluster)
 end;
 
-function CPCollection{M}(shuffle_ivs::Vector{Symbol}, mass_fnc::Function,
-	cluster_criterium::TClusterCritODef, cluster_statistic::SymbolOString) where {M}
-	cluster_statistic = Symbol(cluster_statistic)
-	if !in(cluster_statistic, ClusterStatistics)
-		throw(ArgumentError("Cluster statistic $(cluster_statistic) not supported."))
-	end
-	return CPCollection{M}(shuffle_ivs, mass_fnc, cluster_criterium,
-			cluster_statistic, M[], zeros(Float64, 0, 0), TParameterMatrix[])
+function CPCollection{M}(shuffle_ivs::Vector{Symbol}) where {M}
+	return CPCollection{M}(shuffle_ivs, M[], zeros(Float64, 0, 0), TParameterMatrix[])
 end
 
 ###
@@ -98,7 +88,7 @@ Return the detected cluster ranges for the specified `effect`.
 cluster(::ClusterPermutationTest) = throw(no_effect_error)
 function cluster(cpt::ClusterPermutationTest, effect::Union{Integer, Symbol, String})
 	ts = view(cpt.cpc.coefs, :, _effect_id(cpt, effect)) # time series stats for this effect
-	return _cluster_ranges(ts, cpt.cpc.cc)
+	return _cluster_ranges(ts, cpt.config.cc)
 end
 
 """
@@ -115,7 +105,7 @@ function cluster_mass_stats(cpt::ClusterPermutationTest, effect::Union{Integer, 
 	i = _effect_id(cpt, effect)
 	ts = time_series_stats(cpt, i)
 	cl_ranges = cluster(cpt, i)
-	return _cluster_mass_stats(cpt.cpc.mass_fnc, ts, cl_ranges)
+	return _cluster_mass_stats(cpt.config.mass_fnc, ts, cl_ranges)
 end
 
 """
@@ -150,7 +140,7 @@ function cluster_table(cpt::ClusterPermutationTest, effect::Union{Integer, Symbo
 	coef_name = coefnames(cpt)[i]
 	ts = time_series_stats(cpt, i)
 	cl_ranges = cluster(cpt, i)
-	cl_mass_stats = _cluster_mass_stats(cpt.cpc.mass_fnc, ts, cl_ranges)
+	cl_mass_stats = _cluster_mass_stats(cpt.config.mass_fnc, ts, cl_ranges)
 	p_vals = _cluster_pvalues(cluster_nhd(cpt, i), cl_mass_stats, inhibit_warning)
 	return _cluster_table(i, coef_name, cl_ranges, cl_mass_stats, p_vals; add_effect_names)
 end
@@ -197,8 +187,8 @@ function Base.summary(x::ClusterPermutationTest)
 	println(_info(x))
 	ivs = join(string.(x.cpc.shuffle_ivs), ", ")
 	println("  shuffled variables: $(ivs)")
-	println("  cluster $(_cluster_info_str(x.cpc.cc))")
-	println("  cluster stats: $(x.cpc.mass_fnc), statistic: $(x.cpc.cluster_statistic)")
+	println("  cluster $(_cluster_info_str(x.config.cc))")
+	println("  cluster stats: $(x.config.mass_fnc), statistic: $(x.config.cluster_statistic)")
 	display(cluster_table(x))
 	return println("  n permutations: $(npermutations(x))")
 end;

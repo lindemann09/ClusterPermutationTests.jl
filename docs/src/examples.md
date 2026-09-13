@@ -2,6 +2,8 @@
 
 ## Quick Example
 
+<!-- TODO new configuration -->
+
 ```julia
 using ClusterPermutationTests, CSV, TypedTables, Downloads
 

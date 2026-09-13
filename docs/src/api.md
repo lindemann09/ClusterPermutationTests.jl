@@ -9,6 +9,8 @@ CPRegressionModel
 CPMixedModel
 CPAnovaMixedModel
 
+CPConfig
+
 CPTTest
 CPLinearModel
 ```

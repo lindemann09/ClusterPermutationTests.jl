@@ -14,6 +14,7 @@ Appropriate when the independent variable is a within-subject factor.
 Use `fit(CPPairedSampleTTest, iv, dat, cluster_criterium)` to construct.
 """
 struct CPPairedSampleTTest <: CPTTest
+	config::CPConfig
 	cpc::CPCollection{OneSampleTTest}
 	dat::CPData
 	compare::Tuple
@@ -28,6 +29,7 @@ Appropriate when the independent variable is a between-subject factor and equal 
 can be assumed. Use `fit(CPEqualVarianceTTest, iv, dat, cluster_criterium)` to construct.
 """
 struct CPEqualVarianceTTest <: CPTwoSampleTTest
+	config::CPConfig
 	cpc::CPCollection{EqualVarianceTTest}
 	dat::CPData
 	compare::Tuple
@@ -42,6 +44,7 @@ Appropriate when the independent variable is a between-subject factor and equal 
 cannot be assumed. Use `fit(CPUnequalVarianceTTest, iv, dat, cluster_criterium)` to construct.
 """
 struct CPUnequalVarianceTTest <: CPTwoSampleTTest
+	config::CPConfig
 	cpc::CPCollection{UnequalVarianceTTest}
 	dat::CPData
 	compare::Tuple
@@ -75,9 +78,7 @@ formula `_ ~ iv`. The independent variable must have exactly two levels.
 function StatsAPI.fit(T::Type{<:CPTTest},
 	iv::SymbolOString,
 	dat::CPData,
-	cluster_criterium::TClusterCritODef;
-	mass_fnc::Function = sum,
-	cluster_statistic::SymbolOString = :clusterwise)
+	config::CPConfig)
 
 	iv = Symbol(iv)
 	paired = is_within(dat.design, iv)
@@ -108,9 +109,8 @@ function StatsAPI.fit(T::Type{<:CPTTest},
 	else
 		throw(ArgumentError("Test $(T) not supported for t.test."))
 	end
-	cpc = CPCollection{M}([iv], mass_fnc, cluster_criterium, cluster_statistic)
-
-	rtn = T(cpc, dat, (compare[1], compare[2]))
+	cpc = CPCollection{M}([iv])
+	rtn = T(config, cpc, dat, (compare[1], compare[2]))
 
 	fit_initial_time_series!(rtn)
 	return rtn
@@ -120,12 +120,12 @@ end;
 function StatsAPI.fit(T::Type{<:CPTTest},
 	f::FormulaTerm,
 	dat::CPData,
-	cluster_criterium::TClusterCritODef;
+	config::CPConfig;
 	kwargs...)
 
 	(f.lhs isa Term && f.rhs isa Term) || throw(
 		ArgumentError("Incorrect t.test formula: '$f'"))
-	return fit(T, Symbol(f.rhs), dat, cluster_criterium; kwargs...)
+	return fit(T, Symbol(f.rhs), dat, config; kwargs...)
 end
 
 ####
