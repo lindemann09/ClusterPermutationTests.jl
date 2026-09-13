@@ -41,10 +41,12 @@ function fit_initial_time_series!(cpt::ClusterPermutationTest)
 
 	# replace existing fits (m) and coefs
 	empty!(cpt.cpc.M)
-	old_logger = isnothing(cpt.config.logger) ? nothing : global_logger(cpt.config.logger) # change logger
+
+	old_logger = cpt.config.null_logger ? global_logger(NullLogger()) : nothing # change logger
 
 	atp = collect(1:epoch_length(cpt.dat)) # all time points
 	c = parameter_estimates(cpt, cpt.dat.design, atp; store_model_fits = true)
+
 	isnothing(old_logger) || global_logger(old_logger)
 
 	cpt.cpc.coefs = stack(c, dims = 1) # time X effects
@@ -68,7 +70,6 @@ Repeated calls append to the existing permutation samples.
 - `progressmeter`: show a progress bar; defaults to `true` when running in a terminal.
 - `use_threads`: `true` uses all available threads, an integer limits the count, `false`/`1`
   uses a single thread.
-- `logger`: logging backend used during model fitting; defaults to `NullLogger()` to suppress output.
 """
 resample!(cpt::ClusterPermutationTest, n_permutations::Integer; kwargs...) =
 	resample!(Random.GLOBAL_RNG, cpt, n_permutations; kwargs...)
@@ -106,7 +107,7 @@ function resample!(rng::AbstractRNG,
 		prog = nothing
 	end
 
-	old_logger = isnothing(cpt.config.logger) ? nothing : global_logger(cpt.config.logger) # change logger
+	old_logger = cpt.config.null_logger ? global_logger(NullLogger()) : nothing # change logger
 
 	# result:  is a Vector thread x permutation x effect x cluster
 	if n_threads > 1

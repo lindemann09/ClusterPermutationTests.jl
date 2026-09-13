@@ -71,6 +71,7 @@ end
 	cp_config = CPConfig(cl_crit; cluster_statistic = :clusterwise)
 
 	cpt = fit(CPPairedSampleTTest, @formula(y ~ operator_str), dat, cp_config)
+	@test npermutations(cpt) == 0
 	resample!(cpt, 500; use_threads = false)
 	resample!(cpt, 2000; use_threads = true)
 	@test length(cluster(cpt)) == 2
@@ -82,8 +83,11 @@ end
 				cluster_statistic = :maxmass)
 
 	cpt = fit(CPPairedSampleTTest, @formula(y ~ operator_str), dat, cp_config2)
-	resample!(cpt, 500; use_threads = false)
+	@test cpt.config.cluster_statistic == :maxmass
+	resample!(cpt, 1000; use_threads = false)
 	resample!(cpt, 2000; use_threads = true)
+
+	@test npermutations(cpt) == 3000
 	@test cluster_pvalues(cpt) ≈ [0.18, 0.002] atol = 0.02
 
 	cpt_mm = fit(CPMixedModel, @formula(y ~ operator_str + (1|subject_id)), dat,

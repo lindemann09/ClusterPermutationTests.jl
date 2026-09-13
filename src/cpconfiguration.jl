@@ -4,7 +4,7 @@ struct CPConfig
 	cc::TClusterCritODef # cluster definition
 	mass_fnc::Function # cluster mass function
 	cluster_statistic::Symbol # clusterwise, max
-    logger::Union{AbstractLogger, Nothing}
+    null_logger::Bool # whether to use a null logger
 end;
 
 
@@ -31,19 +31,19 @@ Cluster-based statistics
 - `cluster_statistic`: The statistic to use for clusters (default: :maxmass).
 
 Further options
-- `logger`: An optionl logger for logging information (default: nothing).
+- `null_logger`: A boolean indicating whether to use a null logger (default: true).
 
 """
 function CPConfig(cc::TClusterCritODef;
         mass_fnc::Function = sum,
         cluster_statistic::SymbolOString = :maxmass,
-        logger::Union{AbstractLogger, Nothing} = nothing)
+        null_logger::Bool = true)
 
     cluster_statistic = Symbol(cluster_statistic)
     if !in(cluster_statistic, ClusterStatistics)
-		throw(ArgumentError("Cluster statistic $(cluster_statistic) not supported."))
+		throw(ArgumentError("Cluster statistic $(cluster_statistic) not supported. Please choose one of $(ClusterStatistics)."))
 	end
-    return CPConfig(cc,  mass_fnc, cluster_statistic, logger)
+    return CPConfig(cc,  mass_fnc, cluster_statistic, null_logger)
 end
 
 function CPConfig(;
