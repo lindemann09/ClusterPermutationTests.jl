@@ -107,7 +107,7 @@ struct MixedDesign <: AbstractStudyDesign
 	uo::UnitObs
 end
 
-include("utilities.jl")
+include("../utilities.jl")
 include("designs.jl")
 include("tables.jl")
 include("shuffle_variables.jl")
