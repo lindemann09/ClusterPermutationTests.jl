@@ -125,8 +125,9 @@ function cluster_pvalues(cpt::ClusterPermutationTest, effect::Union{Integer, Sym
 end
 
 """
-    cluster_table(cpt::ClusterPermutationTest)
-    cluster_table(cpt::ClusterPermutationTest, effect; inhibit_warning=false, add_effect_names=false)
+    cluster_table(cpt::ClusterPermutationTest; add_effect_names=false, one_tail=false)
+    cluster_table(cpt::ClusterPermutationTest, effect; inhibit_warning=false, add_effect_names=false,
+				one_tail=false)
 
 Return a table summarising detected clusters with their range, size, mass statistic, and p-value.
 
@@ -135,23 +136,28 @@ When called without an `effect`, results for all effects are combined into a sin
 """
 function cluster_table(cpt::ClusterPermutationTest, effect::Union{Integer, Symbol, String};
 	inhibit_warning::Bool = false,
-	add_effect_names::Bool = false)::CoefTable
+	add_effect_names::Bool = false,
+	one_tail::Bool = false)::CoefTable
+
 	i = _effect_id(cpt, effect)
 	coef_name = coefnames(cpt)[i]
 	ts = time_series_stats(cpt, i)
 	cl_ranges = cluster(cpt, i)
 	cl_mass_stats = _cluster_mass_stats(cpt.config.mass_fnc, ts, cl_ranges)
-	p_vals = _cluster_pvalues(cluster_nhd(cpt, i), cl_mass_stats, inhibit_warning)
+	p_vals = _cluster_pvalues(cluster_nhd(cpt, i), cl_mass_stats, inhibit_warning; one_tail)
 	return _cluster_table(i, coef_name, cl_ranges, cl_mass_stats, p_vals; add_effect_names)
 end
 
 """Cluster table for all effects"""
-function cluster_table(cpt::ClusterPermutationTest)::CoefTable
-	add_effect_names = ncoefs(cpt) > 1
-	rtn = cluster_table(cpt, 1; add_effect_names)
+function cluster_table(cpt::ClusterPermutationTest;
+		add_effect_names::Bool=false,
+		one_tail::Bool=false)::CoefTable
+
+	add_effect_names = add_effect_names || ncoefs(cpt) > 1
+	rtn = cluster_table(cpt, 1; one_tail,add_effect_names)
 	# add all other effects
 	for eid in 2:ncoefs(cpt)
-		tmp = cluster_table(cpt, eid; add_effect_names, inhibit_warning = true)
+		tmp = cluster_table(cpt, eid; one_tail, add_effect_names, inhibit_warning = true)
 		for (x, y) in zip(rtn.cols, tmp.cols)
 			append!(x, y)
 		end

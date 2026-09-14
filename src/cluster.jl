@@ -118,11 +118,10 @@ function _cluster_pvalues(
 		end
 	end
 
-
 	rtn = []
 	for (i, cms) in enumerate(cl_mass_stats)
 		if size(cl_nhd, 2) == 1
-			# only one cluster in null-hypothesis distribution
+			# only one cluster in null-hypothesis distribution (e.g. maxmass method)
 			nhd = view(cl_nhd, :, 1)
 		elseif size(cl_nhd, 2) == length(cl_mass_stats)
 			# cluster specific null-hypothesis distribution
@@ -130,9 +129,10 @@ function _cluster_pvalues(
 		else
 			throw(ValueError("Number of null-hypothesis distributions does not match number of clusters."))
 		end
-		p = 1 - quantilerank(abs.(nhd), abs(cms); method = :exc)
-		if one_tail
-			p = p / 2
+		percentile_observed = quantilerank(nhd, cms)
+		p = min(percentile_observed, 1-percentile_observed) # one tail p value
+		if !one_tail
+			p = p * 2
 		end
 		append!(rtn, p)
 	end
