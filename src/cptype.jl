@@ -166,7 +166,9 @@ end
 """
     cluster_nhd(cpt::ClusterPermutationTest, effect)
 
-Return the null-hypothesis distribution of cluster mass statistics for the specified `effect`.
+Return the null-hypothesis distribution (nhd) of cluster mass statistics for the specified `effect`.
+Each column is the nhd of a detected cluster in this effect. If `maxmass` was specified, columns
+are identical, since all clusters are tested against the same null-hypothesis distribution.
 
 The returned matrix has shape `(n_permutations × n_clusters)`. Returns an empty matrix if
 `resample!` has not been called yet.
@@ -179,6 +181,13 @@ function cluster_nhd(cpt::ClusterPermutationTest,
 		return zeros(Float64, 0, 0)
 	else
 		e_id = _effect_id(cpt, effect)
+		if is_maxmass(cpt.config)
+			# copy column for each cluster
+			n_cl = length(cluster(cpt, e_id))
+			return cpt.cpc.S[e_id] * ones(Float64, 1, n_cl) # repeat the same column for all clusters
+		else
+			return cpt.cpc.S[e_id]
+		end
 		return cpt.cpc.S[e_id]
 	end
 end

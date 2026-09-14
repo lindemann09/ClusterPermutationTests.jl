@@ -57,7 +57,7 @@ function CPConfig(
 
     # find minimum cluster size for maxmassX, or zero if not a maxmass label
     mxms = 0
-    if startswith(cluster_statistic, "maxmass")
+    if is_maxmass(cluster_statistic, "maxmass")
         min_size_str = replace(cluster_statistic, "maxmass" => "")
         if isempty(min_size_str)
             mxms = 2
@@ -96,3 +96,6 @@ function cluster_type(cp_config::CPConfig)::TClusterCritODef
 		return cp_config.cc
 	end
 end
+
+is_maxmass(s::String)::Bool = startswith(s, "maxmass")
+is_maxmass(cp_config::CPConfig)::Bool = is_maxmass(cp_config.cluster_statistic)

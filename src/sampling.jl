@@ -187,7 +187,7 @@ end;
 
 	cc = ClusterCriterium(
 		threshold = cpt.config.cc.threshold,
-		min_size = cpt.config.mxms, # different min_size for permutation
+		min_size = cpt.config.mxms, # different min_size for permutations
 		use_absolute = cpt.config.cc.use_absolute)
 
 	# prepare vector (permutation) x effect
