@@ -89,7 +89,7 @@ end
 	resample!(cpt, 2000; use_threads = true)
 
 	@test npermutations(cpt) == 3000
-	@test cluster_pvalues(cpt) ≈ [0.18, 0.002] atol = 0.02
+	@test cluster_pvalues(cpt) ≈ [0.017, 0.00] atol = 0.02
 
 	cp_config3 = CPConfig(cluster_threshold = 1.69, cluster_min_size = 50)
 	@test cp_config3.cluster_statistic == "maxmass"

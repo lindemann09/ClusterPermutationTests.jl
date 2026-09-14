@@ -57,7 +57,7 @@ function CPConfig(
 
     # find minimum cluster size for maxmassX, or zero if not a maxmass label
     mxms = 0
-    if is_maxmass(cluster_statistic, "maxmass")
+    if is_maxmass(cluster_statistic)
         min_size_str = replace(cluster_statistic, "maxmass" => "")
         if isempty(min_size_str)
             mxms = 2

@@ -59,15 +59,15 @@ function parameter_estimates(cpt::CPAnovaMixedModel,
 		f = teststat(anova(md, type = cpt.type))
 		push!(param, collect(f[2:end]))
 		if store_model_fits
-			push!(cpt.cpc.M, md)
+			push!(cpt.cpc.Md, md)
 		end
 	end
 	return param
 end
 
-time_series_fits(x::CPAnovaMixedModel) = anova.(x.cpc.M, type = x.type)
+time_series_fits(x::CPAnovaMixedModel) = anova.(x.cpc.Md, type = x.type)
 
 function StatsAPI.coefnames(cpt::CPAnovaMixedModel)
-	rtn = anovatable(anova(first(cpt.cpc.M), type = cpt.type))
+	rtn = anovatable(anova(first(cpt.cpc.Md), type = cpt.type))
 	return rtn.rownms[2:end] # remove Intercept
 end

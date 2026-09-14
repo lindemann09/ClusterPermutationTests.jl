@@ -95,7 +95,7 @@ end
 _cluster_ranges(::Any, cc::ClusterDefinition)::Vector{TClusterRange} = cc.ranges
 
 
-function _cluster_mass_stats(mass_fnc::Function, dat::AbstractArray{Float64}, cl_ranges::Vector{TClusterRange})
+function _cluster_mass_stats(mass_fnc::Function, dat::AbstractArray{Float64}, cl_ranges::Vector{TClusterRange})::Vector{Float64}
 	# compute cluster mass for all clusters detected in dat
 	return [mass_fnc(dat[cl]) for cl in cl_ranges]
 end;

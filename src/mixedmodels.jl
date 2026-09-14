@@ -60,7 +60,7 @@ end
 		z = coef(md) ./ stderror(md) # parameter: t-value of effect
 		push!(param, z[2:end])
 		if store_model_fits
-			push!(cpt.cpc.M, md)
+			push!(cpt.cpc.Md, md)
 		end
 	end
 	return param

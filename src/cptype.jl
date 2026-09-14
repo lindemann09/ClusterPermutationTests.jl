@@ -8,14 +8,15 @@ const no_effect_error = ArgumentError("Please specify an effect.")
 
 mutable struct CPCollection{M}
 	shuffle_ivs::Vector{Symbol} # name of the to be shuffled independent variable
-	M::Vector{M} # fitted models of initial fit
+	Md::Vector{M} # fitted models of initial fit
 	coefs::TParameterMatrix # (time X effect) time series statistics of the initial fit
 
-	S::Vector{TParameterMatrix} # one matrix per effect, (permutation X cluster)
+	Mx::Vector{TParameterVector} # max cluster samples, effect x permutation
+	Cx::Vector{TParameterMatrix} # one matrix per effect, effect x (permutation X cluster)
 end;
 
 function CPCollection{M}(shuffle_ivs::Vector{Symbol}) where {M}
-	return CPCollection{M}(shuffle_ivs, M[], zeros(Float64, 0, 0), TParameterMatrix[])
+	return CPCollection{M}(shuffle_ivs, M[], zeros(Float64, 0, 0), TParameterVector[],TParameterMatrix[])
 end
 
 ###
@@ -45,7 +46,7 @@ StudyDesigns.unit_observation(x::ClusterPermutationTest) = unit_observation(x.da
 
 Return the vector of fitted models from the initial (un-permuted) fit, one per time point.
 """
-time_series_fits(x::ClusterPermutationTest) = x.cpc.M
+time_series_fits(x::ClusterPermutationTest) = x.cpc.Md
 
 """
     npermutations(x::ClusterPermutationTest)
@@ -54,10 +55,10 @@ Return the number of permutations accumulated so far (via `resample!`). Returns 
 `resample!` has not yet been called.
 """
 function npermutations(x::ClusterPermutationTest)
-	if length(x.cpc.S) == 0
+	if length(x.cpc.Cx) == 0
 		return 0
 	else
-		return size(x.cpc.S[1], 1)
+		return size(x.cpc.Cx[1], 1)
 	end
 end
 ncoefs(x::ClusterPermutationTest) = size(x.cpc.coefs, 2)
@@ -183,18 +184,18 @@ The returned matrix has shape `(n_permutations × n_clusters)`. Returns an empty
 cluster_nhd(::ClusterPermutationTest) = throw(no_effect_error)
 function cluster_nhd(cpt::ClusterPermutationTest,
 	effect::Union{Integer, Symbol, String})::TParameterMatrix # (permutation X cluster)
-	if length(cpt.cpc.S) == 0
+	if length(cpt.cpc.Cx) == 0
 		return zeros(Float64, 0, 0)
 	else
 		e_id = _effect_id(cpt, effect)
 		if is_maxmass(cpt.config)
 			# copy column for each cluster
 			n_cl = length(cluster(cpt, e_id))
-			return cpt.cpc.S[e_id] * ones(Float64, 1, n_cl) # repeat the same column for all clusters
+			return cpt.cpc.Cx[e_id] * ones(Float64, 1, n_cl) # repeat the same column for all clusters
 		else
-			return cpt.cpc.S[e_id]
+			return cpt.cpc.Cx[e_id]
 		end
-		return cpt.cpc.S[e_id]
+		return cpt.cpc.Cx[e_id]
 	end
 end
 
