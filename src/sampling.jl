@@ -36,17 +36,8 @@ TODO
 """initial fit of  all data samples (time_series) using (not permuted) design"""
 
 
-struct PermutationResults
-	# result:  is a Vector thread x permutation x effect x cluster
-	perm_maxmass::Vector{TParameterVector} # vector (permutations) x effect
-	perm_clusterwise::Vector{T2DParamVector} # vector (permutations) x effect X cluster (n cluster=1 for maxmass)
-end
-
-PermutationResults() = PermutationResults(TParameterVector[], T2DParamVector[])
-
-
 function fit_initial_time_series!(cpt::ClusterPermutationTest)
-	empty!(cpt.cpc.Cx)
+	empty!(cpt.cpc.X)
 
 	# replace existing fits (m) and coefs
 	empty!(cpt.cpc.Md)
@@ -122,7 +113,7 @@ function resample!(rng::AbstractRNG,
 	if n_threads > 1
 		println(", using $n_threads threads")
 		npt = convert(Int64, ceil(n_permutations/n_threads)) # n permutations per thread
-		results = Vector{PermutationResults}(undef, n_threads) # permutations per threads
+		results = Vector{Vector{ClusterMasses}}(undef, n_threads) # permutations per threads
 		if !is_maxmass(cpt.config)
 			Threads.@threads for n in 1:n_threads
 				results[n] = _resampling_cluster_wise(rng, cpt, npt, prog)
@@ -142,39 +133,9 @@ function resample!(rng::AbstractRNG,
 	end
 	isnothing(old_logger) || global_logger(old_logger)
 	isnothing(prog) || finish!(prog)
-
-	n_effects = ncoefs(cpt)
-	clmasses_perm_clusterwise = [T2DParamVector() for _ in 1:n_effects]
-	clmasses_perm_maxmass = [TParameterVector() for _ in 1:n_effects]
-
-	## combine all threads results
-	# make 3d-vector of cluster masses: effect x all combined permutations x clusters (n cluster=1 for maxmass)
 	for thread_result in results
-		if is_maxmass(cpt.config)
-			for permutation in thread_result.perm_maxmass
-				for (eid, cms_eff) in enumerate(permutation)
-					push!(clmasses_perm_clusterwise[eid], [cms_eff]) # FIXME save perm_mass and perm_clusterwise seperately
-					push!(clmasses_perm_maxmass[eid], cms_eff)
-				end
-			end
-		else # clusterwise
-			for permutation in thread_result.perm_clusterwise
-				for (eid, cms_eff) in enumerate(permutation)
-					push!(clmasses_perm_clusterwise[eid], cms_eff)
-				end
-			end
-		end
-	end
-
-	# make one matrix per effect and store in cpt.cpc.Cx
-	# append cpt.cpc.Cx:  vector (effect) of matrix sample X cluster (with cluster=1 for max)
-	append_samples = length(cpt.cpc.Cx) > 0
-	for (eid, effects) in enumerate(clmasses_perm_clusterwise)
-		mtx = stack(effects, dims = 1) # make matrix (sample X permutation)
-		if append_samples
-			cpt.cpc.Cx[eid] = vcat(cpt.cpc.Cx[eid], mtx) # append it parameter exist
-		else
-			push!(cpt.cpc.Cx, mtx)
+		for perm in thread_result
+			push!(cpt.cpc.X, perm)
 		end
 	end
 	return nothing
@@ -184,7 +145,7 @@ end;
 @inline function _resampling_max_cluster_stats(rng::AbstractRNG,
 	cpt::ClusterPermutationTest,
 	n_permutations::Integer,
-	progressmeter::Union{Nothing, Progress})::PermutationResults # vector (permutations) x effect
+	progressmeter::Union{Nothing, Progress})::Vector{ClusterMasses}
 
 	design = copy(cpt.dat.design) # shuffle always copy of design
 
@@ -198,7 +159,7 @@ end;
 		use_absolute = cpt.config.cc.use_absolute)
 
 	# prepare vector (permutation) x effect
-	rtn = PermutationResults()
+	rtn = ClusterMasses[]
 	for _ in 1:n_permutations
 		shuffle_variable!(rng, design, cpt.cpc.shuffle_ivs) # shuffle design
 		# get parameter estimates for the time points (time x effect)
@@ -217,9 +178,7 @@ end;
 			cms_cl = [cpt.config.mass_fnc(getindex.(params[cl_idx], eid)) for cl_idx in all_cluster[eid]]
 			push!(cms_clusterwise, cms_cl)
 		end
-		push!(rtn.perm_maxmass, max_cluster_masses)
-		push!(rtn.perm_clusterwise, cms_clusterwise)
-
+		push!(rtn, ClusterMasses(max_cluster_masses, cms_clusterwise))
 		isnothing(progressmeter) || next!(progressmeter)
 	end
 	return rtn
@@ -229,13 +188,13 @@ end
 @inline function _resampling_cluster_wise(rng::AbstractRNG,
 	cpt::ClusterPermutationTest,
 	n_permutations::Integer,
-	progressmeter::Union{Nothing, Progress})::PermutationResults
+	progressmeter::Union{Nothing, Progress})::Vector{ClusterMasses}
 	# vector (permutations) x effect X cluster
 
 	design = copy(cpt.dat.design) # shuffle always copy of design
 
 	# prepare vector (cms) of effect x cluster
-	rtn = PermutationResults()
+	rtn = ClusterMasses[]
 
 	all_cluster = _cluster_ranges(cpt.cpc.coefs, cluster_type(cpt.config))
 	time_points = _joined_ranges(all_cluster) # time points used for sampling
@@ -260,7 +219,7 @@ end
 			cms = [cpt.config.mass_fnc(getindex.(params[cl_idx], eid)) for cl_idx in effect_cluster]
 			push!(cms_vec, cms)
 		end
-		push!(rtn.perm_clusterwise, cms_vec)
+		push!(rtn, ClusterMasses(cms_vec))
 		isnothing(progressmeter) || next!(progressmeter)
 	end
 	return rtn

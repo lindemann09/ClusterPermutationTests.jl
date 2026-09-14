@@ -6,18 +6,25 @@ const TParameterMatrix = Matrix{Float64}
 const T2DParamVector = Vector{TParameterVector}
 const no_effect_error = ArgumentError("Please specify an effect.")
 
+struct ClusterMasses # results of a single permutation
+	max_mass::TParameterVector # max mass for each effect
+	cluster_mass::T2DParamVector # cluster-wise masses for each effect (effect X cluster)
+end
+ClusterMasses(cluster_masses::T2DParamVector) =
+		ClusterMasses(Float64[], cluster_masses)
+
 mutable struct CPCollection{M}
 	shuffle_ivs::Vector{Symbol} # name of the to be shuffled independent variable
 	Md::Vector{M} # fitted models of initial fit
 	coefs::TParameterMatrix # (time X effect) time series statistics of the initial fit
 
-	Mx::Vector{TParameterVector} # max cluster samples, effect x permutation
-	Cx::Vector{TParameterMatrix} # one matrix per effect, effect x (permutation X cluster)
+	X::Vector{ClusterMasses} # cluster masses for each permutation (permutation)
 end;
 
 function CPCollection{M}(shuffle_ivs::Vector{Symbol}) where {M}
-	return CPCollection{M}(shuffle_ivs, M[], zeros(Float64, 0, 0), TParameterVector[],TParameterMatrix[])
+	return CPCollection{M}(shuffle_ivs, M[], zeros(Float64, 0, 0), ClusterMasses[])
 end
+
 
 ###
 ### ClusterPermutationTest
@@ -55,11 +62,7 @@ Return the number of permutations accumulated so far (via `resample!`). Returns 
 `resample!` has not yet been called.
 """
 function npermutations(x::ClusterPermutationTest)
-	if length(x.cpc.Cx) == 0
-		return 0
-	else
-		return size(x.cpc.Cx[1], 1)
-	end
+	return length(x.cpc.X)
 end
 ncoefs(x::ClusterPermutationTest) = size(x.cpc.coefs, 2)
 
@@ -184,18 +187,18 @@ The returned matrix has shape `(n_permutations × n_clusters)`. Returns an empty
 cluster_nhd(::ClusterPermutationTest) = throw(no_effect_error)
 function cluster_nhd(cpt::ClusterPermutationTest,
 	effect::Union{Integer, Symbol, String})::TParameterMatrix # (permutation X cluster)
-	if length(cpt.cpc.Cx) == 0
+
+	if length(cpt.cpc.X) == 0
 		return zeros(Float64, 0, 0)
 	else
 		e_id = _effect_id(cpt, effect)
+		n_cluster = length(cluster(cpt, e_id))
 		if is_maxmass(cpt.config)
-			# copy column for each cluster
-			n_cl = length(cluster(cpt, e_id))
-			return cpt.cpc.Cx[e_id] * ones(Float64, 1, n_cl) # repeat the same column for all clusters
+			mm = [x.max_mass[e_id] for x in cpt.cpc.X]
+			return mm * ones(Float64, 1, n_cluster) # repeat the same column for all clusters
 		else
-			return cpt.cpc.Cx[e_id]
+			return reduce(hcat, [x.cluster_mass[e_id] for x in cpt.cpc.X])'
 		end
-		return cpt.cpc.Cx[e_id]
 	end
 end
 
