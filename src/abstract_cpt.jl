@@ -148,7 +148,7 @@ function cluster_table(cpt::ClusterPermutationTest; kwargs...)::CoefTable
 	rtn = cluster_table(cpt, 1; kwargs...)
 	# add all other effects
 	for eid in 2:ncoefs(cpt)
-		tmp = cluster_table(cpt, eid; one_tail, add_effect_names, inhibit_warning = true)
+		tmp = cluster_table(cpt, eid; kwargs...)
 		for (x, y) in zip(rtn.cols, tmp.cols)
 			append!(x, y)
 		end
