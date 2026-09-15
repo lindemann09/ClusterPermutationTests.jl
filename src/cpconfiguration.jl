@@ -3,7 +3,7 @@ const ClusterStatistics = ["clusterwise", "maxmass", "maxmassX"]
 struct CPConfig
 	cc::ClusterCriterium # cluster criterium
 	mass_fnc::Function # cluster mass function
-	cluster_statistic::String # clusterwise, maxmass
+	permutation_distr::String # method two determine the NHD clusterwise, maxmass
     mxms::Int # minimum cluster size for maxmassX
     predefined_cluster::Union{Nothing, ClusterDefinition} # predefined cluster definition
     null_logger::Bool # whether to use a null logger
@@ -15,7 +15,7 @@ end;
             cluster_threshold_two_sided:Bool = true,
             predefined_cluster::Union{Nothing, UnitRange, Vector{UnitRange}, ClusterDefinition} = nothing,
             mass_fnc::Function = sum,
-            cluster_statistic::String = "maxmass")
+            permutation_distr::String = "maxmass")
 
     CPConfig(cc::Union{ClusterCriterium, ClusterDefinition};
             kwargs....)
@@ -34,7 +34,8 @@ Alternatively, you can directly provide a `ClusterCriterium` or `ClusterDefiniti
 
 Cluster-based statistics
 - `mass_fnc`: The function to compute cluster mass (default: sum).
-- `cluster_statistic`: The statistic to use for clusters in the permutation test(String, default: "maxmass").
+- `permutation_distr`: The type of the permutation distribution (bootstrapped null-hypothesis
+    distribution) under which the cluster statistics is tested (String, default: "maxmass").
   - "clusterwise": Cluster mass of each cluster interval after the permutation.
   - "maxmass": Maximum of cluster mass of all clusters in this permutation.
   - "maxmassX": as above, but consider on cluster with a minimum size of `X` (where X must be a positive integer).
@@ -46,19 +47,19 @@ Further options
 function CPConfig(
         cc::ClusterCriterium;
         mass_fnc::Function = sum,
-        cluster_statistic::SymbolOString = "maxmass",
+        permutation_distr::SymbolOString = "maxmass",
         predefined_cluster::Union{Nothing, TClusterRange, Vector{TClusterRange}, ClusterDefinition} = nothing,
         null_logger::Bool = true)
 
-    cluster_statistic = String(cluster_statistic)
+    permutation_distr = String(permutation_distr)
     if !(predefined_cluster == nothing || predefined_cluster isa ClusterDefinition)
         predefined_cluster = ClusterDefinition(predefined_cluster)
     end
 
     # find minimum cluster size for maxmassX, or zero if not a maxmass label
     mxms = 0
-    if is_maxmass(cluster_statistic)
-        min_size_str = replace(cluster_statistic, "maxmass" => "")
+    if is_maxmass(permutation_distr)
+        min_size_str = replace(permutation_distr, "maxmass" => "")
         if isempty(min_size_str)
             mxms = 2
         else
@@ -71,11 +72,11 @@ function CPConfig(
                 throw(ArgumentError("min_size must be an integer > 1"))
             end
         end
-    elseif !in(cluster_statistic, ClusterStatistics)
+    elseif !in(permutation_distr, ClusterStatistics)
         # not a valid other method
-		throw(ArgumentError("Cluster statistic $(cluster_statistic) not supported. Please choose one of $(ClusterStatistics)."))
+		throw(ArgumentError("Cluster statistic $(permutation_distr) not supported. Please choose one of $(ClusterStatistics)."))
 	end
-    return CPConfig(cc,  mass_fnc, cluster_statistic, mxms, predefined_cluster, null_logger)
+    return CPConfig(cc,  mass_fnc, permutation_distr, mxms, predefined_cluster, null_logger)
 end
 
 function CPConfig(;
@@ -98,4 +99,4 @@ function cluster_type(cp_config::CPConfig)::TClusterCritODef
 end
 
 is_maxmass(s::String)::Bool = startswith(s, "maxmass")
-is_maxmass(cp_config::CPConfig)::Bool = is_maxmass(cp_config.cluster_statistic)
+is_maxmass(cp_config::CPConfig)::Bool = is_maxmass(cp_config.permutation_distr)

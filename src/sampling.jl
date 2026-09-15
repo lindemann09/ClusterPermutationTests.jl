@@ -89,13 +89,13 @@ function resample!(rng::AbstractRNG,
 		n_threads = 1
 	end
 
-	if cpt.config.cluster_statistic == "clusterwise"
+	if !is_maxmass(cpt.config)
 		all_cluster = _cluster_ranges(cpt.cpc.coefs, cluster_type(cpt.config))
 		n_samples = length(_joined_ranges(all_cluster))
 	else
 		n_samples = epoch_length(cpt.dat)
 	end
-	print("To-be tested samples ($(cpt.config.cluster_statistic)): $n_samples")
+	print("To-be tested samples ($(cpt.config.permutation_distr)): $n_samples")
 
 
 	if progressmeter === nothing

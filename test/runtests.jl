@@ -68,7 +68,7 @@ end
 	dat = CPData(epochs, CSV.read(download(fl_design), Table); unit_obs = :subject_id)
 
 	cl_crit = ClusterCriterium(threshold = 1.69, min_size = 50) # 10%
-	cp_config = CPConfig(cl_crit; cluster_statistic = :clusterwise)
+	cp_config = CPConfig(cl_crit; permutation_distr = :clusterwise)
 
 	cpt = fit(CPPairedSampleTTest, @formula(y ~ operator_str), dat, cp_config)
 	@test npermutations(cpt) == 0
@@ -82,10 +82,10 @@ end
 
 	cp_config2 = CPConfig(cluster_threshold = 1.69,
 				cluster_min_size =50,
-				cluster_statistic = :maxmass10)
+				permutation_distr = :maxmass10)
 
 	cpt = fit(CPPairedSampleTTest, @formula(y ~ operator_str), dat, cp_config2)
-	@test cpt.config.cluster_statistic == "maxmass10"
+	@test cpt.config.permutation_distr == "maxmass10"
 	@test cpt.config.mxms == 10
 	resample!(cpt, 1000; use_threads = false)
 	resample!(cpt, 2000; use_threads = true)
@@ -93,9 +93,10 @@ end
 
 	@test npermutations(cpt) == 3000
 	@test cluster_pvalues(cpt) ≈ [0.017, 0.00] atol = 0.02
+	@test length(time_series_stats(cpt)) == 7500
 
 	cp_config3 = CPConfig(cluster_threshold = 1.69, cluster_min_size = 50)
-	@test cp_config3.cluster_statistic == "maxmass"
+	@test cp_config3.permutation_distr == "maxmass"
 	@test cp_config3.mxms == 2
 	# FIXME missing test predefined cluster
 	cpt_mm = fit(CPMixedModel, @formula(y ~ operator_str + (1|subject_id)), dat,

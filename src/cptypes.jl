@@ -1,11 +1,9 @@
 ##
 ## Definitions of types used internally for sampling and test definitions
 ##
-
 const TParameterVector = Vector{Float64}
 const T2DParameterVector = Vector{TParameterVector}
 const TParameterMatrix = Matrix{Float64}
-const no_effect_error = ArgumentError("Please specify an effect.")
 
 struct ClusterMasses # results of a single permutation
 	max_mass::TParameterVector # max mass for each effect
