@@ -49,10 +49,10 @@ end
 @inline function parameter_estimates(cpt::CPMixedModel,
 	design::AbstractStudyDesign,
 	time_points::Vector{<:Integer};
-	store_model_fits::Bool = false)::T2DParamVector
+	store_model_fits::Bool = false)::T2DParameterVector
 
 	design = columntable(design)
-	param = T2DParamVector()
+	param = T2DParameterVector()
 
 	md = LinearMixedModel(cpt.f, design; contrasts = cpt.contrasts)
 	for t in time_points

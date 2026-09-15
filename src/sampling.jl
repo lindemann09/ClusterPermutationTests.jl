@@ -12,7 +12,7 @@ TODO
 2. parameter_estimates(cpt::ClusterPermutationTest,
 			design::AbstractStudyDesign,
 			time_points::Vector{<:Integer};
-			store_model_fits::Bool = false)::T2DParamVector
+			store_model_fits::Bool = false)::T2DParameterVector
 
 	returns vector time x parameter
 
@@ -166,7 +166,7 @@ end;
 		params = parameter_estimates(cpt, design, time_points; store_model_fits = false)
 
 		max_cluster_masses = TParameterVector()
-		cms_clusterwise = T2DParamVector()
+		cms_clusterwise = T2DParameterVector()
 		for eid in 1:n_effects
 			ts = getindex.(params, eid) # time series stats for this effect
 
@@ -213,7 +213,7 @@ end
 		# get parameter estimates for the time points (time x effect)
 		params = parameter_estimates(cpt, design, time_points; store_model_fits = false)
 
-		cms_vec = T2DParamVector()
+		cms_vec = T2DParameterVector()
 		for (eid, effect_cluster) in enumerate(idx)
 			# cluster mass statistics for each cluster of this effect
 			cms = [cpt.config.mass_fnc(getindex.(params[cl_idx], eid)) for cl_idx in effect_cluster]

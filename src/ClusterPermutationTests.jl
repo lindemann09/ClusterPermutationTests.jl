@@ -55,9 +55,10 @@ include("StudyDesigns/StudyDesigns.jl")
 @reexport using .StudyDesigns
 
 include("cluster.jl")
-include("cpconfiguration.jl")
 include("cpdata.jl")
-include("cptype.jl")
+include("cpconfiguration.jl")
+include("cptypes.jl")
+include("abstract_cpt.jl")
 include("sampling.jl")
 
 include("ttest.jl")

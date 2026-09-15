@@ -46,13 +46,13 @@ end
 ####
 #### Parameter estimates
 ####
-function parameter_estimates(cpt::CPAnovaMixedModel,
+@inline function parameter_estimates(cpt::CPAnovaMixedModel,
 	design::AbstractStudyDesign,
 	time_points::Vector{<:Integer};
-	store_model_fits::Bool = false)::T2DParamVector
+	store_model_fits::Bool = false)::T2DParameterVector
 
 	design = columntable(design)
-	param = T2DParamVector()
+	param = T2DParameterVector()
 	md = LinearMixedModel(cpt.f, design; contrasts = cpt.contrasts)
 	for t in time_points
 		md = refit!(md, view(cpt.dat.epochs, :, t); progress = false, REML = false)
