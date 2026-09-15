@@ -1,26 +1,27 @@
 const ClusterStatistics = ["clusterwise", "maxmass", "maxmassX"]
 
-struct CPConfig
-	cc::ClusterCriterium # cluster criterium
-	mass_fnc::Function # cluster mass function
-	permutation_distr::String # method two determine the NHD clusterwise, maxmass
-    mxms::Int # minimum cluster size for maxmassX
-    predefined_cluster::Union{Nothing, ClusterDefinition} # predefined cluster definition
-    null_logger::Bool # whether to use a null logger
-end;
-
 """
-    CPConfig(; cluster_threshold:Real,
+    struct CPConfig
+        cc::ClusterCriterium
+        mass_fnc::Function
+        permutation_distr::String
+        mxms::Int
+        predefined_cluster::Union{Nothing, ClusterDefinition}
+        null_logger::Bool
+    end
+
+    CPConfig(;
+            cluster_threshold:Real,
             cluster_min_size:Integer = 10,
             cluster_threshold_two_sided:Bool = true,
             predefined_cluster::Union{Nothing, UnitRange, Vector{UnitRange}, ClusterDefinition} = nothing,
             mass_fnc::Function = sum,
             permutation_distr::String = "maxmass")
 
-    CPConfig(cc::Union{ClusterCriterium, ClusterDefinition};
-            kwargs....)
+    CPConfig(cc::Union{ClusterCriterium, ClusterDefinition}; kwargs....)
 
-Creates and returns a `CPConfig` object for cluster permutation tests.
+Either `cluster_threshold` or `predefined_cluster` must be specified, but not both.
+Alternatively, you can directly provide a `ClusterCriterium` or `ClusterDefinition` object.
 
 Cluster criteria
 - `cluster_threshold`: Real The threshold for defining clusters (Real, default: 0).
@@ -29,8 +30,6 @@ Cluster criteria
 - `predefined_cluster`: A optional predefined cluster definition
             (UnitRange, Vector{UnitRange}, ClusterDefinition).
 
-Either `cluster_threshold` or `predefined_cluster` must be specified, but not both.
-Alternatively, you can directly provide a `ClusterCriterium` or `ClusterDefinition` object.
 
 Cluster-based statistics
 - `mass_fnc`: The function to compute cluster mass (default: sum).
@@ -44,6 +43,16 @@ Further options
 - `null_logger`: A boolean indicating whether to use a null logger (default: true).
 
 """
+struct CPConfig
+	cc::ClusterCriterium # cluster criterium
+	mass_fnc::Function # cluster mass function
+	permutation_distr::String # method two determine the NHD clusterwise, maxmass
+    mxms::Int # minimum cluster size for maxmassX
+    predefined_cluster::Union{Nothing, ClusterDefinition} # predefined cluster definition
+    null_logger::Bool # whether to use a null logger
+end;
+
+
 function CPConfig(
         cc::ClusterCriterium;
         mass_fnc::Function = sum,
