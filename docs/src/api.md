@@ -9,10 +9,13 @@ CPRegressionModel
 CPMixedModel
 CPAnovaMixedModel
 
-CPConfig
-
 CPTTest
 CPLinearModel
+```
+
+### Configuration
+```@docs
+CPConfig
 ```
 
 ### Methods
@@ -22,9 +25,12 @@ cluster
 cluster_mass_stats
 cluster_pvalues
 cluster_table
-npermutations
 resample!
 permutation_distribution
+
+npermutations
+ncoefs
+
 time_series_fits
 time_series_stats
 ```
@@ -35,6 +41,7 @@ CPData
 ```
 
 ### Methods
+
 ```@docs
 convert_to_cpdata
 design_table
