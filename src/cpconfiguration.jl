@@ -1,5 +1,15 @@
 const ClusterStatistics = ["clusterwise", "maxmass", "maxmassX"]
 
+struct CPConfig
+	cc::ClusterCriterium # cluster criterium
+	mass_fnc::Function # cluster mass function
+	permutation_distr::String # method two determine the NHD clusterwise, maxmass
+    mxms::Int # minimum cluster size for maxmassX
+    predefined_cluster::Union{Nothing, ClusterPredefined} # predefined cluster definition
+    null_logger::Bool # whether to use a null logger
+end;
+
+
 """
     struct CPConfig
         cc::ClusterCriterium
@@ -43,16 +53,6 @@ Further options
 - `null_logger`: A boolean indicating whether to use a null logger (default: true).
 
 """
-struct CPConfig
-	cc::ClusterCriterium # cluster criterium
-	mass_fnc::Function # cluster mass function
-	permutation_distr::String # method two determine the NHD clusterwise, maxmass
-    mxms::Int # minimum cluster size for maxmassX
-    predefined_cluster::Union{Nothing, ClusterPredefined} # predefined cluster definition
-    null_logger::Bool # whether to use a null logger
-end;
-
-
 function CPConfig(
         cc::ClusterCriterium;
         mass_fnc::Function = sum,

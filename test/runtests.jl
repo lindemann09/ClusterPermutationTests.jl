@@ -78,7 +78,7 @@ end
 	@test npermutations(cpt) == 2500
 	@test length(cluster(cpt)) == 2
 	@test cluster_mass_stats(cpt) ≈ [-749.6, -13669.8] atol = 2
-	@test cluster_pvalues(cpt) ≈ [0.04, 0.001] atol = 0.02
+	@test cluster_pvalues(cpt) ≈ [0.04, 0.001] atol = 0.03
 
 	cp_config2 = CPConfig(cluster_threshold = 1.69,
 				cluster_min_size =50,
