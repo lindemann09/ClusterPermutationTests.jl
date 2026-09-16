@@ -4,8 +4,7 @@
 [![Julia](https://img.shields.io/badge/Julia-1.10%2B-blue)](https://julialang.org)
 
 A Julia package for **cluster-based permutation testing** on time-series data.
-Cluster permutation tests are a nonparametric approach widely used in neuroscience
-(EEG, ERP, fMRI) and psycholinguistics to identify significant temporal effects while
+Cluster permutation tests are a nonparametric approach widely used to identify significant temporal effects while
 naturally controlling the family-wise error rate across many time points.
 
 **Documentation**: [https://lindemann09.github.io/ClusterPermutationTests.jl](https://lindemann09.github.io/ClusterPermutationTests.jl)
@@ -37,7 +36,7 @@ time points.
 | Paired-samples t-test | `CPPairedSampleTTest` |
 | Independent-samples t-test (equal variances) | `CPEqualVarianceTTest` |
 | Welch's t-test (unequal variances) | `CPUnequalVarianceTTest` |
-| OLS linear regression | `CPLinearModel` |
+| Linear regression | `CPLinearModel` |
 | Linear mixed-effects model | `CPMixedModel` |
 | ANOVA F-test from mixed model | `CPAnovaMixedModel` |
 
