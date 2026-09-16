@@ -6,7 +6,7 @@ const ClusterStatistics = ["clusterwise", "maxmass", "maxmassX"]
         mass_fnc::Function
         permutation_distr::String
         mxms::Int
-        predefined_cluster::Union{Nothing, ClusterDefinition}
+        predefined_cluster::Union{Nothing, ClusterPredefined}
         null_logger::Bool
     end
 
@@ -14,26 +14,26 @@ const ClusterStatistics = ["clusterwise", "maxmass", "maxmassX"]
             cluster_threshold:Real,
             cluster_min_size:Integer = 10,
             cluster_threshold_two_sided:Bool = true,
-            predefined_cluster::Union{Nothing, UnitRange, Vector{UnitRange}, ClusterDefinition} = nothing,
+            predefined_cluster::Union{Nothing, UnitRange, Vector{UnitRange}, ClusterPredefined} = nothing,
             mass_fnc::Function = sum,
             permutation_distr::String = "maxmass")
 
-    CPConfig(cc::Union{ClusterCriterium, ClusterDefinition}; kwargs....)
+    CPConfig(cc::Union{ClusterCriterium, ClusterPredefined}; kwargs....)
 
 Either `cluster_threshold` or `predefined_cluster` must be specified, but not both.
-Alternatively, you can directly provide a `ClusterCriterium` or `ClusterDefinition` object.
+Alternatively, you can directly provide a `ClusterCriterium` or `ClusterPredefined` object.
 
 Cluster criteria
 - `cluster_threshold`: Real The threshold for defining clusters (Real, default: 0).
 - `cluster_min_size`: The minimum size of clusters (Integer, default: 10).
 - `cluster_threshold_two_sided`: Whether to use a two-sided threshold (Bool,default: true).
 - `predefined_cluster`: A optional predefined cluster definition
-            (UnitRange, Vector{UnitRange}, ClusterDefinition).
+            (UnitRange, Vector{UnitRange}, ClusterPredefined).
 
 
 Cluster-based statistics
 - `mass_fnc`: The function to compute cluster mass (default: sum).
-- `permutation_distr`: The type of the permutation distribution (bootstrapped null-hypothesis
+- `permutation_distr`: The type of the permutation distribution (permutation null-hypothesis
     distribution) under which the cluster statistics is tested (String, default: "maxmass").
   - "clusterwise": Cluster mass of each cluster interval after the permutation.
   - "maxmass": Maximum of cluster mass of all clusters in this permutation.
@@ -48,7 +48,7 @@ struct CPConfig
 	mass_fnc::Function # cluster mass function
 	permutation_distr::String # method two determine the NHD clusterwise, maxmass
     mxms::Int # minimum cluster size for maxmassX
-    predefined_cluster::Union{Nothing, ClusterDefinition} # predefined cluster definition
+    predefined_cluster::Union{Nothing, ClusterPredefined} # predefined cluster definition
     null_logger::Bool # whether to use a null logger
 end;
 
@@ -57,12 +57,12 @@ function CPConfig(
         cc::ClusterCriterium;
         mass_fnc::Function = sum,
         permutation_distr::SymbolOString = "maxmass",
-        predefined_cluster::Union{Nothing, TClusterRange, Vector{TClusterRange}, ClusterDefinition} = nothing,
+        predefined_cluster::Union{Nothing, TClusterRange, Vector{TClusterRange}, ClusterPredefined} = nothing,
         null_logger::Bool = true)
 
     permutation_distr = String(permutation_distr)
-    if !(predefined_cluster == nothing || predefined_cluster isa ClusterDefinition)
-        predefined_cluster = ClusterDefinition(predefined_cluster)
+    if !(predefined_cluster == nothing || predefined_cluster isa ClusterPredefined)
+        predefined_cluster = ClusterPredefined(predefined_cluster)
     end
 
     # find minimum cluster size for maxmassX, or zero if not a maxmass label

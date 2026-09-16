@@ -9,7 +9,7 @@ Abstract base type for all cluster permutation tests.
 
 Concrete subtypes (e.g. `CPPairedSampleTTest`, `CPLinearModel`) are constructed via
 `fit(T, ...)`, which runs the initial time-series fit and detects clusters. Call
-`resample!` afterwards to build the null-hypothesis distribution.
+`resample!` afterwards to build the permutation distribution.
 """
 abstract type ClusterPermutationTest end
 #requires
@@ -114,9 +114,10 @@ function cluster_pvalues(cpt::ClusterPermutationTest, effect::Union{Integer, Sym
 	inhibit_warning::Bool = false,
 	clusterwise::Bool = false)
 	i = _effect_id(cpt, effect)
-	return _cluster_pvalues(cluster_nhd(cpt, i; clusterwise), cluster_mass_stats(cpt, i), inhibit_warning)
+	return _cluster_pvalues(permutation_distribution(cpt, i; clusterwise), cluster_mass_stats(cpt, i), inhibit_warning)
 end
 
+# FIXME update api.md
 """
     cluster_table(cpt::ClusterPermutationTest; add_effect_names=false, one_tail=false, clusterwise=false)
     cluster_table(cpt::ClusterPermutationTest, effect; inhibit_warning=false, add_effect_names=false,
@@ -138,7 +139,7 @@ function cluster_table(cpt::ClusterPermutationTest, effect::Union{Integer, Symbo
 	ts = time_series_stats(cpt, i)
 	cl_ranges = cluster(cpt, i)
 	cl_mass_stats = _cluster_mass_stats(cpt.config.mass_fnc, ts, cl_ranges)
-	p_vals = _cluster_pvalues(cluster_nhd(cpt, i; clusterwise), cl_mass_stats, inhibit_warning; one_tail)
+	p_vals = _cluster_pvalues(permutation_distribution(cpt, i; clusterwise), cl_mass_stats, inhibit_warning; one_tail)
 	return _cluster_table(i, coef_name, cl_ranges, cl_mass_stats, p_vals; add_effect_names)
 end
 
@@ -158,18 +159,18 @@ function cluster_table(cpt::ClusterPermutationTest; kwargs...)::CoefTable
 end
 
 ##
-## Null-hypothesis distributions
+## Permutation distribution
 ##
 """
-    cluster_nhd(cpt::ClusterPermutationTest, [effect]; clusterwise::Bool=false)
+    permutation_distribution(cpt::ClusterPermutationTest, [effect]; clusterwise::Bool=false)
 
-Return the bootstrapped null-hypothesis distribution (NHD; i.e., permutation distribution) of
-cluster mass statistics for the specified `effect`. The function returns the NHD based on the
-permutation distribution defined in `cpt.config.permutation_distr` (e.g. maxmass, cluster-mass).
+Return the permutation distribution (PD; i.e., permutation null-hypothesis distribution) of
+cluster mass statistics for the specified `effect`. The function returns the permutation distribution
+defined in `cpt.config.permutation_distr` (e.g. maxmass, cluster-mass).
 
-Each column is the NHD of for cluster statistic of the detected cluster in this effect. If `maxmass`
-permutation distribution was used, columns are identical, since all clusters are tested against
-the same NHD.
+Each column is the PD of for cluster statistic of the detected cluster in this effect. If `maxmass`
+permutation distribution was used, one columns is return, since all clusters are tested against
+the same PD.
 
 If `clusterwise` if true, the cluster-wise NHDs are return, even if `massmass` was used while
 model fitting.
@@ -178,10 +179,10 @@ The returned matrix has shape `(n_permutations × n_clusters)`. Returns an empty
 `resample!` has not been called yet.
 `effect` can be an integer index, a `Symbol`, or a `String` matching a coefficient name.
 """
-function cluster_nhd(x::ClusterPermutationTest; kwargs...)
-	ncoefs(x) == 1 ? cluster_nhd(x, 1; kwargs...) : throw(no_effect_error)
+function permutation_distribution(x::ClusterPermutationTest; kwargs...)
+	ncoefs(x) == 1 ? permutation_distribution(x, 1; kwargs...) : throw(no_effect_error)
 end
-function cluster_nhd(cpt::ClusterPermutationTest,
+function permutation_distribution(cpt::ClusterPermutationTest,
 	effect::Union{Integer, Symbol, String};
 	clusterwise::Bool=false)::TParameterMatrix # (permutation X cluster)
 
@@ -189,14 +190,13 @@ function cluster_nhd(cpt::ClusterPermutationTest,
 		return zeros(Float64, 0, 0)
 	else
 		e_id = _effect_id(cpt, effect)
-		n_cluster = length(cluster(cpt, e_id))
 		if is_maxmass(cpt.config) && !clusterwise
-			mm = [x.max_mass[e_id] for x in cpt.cpc.X]
-			return mm * ones(Float64, 1, n_cluster) # repeat the same column for all clusters
+			m = [x.max_mass[e_id] for x in cpt.cpc.X]
 		else
-			return reduce(hcat, [x.cluster_mass[e_id] for x in cpt.cpc.X])'
+			m = [x.cluster_mass[e_id] for x in cpt.cpc.X]
 		end
 	end
+	return reduce(hcat, m)'
 end
 
 function Base.summary(x::ClusterPermutationTest)

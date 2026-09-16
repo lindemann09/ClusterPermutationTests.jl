@@ -20,7 +20,7 @@ The test proceeds in three steps:
    linear mixed model.
 2. **Detect clusters** — contiguous windows where the test statistic exceeds a
    threshold.
-3. **Build a null-hypothesis distribution via permutation** — shuffle the
+3. **Build a permutation null-hypothesis distribution** — shuffle the
    condition labels, refit, and record the maximum cluster mass. Repeat thousands
    of times. The p-value of each observed cluster is its quantile rank against
    this distribution.

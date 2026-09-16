@@ -35,10 +35,10 @@ export ClusterPermutationTest,
 	select_epochs,
 	# Cluster
 	ClusterCriterium,
-	ClusterDefinition,
+	ClusterPredefined,
 	# Functions
 	cluster_mass_stats,
-	cluster_nhd,
+	permutation_distribution,
 	cluster_pvalues,
 	cluster_table,
 	cluster,
@@ -49,7 +49,7 @@ export ClusterPermutationTest,
 	time_series_stats,
 	# plotting
 	plot_time_series_stats!,
-	plot_cluster_nhd!
+	plot_permutation_distribution!
 
 include("utilities.jl")
 include("StudyDesigns/StudyDesigns.jl")
@@ -71,6 +71,6 @@ include("anovamixedmodels.jl")
 ## Makie extensions
 _makie_error() = throw(ArgumentError("Have you loaded an appropriate Makie backend?"))
 plot_time_series_stats!(::Any, ::Any; kwargs...) = _makie_error()
-plot_cluster_nhd!(::Any, ::Any; kwargs...) = _makie_error()
+plot_permutation_distribution!(::Any, ::Any; kwargs...) = _makie_error()
 
 end

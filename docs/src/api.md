@@ -20,11 +20,11 @@ CPLinearModel
 ```@docs
 cluster
 cluster_mass_stats
-cluster_nhd
 cluster_pvalues
 cluster_table
 npermutations
 resample!
+permutation_distribution
 time_series_fits
 time_series_stats
 ```
@@ -47,7 +47,7 @@ select_epochs
 
 ```@docs
 ClusterCriterium
-ClusterDefinition
+ClusterPredefined
 ```
 
 ## Study Design

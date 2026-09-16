@@ -22,7 +22,7 @@ cc = ClusterCriterium(threshold=1.69, min_size=50)
 # --- Fit the initial time series and detect clusters ---
 cpt = fit(CPPairedSampleTTest, @formula(y ~ condition), dat, cc)
 
-# --- Build the null-hypothesis distribution ---
+# --- Build the permutation distribution ---
 resample!(cpt, 5000; use_threads=true)
 
 # --- Inspect results ---
@@ -160,7 +160,7 @@ model has only one effect, `effect` can be omitted.
 | `time_series_stats(cpt, effect)` | Per-time-point test statistics (length = epoch_length) |
 | `cluster(cpt, effect)` | Detected cluster ranges (`Vector{UnitRange}`) |
 | `cluster_mass_stats(cpt, effect)` | Aggregate mass statistic per cluster |
-| `cluster_nhd(cpt, effect)` | Null-hypothesis distribution matrix (n_permutations × n_clusters) |
+| `permutation_distribution(cpt, effect)` | Permutation null-hypothesis distribution matrix (n_permutations × n_clusters) |
 | `cluster_pvalues(cpt, effect)` | Monte Carlo permutation p-values |
 | `cluster_table(cpt)` | Summary `CoefTable` for all effects |
 | `cluster_table(cpt, effect)` | Summary table for a single effect |
@@ -193,13 +193,13 @@ ClusterCriterium(threshold=2.0, min_size=10, use_absolute=true)
 A common choice for `threshold` is the critical value of the *t*-distribution at
 the desired α-level (e.g., `t_{0.05, df} ≈ 1.69` for large *df*).
 
-### Predefined windows — `ClusterDefinition`
+### Predefined windows — `ClusterPredefined`
 
 If the time windows of interest are known a priori:
 
 ```julia
-cc = ClusterDefinition([200:400, 600:900])   # two fixed windows
-cc = ClusterDefinition(200:800)              # single window
+cc = ClusterPredefined([200:400, 600:900])   # two fixed windows
+cc = ClusterPredefined(200:800)              # single window
 ```
 
 ## Visualization
@@ -214,10 +214,10 @@ fig = Figure(size=(800, 400))
 plot_time_series_stats!(Axis(fig[1, 1]), cpt, :condition)   # time series of t-values
 
 fig2 = Figure()
-plot_cluster_nhd!(fig2, cpt; effect=:condition, bins=100)   # null distribution histograms
+plot_permutation_distribution!(fig2, cpt; effect=:condition, bins=100)
 ```
 
-`plot_cluster_nhd!` draws one histogram per detected cluster, with the observed
+`plot_permutation_distribution!` draws one histogram per detected cluster, with the observed
 cluster mass overlaid as a vertical line.
 
 ## Full Workflow Example

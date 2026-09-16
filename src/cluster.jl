@@ -20,18 +20,18 @@ struct ClusterCriterium
 end
 
 """
-    ClusterDefinition(ranges::Vector{UnitRange{Int64}})
-    ClusterDefinition(single_range::UnitRange)
+    ClusterPredefined(ranges::Vector{UnitRange{Int64}})
+    ClusterPredefined(single_range::UnitRange)
 
 Specifies predefined cluster ranges instead of detecting them automatically.
 
 Use this when the time windows of interest are known in advance.
 """
-struct ClusterDefinition
+struct ClusterPredefined
 	ranges::Vector{TClusterRange}
 end
 
-const TClusterCritODef = Union{ClusterCriterium, ClusterDefinition}
+const TClusterCritODef = Union{ClusterCriterium, ClusterPredefined}
 
 function ClusterCriterium(;
 	threshold::Real,
@@ -40,12 +40,12 @@ function ClusterCriterium(;
 	return ClusterCriterium(threshold, min_size, use_absolute)
 end
 
-function ClusterDefinition(single_range::UnitRange)
-	return ClusterDefinition([single_range])
+function ClusterPredefined(single_range::UnitRange)
+	return ClusterPredefined([single_range])
 end
 
 function _cluster_info_str(cc::TClusterCritODef)
-	if cc isa ClusterDefinition
+	if cc isa ClusterPredefined
 		return "definition: ranges=$(cc.ranges)"
 	else
 		tr = cc.use_absolute ? "= ±$(cc.threshold)" : "=$(cc.threshold)"
@@ -92,7 +92,7 @@ function _cluster_ranges(coefs_mtx::Matrix{Float64},
 	return [_cluster_ranges(d, cc) for d in eachcol(coefs_mtx)]
 end
 
-_cluster_ranges(::Any, cc::ClusterDefinition)::Vector{TClusterRange} = cc.ranges
+_cluster_ranges(::Any, cc::ClusterPredefined)::Vector{TClusterRange} = cc.ranges
 
 
 function _cluster_mass_stats(mass_fnc::Function, dat::AbstractArray{Float64}, cl_ranges::Vector{TClusterRange})::Vector{Float64}

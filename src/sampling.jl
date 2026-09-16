@@ -62,7 +62,7 @@ end
     resample!(rng::AbstractRNG, cpt::ClusterPermutationTest, n_permutations::Integer;
               progressmeter=nothing, use_threads=true, logger=NullLogger())
 
-Run `n_permutations` permutations and accumulate the null-hypothesis distribution in `cpt`.
+Run `n_permutations` permutations and accumulate the distribution in `cpt`.
 
 Repeated calls append to the existing permutation samples.
 
